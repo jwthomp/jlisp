@@ -9,9 +9,7 @@ int main(int argc, char *arg[])
 	bytecode_t bc[3];
 	bc[0].opcode = OP_PUSH;
 	bc[0].argument = 1;
-	bc[1].opcode = OP_PUSH_ENV;
-	bc[1].argument = 2;
-	bc[2].opcode = OP_POP_ENV;
+	bc[2].opcode = OP_BIND;
 	bc[2].argument = 2;
 
 	vm_exec(vm, bc, 3);

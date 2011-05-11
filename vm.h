@@ -24,6 +24,8 @@ typedef struct vm_s {
     environment_t *m_current_env;
 	value_t **m_stack;
 	unsigned long m_sp;
+
+	value_t *m_symbols;
 	
 } vm_t;
 
