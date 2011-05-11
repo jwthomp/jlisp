@@ -10,7 +10,10 @@ typedef struct bytecode_s {
 } bytecode_t;
 
 typedef enum opcode_s {
-	OP_PUSH
+	OP_PUSH,
+	OP_PUSH_ENV,
+	OP_POP_ENV,
+	OP_BIND
 } opcode_e;
 
 
@@ -20,6 +23,7 @@ typedef struct vm_s {
 
     environment_t *m_current_env;
 	value_t *m_stack;
+	unsigned long m_sp;
 	
 } vm_t;
 

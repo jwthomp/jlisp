@@ -9,11 +9,11 @@ typedef enum {
 
 typedef struct value_s {
 	value_type_t  m_type;
-	union {
-		long number;
-		long pool_index;
-		unsigned char symbol[16];
-	} m_data;
+	unsigned long m_size;
+	unsigned char m_data[0];
 } value_t;
+
+value_t * value_create(value_type_t, unsigned long);
+void value_destroy(value_t *);
 
 #endif /* __VALUE_H_ */

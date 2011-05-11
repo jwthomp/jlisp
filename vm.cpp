@@ -1,4 +1,5 @@
 #include "env.h"
+#include "binding.h"
 
 #include "vm.h"
 
@@ -11,10 +12,16 @@ typedef struct bytecode_jump {
 } bytecode_jump_t;
 
 
-void push(vm_t *, unsigned long p_arg);
+void op_push(vm_t *, unsigned long p_arg);
+void op_push_env(vm_t *, unsigned long p_arg);
+void op_pop_env(vm_t *, unsigned long p_arg);
+void op_bind(vm_t *, unsigned long p_arg);
 
 static bytecode_jump_t g_bytecode[] = {
-	{ {0, 0}, &push }
+	{ {OP_PUSH, 0}, &op_push },
+	{ {OP_PUSH_ENV, 0}, &op_push_env },
+	{ {OP_POP_ENV, 0}, &op_pop_env },
+	{ {OP_BIND, 0}, &op_bind }
 };
 
 
@@ -25,6 +32,7 @@ vm_t *vm_create(unsigned long p_stack_size)
 	vm->m_user_env = environment_create(vm->m_kernel_env);
 	vm->m_current_env = vm->m_user_env;
 	vm->m_stack = (value_t *)malloc(sizeof(value_t) * p_stack_size);
+	vm->m_sp = 0;
 }
 
 void vm_destroy(vm_t *p_vm)
@@ -53,7 +61,27 @@ void vm_exec(vm_t *p_vm, bytecode_t *p_bc, unsigned long p_size)
 	}
 }
 
-void push(vm_t *p_vm, unsigned long p_arg)
+void op_push(vm_t *p_vm, unsigned long p_arg)
 {
-	printf("PUSH: %lu\n", p_arg);
+	value_t v = {VT_NUMBER, p_arg};
+	p_vm->m_stack[p_vm->m_sp++] = v;
+}
+
+void op_push_env(vm_t *p_vm, unsigned long p_arg)
+{
+	environment_t *env = environment_create(p_vm->m_current_env);
+	p_vm->m_current_env = env;
+}
+
+void op_pop_env(vm_t *p_vm, unsigned long p_arg)
+{
+	environment_t *env = p_vm->m_current_env;
+	p_vm->m_current_env = p_vm->m_current_env->m_parent;
+	environment_destroy(env);
+}
+
+void op_bind(vm_t *p_vm, unsigned long p_arg)
+{
+	binding_t *binding = binding_create( p_vm->m_stack[p_vm->m_sp - 2],
+								p_vm->m_stack[p_vm->m_sp - 1]);
 }

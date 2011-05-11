@@ -3,16 +3,15 @@
 
 #include "value.h"
 
-typedef char binding_key_t[16];
-
 typedef struct binding_s {
-    binding_key_t m_key;
+	value_t m_key;
     value_t m_value;
     struct binding_s *m_next;
 } binding_t;
 
 
 void bindings_free(binding_t *);
+binding_t * binding_create(value_t, value_t);
 
 
 #endif /* __BINDING_H_ */

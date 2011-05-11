@@ -5,10 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-binding_t * binding_create(binding_key_t p_key, value_t p_value)
+binding_t * binding_create(value_t p_key, value_t p_value)
 {
 	binding_t *bind = (binding_t *)malloc(sizeof(binding_t));
-	strncpy(bind->m_key, p_key, 16);
+	bind->m_key = p_key;
 	bind->m_value = p_value;
 	return bind;
 	
@@ -20,13 +20,13 @@ void bindings_free(binding_t *p_bindings)
 	
 }
 
-binding_t * binding_find(binding_t * p_bindings, binding_key_t p_key)
+binding_t * binding_find(binding_t * p_bindings, value_t p_key)
 {
 	if (p_bindings == NULL) {
 		return NULL;
 	}
 
-	if(!strcmp(p_key, p_bindings->m_key)) {
+	if((p_bindings->m_key.m_type == p_key.m_type) && (p_bindings->m_key.m_data.symbol == p_key.m_data.symbol)) {
 		return p_bindings;
 	}
 
