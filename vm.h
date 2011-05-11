@@ -22,7 +22,7 @@ typedef struct vm_s {
 	environment_t *m_user_env;
 
     environment_t *m_current_env;
-	value_t *m_stack;
+	value_t **m_stack;
 	unsigned long m_sp;
 	
 } vm_t;

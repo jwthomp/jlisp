@@ -10,7 +10,7 @@ typedef enum {
 typedef struct value_s {
 	value_type_t  m_type;
 	unsigned long m_size;
-	unsigned char m_data[0];
+	char m_data[0];
 } value_t;
 
 value_t * value_create(value_type_t, unsigned long);

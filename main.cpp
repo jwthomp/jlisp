@@ -16,10 +16,9 @@ int main(int argc, char *arg[])
 
 	vm_exec(vm, bc, 3);
 	
-	printf("vm sp: %lu %ld %ld\n", 
+	printf("vm sp: %lu %ld \n", 
 		vm->m_sp, 
-		vm->m_stack[0].m_data.number,
-		vm->m_stack[1].m_data.number);
+		* ((unsigned long *)(vm->m_stack[0]->m_data)));
 
 
 	vm_destroy(vm);

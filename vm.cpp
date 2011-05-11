@@ -31,7 +31,7 @@ vm_t *vm_create(unsigned long p_stack_size)
 	vm->m_kernel_env = environment_create(NULL);
 	vm->m_user_env = environment_create(vm->m_kernel_env);
 	vm->m_current_env = vm->m_user_env;
-	vm->m_stack = (value_t *)malloc(sizeof(value_t) * p_stack_size);
+	vm->m_stack = (value_t **)malloc(sizeof(value_t *) * p_stack_size);
 	vm->m_sp = 0;
 }
 
@@ -61,9 +61,15 @@ void vm_exec(vm_t *p_vm, bytecode_t *p_bc, unsigned long p_size)
 	}
 }
 
+void push(vm_t *p_vm, value_t *p_value)
+{
+	
+}
+
 void op_push(vm_t *p_vm, unsigned long p_arg)
 {
-	value_t v = {VT_NUMBER, p_arg};
+	value_t *v = value_create(VT_NUMBER, 4);
+	(*(unsigned long *)v->m_data) = p_arg;
 	p_vm->m_stack[p_vm->m_sp++] = v;
 }
 
