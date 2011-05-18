@@ -5,6 +5,7 @@
 
 typedef struct environment_s {
     binding_t *m_bindings;
+    binding_t *m_function_bindings;
     struct environment_s *m_parent;
 } environment_t;
 

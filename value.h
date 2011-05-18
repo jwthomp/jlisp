@@ -16,7 +16,12 @@ typedef struct value_s {
 	char m_data[0];
 } value_t;
 
-value_t * value_create(value_type_t, unsigned long);
+value_t * value_create_number(int p_number);
+value_t * value_create_symbol(char const * const p_symbol);
+
+
+value_t * value_create(value_type_t p_type, char const * const p_data, unsigned long p_size);
 void value_destroy(value_t *);
+void value_print(value_t *p_value);
 
 #endif /* __VALUE_H_ */

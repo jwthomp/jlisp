@@ -2,6 +2,7 @@
 
 #include "binding.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -31,10 +32,21 @@ binding_t * binding_find(binding_t * p_bindings, value_t *p_key)
 	}
 
 	if (p_bindings->m_key->m_type == VT_SYMBOL) {
-		if (!strcmp(p_bindings->m_value->m_data, p_key->m_data)) {
+		if (!memcmp(p_bindings->m_key->m_data, p_key->m_data, p_key->m_size)) {
 			return p_bindings;
 		}
 	}
 
 	return binding_find(p_bindings->m_next, p_key);
+}
+
+void binding_print(binding_t *p_binding)
+{
+	// Print key
+	value_print(p_binding->m_key);
+
+	printf(" ");
+
+	// Print value
+	value_print(p_binding->m_value);
 }
