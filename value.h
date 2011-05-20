@@ -4,7 +4,8 @@
 typedef enum {
 	VT_NUMBER,
 	VT_POOL,
-	VT_SYMBOL
+	VT_SYMBOL,
+	VT_INTERNAL_FUNCTION
 } value_type_t;
 
 typedef struct value_s {
@@ -15,9 +16,6 @@ typedef struct value_s {
 	struct value_s *m_next;
 	char m_data[0];
 } value_t;
-
-value_t * value_create_number(int p_number);
-value_t * value_create_symbol(char const * const p_symbol);
 
 
 value_t * value_create(value_type_t p_type, char const * const p_data, unsigned long p_size);

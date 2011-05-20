@@ -19,9 +19,7 @@ typedef enum opcode_s {
 	OP_DUP,
 	OP_LOAD,
 	OP_LOADF,
-// LOAD
-// LOADF
-// CALL
+	OP_CALL,
 } opcode_e;
 
 
@@ -38,8 +36,14 @@ typedef struct vm_s {
 	
 } vm_t;
 
+typedef value_t *(*vm_func_t)(vm_t *p_vm);
+
 vm_t *vm_create(unsigned long p_stack_size);
 void vm_destroy(vm_t *);
 void vm_exec(vm_t *, bytecode_t *, unsigned long);
+void vm_bind(vm_t *p_vm, char *p_symbol, value_t *p_value);
+void vm_bindf(vm_t *p_vm, char *p_symbol, vm_func_t p_func);
+
+
 
 #endif /* __VM_H_ */

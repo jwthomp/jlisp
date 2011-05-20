@@ -3,61 +3,47 @@
 #include <stdio.h>
 
 #include "value.h"
+#include "value_helpers.h"
 #include "binding.h"
+
+value_t *func(vm_t *p_vm)
+{
+	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
+	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
+
+	int first_num = *(int *)first->m_data;
+	int second_num = *(int *)second->m_data;
+	return value_create_number(first_num + second_num);
+}
 
 int main(int argc, char *arg[])
 {
 	vm_t *vm = vm_create(128);
 
 	printf("so: %d\n", sizeof(value_t));
-	printf("valtest: ");
-	value_print(value_create_symbol("b"));
-	printf("\n");
 
+	char sym[2] = "+";
+	vm_bindf(vm, sym, func);
 
 	bytecode_t bc[100];
 	int c = 0;
-	bc[c].opcode = OP_PUSH;
-	bc[c++].argument = value_create_symbol("a");
+	bc[c].opcode = OP_LOADF;
+	bc[c++].argument = value_create_symbol("+");
 	bc[c].opcode = OP_PUSH;
 	bc[c++].argument = value_create_number(1);
-	bc[c++].opcode = OP_BIND;
-	bc[c].opcode = OP_DUP;
-	bc[c++].argument = (void *)0;
-	bc[c++].opcode = OP_PRINT;
-	bc[c++].opcode = OP_LOAD;
+	bc[c].opcode = OP_LOADF;
+	bc[c++].argument = value_create_symbol("+");
+	bc[c].opcode = OP_PUSH;
+	bc[c++].argument = value_create_number(1);
+	bc[c].opcode = OP_PUSH;
+	bc[c++].argument = value_create_number(2);
+	bc[c].opcode = OP_CALL;
+	bc[c++].argument = (void *)2;
+	bc[c].opcode = OP_CALL;
+	bc[c++].argument = (void *)2;
 	bc[c++].opcode = OP_PRINT;
 
 	vm_exec(vm, bc, c);
 
-	binding_t *b = vm->m_current_env->m_bindings;
-printf("b: %p\n", (unsigned int *)b);
-	while(b) {
-		printf("key/val: ");
-		binding_print(b);
-		printf("\n");
-		b = b->m_next;
-	}
-
-	value_t *key = value_create_symbol("a");
-	b = binding_find(vm->m_current_env->m_bindings, key);
-
-	printf("cmp: ");
-	value_print(key);
-	printf(" ");
-	value_print(vm->m_current_env->m_bindings->m_key);
-	printf(" bind: %p\n", b);
-
-
-	//binding_print(b);
-	printf("\n");
-
-	value_print(vm->m_stack[0]);
-	printf(" ");
-	value_print(vm->m_stack[1]);
-	printf("\n");
-	
-
-	value_destroy(key);
 	vm_destroy(vm);
 }

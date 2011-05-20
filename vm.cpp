@@ -1,5 +1,6 @@
 #include "env.h"
 #include "binding.h"
+#include "value_helpers.h"
 
 #include "vm.h"
 
@@ -21,6 +22,7 @@ void op_print(vm_t *, void * p_arg);
 void op_dup(vm_t *, void * p_arg);
 void op_load(vm_t *, void * p_arg);
 void op_loadf(vm_t *, void * p_arg);
+void op_call(vm_t *, void * p_arg);
 
 static bytecode_jump_t g_bytecode[] = {
 	{ {OP_PUSH, 0}, &op_push },
@@ -32,6 +34,7 @@ static bytecode_jump_t g_bytecode[] = {
 	{ {OP_DUP, 0}, &op_dup },
 	{ {OP_LOAD, 0}, &op_load },
 	{ {OP_LOADF, 0}, &op_loadf },
+	{ {OP_CALL, 0}, &op_call },
 };
 
 
@@ -129,14 +132,57 @@ void op_dup(vm_t *p_vm, void * p_arg)
 
 void op_load(vm_t *p_vm, void * p_arg)
 {
-	binding_t *b = binding_find(p_vm->m_current_env->m_bindings, 
-									p_vm->m_stack[p_vm->m_sp - 1]);
+	binding_t *b = binding_find(p_vm->m_current_env->m_bindings, (value_t *)p_arg);
 	op_push(p_vm, (void *)b->m_value);
 }
 
 void op_loadf(vm_t *p_vm, void * p_arg)
 {
-	binding_t *b = binding_find(p_vm->m_current_env->m_function_bindings, 
-									p_vm->m_stack[p_vm->m_sp - 1]);
+	binding_t *b = binding_find(p_vm->m_current_env->m_function_bindings, (value_t *)p_arg);
 	op_push(p_vm, (void *)b->m_value);
 }
+
+void op_call(vm_t *p_vm, void * p_arg)
+{
+	// Store current bp & sp
+	int old_bp = p_vm->m_bp;
+
+	// Set bp to the name of the function we are calling
+	p_vm->m_bp = p_vm->m_sp - (1 + (int)p_arg);
+
+
+	value_t *func_val = p_vm->m_stack[p_vm->m_bp];
+
+
+	value_t *ret = 0;
+	if (func_val->m_type == VT_INTERNAL_FUNCTION) {
+		vm_func_t func = *(vm_func_t *)func_val->m_data;
+		ret = func(p_vm);
+	} else {
+		printf("ERROR: UNKNOWN FUNCTION TYPE\n");
+		*(int *)0;
+	}
+
+	// Consume the stack back through the function name
+	p_vm->m_sp = p_vm->m_bp;
+	op_push(p_vm, ret);
+	p_vm->m_bp = old_bp;
+}
+
+// TODO - Bind calls should replace existing bindings
+void vm_bind(vm_t *p_vm, char *p_symbol, value_t *p_value)
+{
+	binding_t *binding = binding_create(value_create_symbol(p_symbol), p_value);
+	binding->m_next = p_vm->m_current_env->m_function_bindings;
+	p_vm->m_current_env->m_bindings = binding;
+}
+
+// TODO - Bind calls should replace existing bindings
+void vm_bindf(vm_t *p_vm, char *p_symbol, vm_func_t p_func)
+{
+	binding_t *binding = binding_create(value_create_symbol(p_symbol),
+										value_create_internal_func(p_func)); 
+	binding->m_next = p_vm->m_current_env->m_function_bindings;
+	p_vm->m_current_env->m_function_bindings = binding;
+}
+

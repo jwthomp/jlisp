@@ -1,4 +1,5 @@
 #include "value.h"
+#include "value_helpers.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +30,10 @@ value_t * value_create_symbol(char const * const p_symbol)
 	return value_create(VT_SYMBOL, p_symbol, strlen(p_symbol));
 }
 
+value_t * value_create_internal_func(vm_func_t p_func)
+{
+	return value_create(VT_INTERNAL_FUNCTION, (char *)&p_func, sizeof(vm_func_t));
+}
 
 
 bool value_equal(value_t *p_value_1, value_t *p_value_2)
@@ -67,6 +72,12 @@ void value_print(value_t *p_value)
 {
 	switch(p_value->m_type) {
 		case VT_NUMBER:
+		{
+			int number = *((int *)p_value->m_data);
+			printf("%d", number);
+			break;
+		}
+		case VT_INTERNAL_FUNCTION:
 		{
 			int number = *((int *)p_value->m_data);
 			printf("%d", number);
