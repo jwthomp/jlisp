@@ -43,6 +43,7 @@ void vm_destroy(vm_t *);
 void vm_exec(vm_t *, bytecode_t *, unsigned long);
 void vm_bind(vm_t *p_vm, char *p_symbol, value_t *p_value);
 void vm_bindf(vm_t *p_vm, char *p_symbol, vm_func_t p_func);
+void vm_bindf(vm_t *p_vm, char *p_symbol, value_t *p_func);
 
 
 

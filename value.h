@@ -5,7 +5,9 @@ typedef enum {
 	VT_NUMBER,
 	VT_POOL,
 	VT_SYMBOL,
-	VT_INTERNAL_FUNCTION
+	VT_INTERNAL_FUNCTION,
+	VT_CONS,
+	VT_BYTECODE,
 } value_type_t;
 
 typedef struct value_s {
@@ -14,11 +16,15 @@ typedef struct value_s {
 
 	// Used by symbol table
 	struct value_s *m_next;
-	char m_data[0];
+
+	union {
+		char m_data[0];
+		struct value_s *m_cons[0];
+	};
 } value_t;
 
 
-value_t * value_create(value_type_t p_type, char const * const p_data, unsigned long p_size);
+value_t * value_create(value_type_t p_type, unsigned long p_size);
 void value_destroy(value_t *);
 void value_print(value_t *p_value);
 

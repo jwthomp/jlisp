@@ -158,7 +158,10 @@ void op_call(vm_t *p_vm, void * p_arg)
 	if (func_val->m_type == VT_INTERNAL_FUNCTION) {
 		vm_func_t func = *(vm_func_t *)func_val->m_data;
 		ret = func(p_vm);
-	} else {
+	} else if (func_val->m_type == VT_BYTECODE) {
+		vm_exec(p_vm, (bytecode_t *)func_val->m_data, func_val->m_size / sizeof(bytecode_t));
+		ret = p_vm->m_stack[p_vm->m_sp - 1];
+	}  else {
 		printf("ERROR: UNKNOWN FUNCTION TYPE\n");
 		*(int *)0;
 	}
@@ -186,3 +189,9 @@ void vm_bindf(vm_t *p_vm, char *p_symbol, vm_func_t p_func)
 	p_vm->m_current_env->m_function_bindings = binding;
 }
 
+void vm_bindf(vm_t *p_vm, char *p_symbol, value_t *p_code)
+{
+	binding_t *binding = binding_create(value_create_symbol(p_symbol), p_code);
+	binding->m_next = p_vm->m_current_env->m_function_bindings;
+	p_vm->m_current_env->m_function_bindings = binding;
+}

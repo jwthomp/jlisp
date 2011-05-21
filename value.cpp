@@ -5,13 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-value_t * value_create(value_type_t p_type, char const * const p_arg, unsigned long p_size)
+value_t * value_create(value_type_t p_type, unsigned long p_size)
 {
 	value_t *v = (value_t *)malloc(sizeof(value_t) + p_size);
 	v->m_type = p_type;
 	v->m_size = p_size;
 	v->m_next = NULL;
-	memcpy(v->m_data, p_arg, p_size);
+	memset(v->m_data, 0, p_size);
 	return v;
 }
 
@@ -22,17 +22,38 @@ void value_destroy(value_t *p_value)
 
 value_t * value_create_number(int p_number)
 {
-	return value_create(VT_NUMBER, (char *)&p_number, 4);
+	value_t *ret =  value_create(VT_NUMBER, 4);
+	memcpy(ret->m_data, (char *)&p_number, 4);
+	return ret;
 }
 
 value_t * value_create_symbol(char const * const p_symbol)
 {
-	return value_create(VT_SYMBOL, p_symbol, strlen(p_symbol));
+	value_t *ret =  value_create(VT_SYMBOL, strlen(p_symbol));
+	memcpy(ret->m_data, p_symbol, strlen(p_symbol));
+	return ret;
 }
 
 value_t * value_create_internal_func(vm_func_t p_func)
 {
-	return value_create(VT_INTERNAL_FUNCTION, (char *)&p_func, sizeof(vm_func_t));
+	value_t *ret =  value_create(VT_INTERNAL_FUNCTION, sizeof(vm_func_t));
+	memcpy(ret->m_data, (char *)&p_func, sizeof(vm_func_t));
+	return ret;
+}
+
+value_t * value_create_cons(value_t *p_car, value_t *p_cdr)
+{
+	value_t *ret =  value_create(VT_CONS, sizeof(value_t *) * 2);
+	ret->m_cons[0] = p_car;
+	ret->m_cons[1] = p_cdr;
+	return ret;
+}
+
+value_t * value_create_bytecode(bytecode_t *p_code, int p_code_count)
+{
+	value_t *ret = value_create(VT_BYTECODE, sizeof(bytecode_t) * p_code_count);
+	memcpy(ret->m_data, (char *)p_code, sizeof(bytecode_t) * p_code_count);
+	return ret;
 }
 
 
@@ -86,6 +107,15 @@ void value_print(value_t *p_value)
 		case VT_SYMBOL:
 		{
 			printf("%s", p_value->m_data);
+			break;
+		}
+		case VT_CONS:
+		{
+			printf("( ");
+			value_print(p_value->m_cons[0]);
+			printf(" ");
+			value_print(p_value->m_cons[1]);
+			printf(" )");
 			break;
 		}
 		default:
