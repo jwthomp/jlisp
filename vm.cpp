@@ -195,3 +195,40 @@ void vm_bindf(vm_t *p_vm, char *p_symbol, value_t *p_code)
 	binding->m_next = p_vm->m_current_env->m_function_bindings;
 	p_vm->m_current_env->m_function_bindings = binding;
 }
+
+// Pull the top two elements off the stack and replace them with a cons value
+void vm_cons(vm_t *p_vm)
+{
+	value_t *car = p_vm->m_stack[p_vm->m_sp - 2];
+	value_t *cdr = p_vm->m_stack[p_vm->m_sp - 1];
+	value_t *cons = value_create_cons(car, cdr);
+
+	printf("Cons VAL: ");
+	value_print(cons);
+	printf("\n");
+
+	p_vm->m_stack[p_vm->m_sp - 2] = cons;
+	p_vm->m_sp -= 1;
+}
+
+void vm_list(vm_t *p_vm, int p_args)
+{
+	value_t *nil = value_create_cons(NULL, NULL);
+	vm_push(p_vm, nil);
+
+	for(int i = p_args; i > 0; i--) {
+		vm_cons(p_vm);
+	}
+
+}
+
+void vm_push(vm_t *p_vm, value_t *p_value)
+{
+	printf("Push VAL: ");
+	value_print(p_value);
+	printf("\n");
+
+	p_vm->m_stack[p_vm->m_sp++] = p_value;
+}
+
+

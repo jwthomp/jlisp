@@ -44,7 +44,9 @@ void vm_exec(vm_t *, bytecode_t *, unsigned long);
 void vm_bind(vm_t *p_vm, char *p_symbol, value_t *p_value);
 void vm_bindf(vm_t *p_vm, char *p_symbol, vm_func_t p_func);
 void vm_bindf(vm_t *p_vm, char *p_symbol, value_t *p_func);
-
+void vm_cons(vm_t *p_vm);
+void vm_list(vm_t *p_vm, int p_list_size);
+void vm_push(vm_t *p_vm, value_t *p_value);
 
 
 #endif /* __VM_H_ */

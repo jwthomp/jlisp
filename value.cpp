@@ -91,6 +91,11 @@ bool value_equal(value_t *p_value_1, value_t *p_value_2)
 
 void value_print(value_t *p_value)
 {
+	if(p_value == NULL) {
+		printf("()");
+		return;
+	}
+
 	switch(p_value->m_type) {
 		case VT_NUMBER:
 		{
@@ -111,11 +116,16 @@ void value_print(value_t *p_value)
 		}
 		case VT_CONS:
 		{
-			printf("( ");
-			value_print(p_value->m_cons[0]);
-			printf(" ");
-			value_print(p_value->m_cons[1]);
-			printf(" )");
+			printf("(");
+			if (p_value->m_cons[0] != NULL) {
+				value_print(p_value->m_cons[0]);
+
+				if (p_value->m_cons[1] != NULL) {
+					printf(" ");
+					value_print(p_value->m_cons[1]);
+				}
+			}
+			printf(")");
 			break;
 		}
 		default:

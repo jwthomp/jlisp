@@ -1,3 +1,5 @@
+#include "reader.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,19 +31,6 @@ typedef struct node_s {
 	struct node_s *next;
 } node_t;
 
-typedef struct stream_s {
-	char const *code;
-	unsigned long index;
-
-	char pop() {
-		return code[index++];
-	}
-
-	void restore() {
-		index--;
-	}
-		
-} stream_t;
 
 typedef struct object_s {
 	unsigned long type;
@@ -104,14 +93,6 @@ node_t * node_create(lisp_e type, char *value)
 	}
 	n->next = NULL;
 	return n;
-}
-	
-stream_t *stream_create(char const *code)
-{
-	stream_t * stream = (stream_t *)malloc(sizeof(stream_t));
-	stream->code = code;
-	stream->index = 0;
-	return stream;
 }
 	
 
