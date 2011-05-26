@@ -47,7 +47,6 @@ value_t *read_atom(stream_t *p_stream)
 				p_stream->restore();
 			}
 
-printf("Atom: '%s'\n", atom);
 			return ret;
 		}
 		atom[index++] = val;

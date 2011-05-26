@@ -4,8 +4,8 @@
 
 #include "value.h"
 #include "value_helpers.h"
-#include "binding.h"
 #include "reader.h"
+#include "compile.h"
 
 value_t *cons(vm_t *p_vm)
 {
@@ -26,61 +26,28 @@ value_t *plus(vm_t *p_vm)
 }
 
 
-int doit(vm_t *vm) {
-	char sym[2] = "+";
-	vm_bindf(vm, sym, plus);
-	char symcons[5] = "cons";
-	vm_bindf(vm, symcons, cons);
-
-	bytecode_t bc[100];
-	int c = 0;
-	bc[c].opcode = OP_LOADF;
-	bc[c++].argument = value_create_symbol("+");
-	bc[c].opcode = OP_PUSH;
-	bc[c++].argument = value_create_number(1);
-	bc[c].opcode = OP_DUP;
-	bc[c++].argument = (void *)1;
-	bc[c].opcode = OP_CALL;
-	bc[c++].argument = (void *)2;
-	value_t *code = value_create_bytecode(bc, c);
-	char symadd1[5] = "add1";
-	vm_bindf(vm, symadd1, code);
-
-
-	c = 0;
-	bc[c].opcode = OP_LOADF;
-	bc[c++].argument = value_create_symbol("add1");
-	bc[c].opcode = OP_PUSH;
-	bc[c++].argument = value_create_number(4);
-	bc[c].opcode = OP_LOADF;
-	bc[c].opcode = OP_CALL;
-	bc[c++].argument = (void *)1;
-	bc[c++].opcode = OP_PRINT;
-
-	vm_exec(vm, bc, c);
-
-	printf("sp: %lu bp: %lu\n", vm->m_sp, vm->m_bp);
-	printf("stack[0]: %lu\n", (unsigned long int)vm->m_stack[0]);
-}
-
 int main(int argc, char *arg[])
 {
 	vm_t *vm = vm_create(128);
+	vm_bindf(vm, "cons", cons);
 
 	printf("so: %d\n", sizeof(value_t));
-	//doit(vm);
 
-	char blah[] = "(add1 (- 2 3))";
+	char blah[] = "(cons 2 3)";
 	stream_t *strm = stream_create(blah);
 	reader(vm, strm, false);
 
+	printf("Reader result: ");
 	bytecode_t bc[100];
-	bc[0].opcode = OP_PRINT;
-	vm_exec(vm, bc, 1);
+	bc[0].m_opcode = OP_PRINT;
+	vm_exec(vm, bc, 1, NULL);
 
 	printf("sp: %lu bp: %lu\n", vm->m_sp, vm->m_bp);
-	printf("stack[0]: %lu\n", (unsigned long int)vm->m_stack[0]);
-	value_print(vm->m_stack[0]);
+
+	printf("Calling eval:\n");
+	value_t *res = eval(vm, vm->m_stack[0]);
+	printf("\n");
+	printf("lambda: "); value_print(res); printf("\n");
 
 	vm_destroy(vm);
 }

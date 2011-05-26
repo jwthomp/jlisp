@@ -9,20 +9,21 @@
 
 typedef struct bytecode_jump {
 	bytecode_t m_bytecode;
-	void (*m_func)(vm_t *, void *);
+	void (*m_func)(vm_t *, unsigned long, value_t *);
 } bytecode_jump_t;
 
 
-void op_push(vm_t *, void * p_arg);
-void op_push_env(vm_t *, void * p_arg);
-void op_pop_env(vm_t *, void * p_arg);
-void op_bind(vm_t *, void * p_arg);
-void op_bindf(vm_t *, void * p_arg);
-void op_print(vm_t *, void * p_arg);
-void op_dup(vm_t *, void * p_arg);
-void op_load(vm_t *, void * p_arg);
-void op_loadf(vm_t *, void * p_arg);
-void op_call(vm_t *, void * p_arg);
+void op_push(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_push_env(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_pop_env(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_bind(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_bindf(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_print(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_dup(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_load(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_loadf(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_call(vm_t *, unsigned long p_arg, value_t *p_pool);
+
 
 static bytecode_jump_t g_bytecode[] = {
 	{ {OP_PUSH, 0}, &op_push },
@@ -63,38 +64,37 @@ void vm_destroy(vm_t *p_vm)
 	free(p_vm->m_stack);
 }
 
-void exec_instruction(vm_t *p_vm, bytecode_t p_bc)
+void exec_instruction(vm_t *p_vm, bytecode_t p_bc, value_t *p_pool)
 {
-	g_bytecode[p_bc.opcode].m_func(p_vm, p_bc.argument);
+	g_bytecode[p_bc.m_opcode].m_func(p_vm, p_bc.m_value, p_pool);
 }
 
-void vm_exec(vm_t *p_vm, bytecode_t *p_bc, unsigned long p_size)
+void vm_exec(vm_t *p_vm, bytecode_t *p_bc, unsigned long p_size, value_t *p_pool)
 {
 	for(unsigned long i = 0; i < p_size; i++) {
-printf("ins: %lu\n", i);
-		exec_instruction(p_vm, p_bc[i]);
+		exec_instruction(p_vm, p_bc[i], p_pool);
 	}
 }
 
-void op_push(vm_t *p_vm, void * p_arg)
+void op_push(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
-	p_vm->m_stack[p_vm->m_sp++] = (value_t *)p_arg;
+	p_vm->m_stack[p_vm->m_sp++] = &p_pool[p_arg];
 }
 
-void op_push_env(vm_t *p_vm, void * p_arg)
+void op_push_env(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
 	environment_t *env = environment_create(p_vm->m_current_env);
 	p_vm->m_current_env = env;
 }
 
-void op_pop_env(vm_t *p_vm, void * p_arg)
+void op_pop_env(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
 	environment_t *env = p_vm->m_current_env;
 	p_vm->m_current_env = p_vm->m_current_env->m_parent;
 	environment_destroy(env);
 }
 
-void op_bind(vm_t *p_vm, void * p_arg)
+void op_bind(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
 	binding_t *binding = binding_create( p_vm->m_stack[p_vm->m_sp - 2],
 								p_vm->m_stack[p_vm->m_sp - 1]);
@@ -102,7 +102,7 @@ void op_bind(vm_t *p_vm, void * p_arg)
 	p_vm->m_current_env->m_bindings = binding;
 }
 
-void op_bindf(vm_t *p_vm, void * p_arg)
+void op_bindf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
 	binding_t *binding = binding_create( p_vm->m_stack[p_vm->m_sp - 2],
 								p_vm->m_stack[p_vm->m_sp - 1]);
@@ -110,45 +110,45 @@ void op_bindf(vm_t *p_vm, void * p_arg)
 	p_vm->m_current_env->m_function_bindings = binding;
 }
 
-void op_print(vm_t *p_vm, void * p_arg)
+void op_print(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
 	printf("\nVAL: ");
 	value_print(p_vm->m_stack[p_vm->m_sp - 1]);
 	printf("\n");
 }
 
-void op_dup(vm_t *p_vm, void * p_arg)
+void op_dup(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
 	// Get value from stack
-	value_t *v = p_vm->m_stack[p_vm->m_bp + (int)p_arg];
+	value_t *v = p_vm->m_stack[p_vm->m_bp + p_arg];
 
-	printf("\nDUP: ");
-	value_print(v);
-	printf("\n");
-
-	// Push it
-	op_push(p_vm, (void *)v);
+	// Push it onto the stack
+	p_vm->m_stack[p_vm->m_sp++] = v;
 }
 
-void op_load(vm_t *p_vm, void * p_arg)
+void op_load(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
-	binding_t *b = binding_find(p_vm->m_current_env->m_bindings, (value_t *)p_arg);
-	op_push(p_vm, (void *)b->m_value);
+	binding_t *b = binding_find(p_vm->m_current_env->m_bindings, &p_pool[p_arg]);
+
+	// Push it onto the stack
+	p_vm->m_stack[p_vm->m_sp++] = b->m_value;
 }
 
-void op_loadf(vm_t *p_vm, void * p_arg)
+void op_loadf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
-	binding_t *b = binding_find(p_vm->m_current_env->m_function_bindings, (value_t *)p_arg);
-	op_push(p_vm, (void *)b->m_value);
+	binding_t *b = binding_find(p_vm->m_current_env->m_function_bindings, &p_pool[p_arg]);
+
+	// Push it onto the stack
+	p_vm->m_stack[p_vm->m_sp++] = b->m_value;
 }
 
-void op_call(vm_t *p_vm, void * p_arg)
+void op_call(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
 	// Store current bp & sp
 	int old_bp = p_vm->m_bp;
 
 	// Set bp to the name of the function we are calling
-	p_vm->m_bp = p_vm->m_sp - (1 + (int)p_arg);
+	p_vm->m_bp = p_vm->m_sp - (1 + p_arg);
 
 
 	value_t *func_val = p_vm->m_stack[p_vm->m_bp];
@@ -159,7 +159,7 @@ void op_call(vm_t *p_vm, void * p_arg)
 		vm_func_t func = *(vm_func_t *)func_val->m_data;
 		ret = func(p_vm);
 	} else if (func_val->m_type == VT_BYTECODE) {
-		vm_exec(p_vm, (bytecode_t *)func_val->m_data, func_val->m_size / sizeof(bytecode_t));
+		vm_exec(p_vm, (bytecode_t *)func_val->m_data, func_val->m_size / sizeof(bytecode_t), NULL);
 		ret = p_vm->m_stack[p_vm->m_sp - 1];
 	}  else {
 		printf("ERROR: UNKNOWN FUNCTION TYPE\n");
@@ -168,7 +168,7 @@ void op_call(vm_t *p_vm, void * p_arg)
 
 	// Consume the stack back through the function name
 	p_vm->m_sp = p_vm->m_bp;
-	op_push(p_vm, ret);
+	p_vm->m_stack[p_vm->m_sp++] = ret;
 	p_vm->m_bp = old_bp;
 }
 
@@ -203,10 +203,6 @@ void vm_cons(vm_t *p_vm)
 	value_t *cdr = p_vm->m_stack[p_vm->m_sp - 1];
 	value_t *cons = value_create_cons(car, cdr);
 
-	printf("Cons VAL: ");
-	value_print(cons);
-	printf("\n");
-
 	p_vm->m_stack[p_vm->m_sp - 2] = cons;
 	p_vm->m_sp -= 1;
 }
@@ -224,10 +220,6 @@ void vm_list(vm_t *p_vm, int p_args)
 
 void vm_push(vm_t *p_vm, value_t *p_value)
 {
-	printf("Push VAL: ");
-	value_print(p_value);
-	printf("\n");
-
 	p_vm->m_stack[p_vm->m_sp++] = p_value;
 }
 
