@@ -17,7 +17,7 @@ int compile_form(value_t *p_form, vm_t *p_vm,
 
 void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_bytecode_index)
 {
-	printf("push opcode: %s %u\n", g_opcode_print[p_opcode], p_arg);
+	//printf("push opcode: %s %u\n", g_opcode_print[p_opcode], p_arg);
 	(p_bytecode)[*p_bytecode_index].m_opcode = p_opcode;
 	(p_bytecode)[*p_bytecode_index].m_value = p_arg;
 	(*p_bytecode_index)++;
@@ -25,7 +25,7 @@ void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_by
 
 int push_pool(value_t *p_value, value_t **p_pool, int *p_pool_index)
 {
-	printf("push pool: "); value_print(p_value); printf("\n");
+	//printf("push pool: "); value_print(p_value); printf("\n");
 	(p_pool)[*p_pool_index] = p_value;
 	(*p_pool_index)++;
 	return (*p_pool_index) - 1;
@@ -68,7 +68,7 @@ int compile_args(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-	printf("Compile args: "); value_print(p_form); printf("\n");
+	//printf("Compile args: "); value_print(p_form); printf("\n");
 
 	// Just run through cons until we get to a nil and compile_form them
 	// Return how many there were
@@ -89,7 +89,7 @@ int compile_function(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-	printf("Compile function: "); value_print(p_form); printf("\n");
+	//printf("Compile function: "); value_print(p_form); printf("\n");
 
 	assert(p_form && is_cons(p_form));
 	value_t *func = p_form->m_cons[0];
@@ -104,7 +104,7 @@ int compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-	printf("Compile form: "); value_print(p_form); printf("\n");
+	//printf("Compile form: "); value_print(p_form); printf("\n");
 
 	if (is_cons(p_form)) {
 		compile_function(p_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
@@ -138,7 +138,7 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 		val = val->m_cons[1];
 	}
 
-		printf("op: %lu %lu %p\n", bytecode[0].m_opcode, (unsigned long)bytecode_index, &bytecode_index);
+		//printf("op: %lu %lu %p\n", bytecode[0].m_opcode, (unsigned long)bytecode_index, &bytecode_index);
 
 	bytecode_t *bc_allocd = (bytecode_t *)malloc(sizeof(bytecode_t) * bytecode_index);
 	memcpy(bc_allocd, bytecode, sizeof(bytecode_t) * bytecode_index);
@@ -164,7 +164,7 @@ value_t *execute(vm_t *p_vm, value_t *p_closure)
 value_t * eval(vm_t *p_vm, value_t *p_form)
 {
 	value_t *lambda = compile(p_vm, NULL, list(p_form));
-	 printf("lambda: "); value_print(lambda); printf("\n");
+//	 printf("lambda: "); value_print(lambda); printf("\n");
 
 	value_t *closure =  make_closure(p_vm, lambda);
 	vm_exec(p_vm, closure);

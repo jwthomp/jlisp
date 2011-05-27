@@ -110,8 +110,8 @@ void op_load(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 
 void op_loadf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
-	printf("loadf: "); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("\n");
-	printf("ev: %lu\n", p_vm->m_ev);
+	//printf("loadf: "); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("\n");
+	//printf("ev: %lu\n", p_vm->m_ev);
 
 	binding_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
 
@@ -218,10 +218,10 @@ void vm_exec(vm_t *p_vm, value_t *p_closure)
     assert(p_closure && p_closure->m_type == VT_CLOSURE && p_closure->m_cons[1]);
     lambda_t *l = (lambda_t *)(p_closure->m_cons[1]->m_data);
 
-printf("in exec: bc len: %lu \n", l->m_bytecode->m_size);
+//printf("in exec: bc len: %lu \n", l->m_bytecode->m_size);
 
 	for(unsigned long i = 0; i < (l->m_bytecode->m_size / sizeof(bytecode_t *)); i++) {
-printf("bc: %lu\n", i);
+//printf("bc: %lu\n", i);
 		exec_instruction(p_vm, ((bytecode_t *)l->m_bytecode->m_data)[i], l->m_pool);
 	}
 

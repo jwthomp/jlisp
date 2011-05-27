@@ -28,7 +28,9 @@ value_t *plus(vm_t *p_vm)
 
 value_t *print(vm_t *p_vm)
 {
-	printf("EXEC'd PRINT\n");
+	printf("%lu>> ", p_vm->m_sp);
+	value_print(p_vm->m_stack[p_vm->m_sp - 1]);
+	printf("\n");
 	return NULL;
 }
 
@@ -41,6 +43,7 @@ int main(int argc, char *arg[])
 	vm_bind(vm, "a", value_create_number(1));
 	vm_bind(vm, "b", value_create_number(2));
 
+/*
 	binding_t *b = environment_binding_find(vm, value_create_symbol("a"), false);
 
 	printf("b: %lu so: %d\n", b, sizeof(value_t));
@@ -60,6 +63,20 @@ int main(int argc, char *arg[])
 	eval(vm, vm->m_stack[0]);
 	printf("\n");
 	printf("lambda: "); value_print(vm->m_stack[0]); printf("\n");
+*/
+
+	char input[256];
+	input[0] = 0;
+	printf("> ");
+	while(gets(input) != NULL) {
+		stream_t *strm = stream_create(input);
+		reader(vm, strm, false);
+		eval(vm, vm->m_stack[vm->m_sp - 1]);
+		stream_destroy(strm);
+		input[0] = 0;
+
+		printf("> ");
+	}
 
 	vm_destroy(vm);
 }

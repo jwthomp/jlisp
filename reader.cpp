@@ -33,6 +33,12 @@ stream_t *stream_create(char const *code)
     return stream;
 }
 
+void stream_destroy(stream_t *p_stream)
+{
+	free(p_stream);
+}
+
+
 value_t *read_atom(stream_t *p_stream)
 {
 	char atom[33];
