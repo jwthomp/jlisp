@@ -17,7 +17,6 @@ typedef struct value_s {
 	value_type_t  m_type;
 	unsigned long m_size;
 
-	// Used by symbol table
 	struct value_s *m_next;
 
 	union {

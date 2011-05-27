@@ -9,8 +9,6 @@
 
 char const *g_opcode_print[] =  {
 	"OP_PUSH",
-	"OP_PUSH_ENV",
-	"OP_POP_ENV",
 	"OP_BIND",
 	"OP_BINDF",
 	"OP_PRINT",
@@ -103,10 +101,13 @@ value_t * value_create_closure(value_t *p_env, value_t *p_lambda)
 	return ret;
 }
 
-value_t * value_create_environment(environment_t *p_env)
+value_t * value_create_environment(value_t *p_env)
 {
 	value_t *ret = value_create(VT_ENVIRONMENT, sizeof(environment_t));
-	memcpy(ret->m_data, (char *)&p_env, sizeof(environment_t));
+
+	environment_t *env = environment_create(p_env);
+
+	memcpy(ret->m_data, (char *)env, sizeof(environment_t));
 	return ret;
 }
 

@@ -1,0 +1,58 @@
+[ ] Fix search for a binding in an environment
+
+[ ] Make binding a lisp object (cons)
+[ ] Make an environment type lisp object
+[ ] Modify reader to handle numbers
+[ ] Modify reader to handle strings
+[ ] Fix value_destroy to properly clean up value types
+[ ] Write compiler
+[ ] Implement Closure lisp object
+[ ] Implement Lambda lisp object
+		parameter list (list of symbols)
+		body (bytecode)
+		pool (literal lisp objects that the body refers to
+
+	Compiling is
+		Create a new lambda object
+		Verify the parameter list and assign it
+		Compile the body, which creates the pool
+		Return the the lambda object
+
+	compile(lispobj *plist, lispobj *body) {
+		labmda_t m;
+		for_each(p in plist) { assert(is_symbol(p));}
+		m.plist = plist;
+		for_each(p in body) {compile_form(&m, p); }
+		return make_lambda-lisp_object(&m);
+	}
+
+... eval basically amounts to:
+lispobj *lambda = compile(nil, list(body));
+lispobj *closure = make_closure(lambda, current_environment);
+run(closure);
+
+compile_form(lisp_obj* p)
+{
+	if (islist(p)) compile_function(p)
+	elseif (issymbol(p)) assembly(LOAD, p);
+	else assemble(PUSH, p);
+}
+
+compile_function(lisp_obj *p)
+{
+	lispobj *f = car(p);
+	lispobj *args = cdr(p);
+	compile_form(f);
+	int argc = compile_args(args);
+	assemble(CALL, argc);
+}
+
+pool is array of value_t's
+bytecode is an array of numbers
+push 10 means push pool[10] onto stack
+jump 30 means set the pc to index 30 of the bytecode
+call 2 means..
+loadf 20 means load the function for symbol at pool[20]
+
+
+

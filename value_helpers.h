@@ -20,7 +20,7 @@ value_t * value_create_bytecode(bytecode_t *p_code, int p_code_count);
 value_t * value_create_pool(value_t *p_literals[], int p_literal_count);
 value_t * value_create_lambda(value_t *p_parameters, value_t *p_bytecode, value_t *p_pool);
 value_t * value_create_closure(value_t *p_env, value_t *p_lambda);
-value_t * value_create_environment(environment_t *p_env);
+value_t * value_create_environment(value_t *p_env);
 
 value_t * list(value_t *p_value);
 

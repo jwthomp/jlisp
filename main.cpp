@@ -6,6 +6,7 @@
 #include "value_helpers.h"
 #include "reader.h"
 #include "compile.h"
+#include "env.h"
 
 value_t *cons(vm_t *p_vm)
 {
@@ -25,29 +26,40 @@ value_t *plus(vm_t *p_vm)
 	return value_create_number(first_num + second_num);
 }
 
+value_t *print(vm_t *p_vm)
+{
+	printf("EXEC'd PRINT\n");
+	return NULL;
+}
+
 
 int main(int argc, char *arg[])
 {
 	vm_t *vm = vm_create(128);
+	vm_bindf(vm, "print", print);
 	vm_bindf(vm, "cons", cons);
+	vm_bind(vm, "a", value_create_number(1));
+	vm_bind(vm, "b", value_create_number(2));
 
-	printf("so: %d\n", sizeof(value_t));
+	binding_t *b = environment_binding_find(vm, value_create_symbol("a"), false);
 
-	char blah[] = "(cons 2 3)";
+	printf("b: %lu so: %d\n", b, sizeof(value_t));
+
+	char blah[] = "(cons a b)";
 	stream_t *strm = stream_create(blah);
 	reader(vm, strm, false);
 
 	printf("Reader result: ");
-	bytecode_t bc[100];
-	bc[0].m_opcode = OP_PRINT;
-	vm_exec(vm, bc, 1, NULL);
+	printf("\nVAL: ");
+    value_print(vm->m_stack[vm->m_sp - 1]);
+    printf("\n");
 
 	printf("sp: %lu bp: %lu\n", vm->m_sp, vm->m_bp);
 
 	printf("Calling eval:\n");
-	value_t *res = eval(vm, vm->m_stack[0]);
+	eval(vm, vm->m_stack[0]);
 	printf("\n");
-	printf("lambda: "); value_print(res); printf("\n");
+	printf("lambda: "); value_print(vm->m_stack[0]); printf("\n");
 
 	vm_destroy(vm);
 }

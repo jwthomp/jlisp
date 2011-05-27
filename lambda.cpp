@@ -10,7 +10,7 @@ lambda_t *lambda_create(value_t *p_parameters, value_t *p_bytecode, value_t *p_p
 	lambda->m_bytecode = p_bytecode;
 	lambda->m_pool = p_pool;
 
-printf("lambda: p: %lu b: %lu p: %lu\n", sizeof(p_parameters), sizeof(p_bytecode), sizeof(p_pool));
+printf("lambda: p: %u b: %u p: %u\n", sizeof(p_parameters), sizeof(p_bytecode), sizeof(p_pool));
 
 }
 

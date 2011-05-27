@@ -82,7 +82,7 @@ int compile_args(value_t *p_form, vm_t *p_vm,
 		
 
 
-	return 0;
+	return n_args;
 }
 
 int compile_function(value_t *p_form, vm_t *p_vm, 
@@ -150,12 +150,14 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 
 value_t * make_closure(vm_t *p_vm, value_t *p_lambda)
 {
-	value_t *env = value_create_environment(p_vm->m_current_env);
+	value_t *env = value_create_environment(p_vm->m_current_env[p_vm->m_ev - 1]);
 	return value_create_closure(env, p_lambda);
 }
 
 value_t *execute(vm_t *p_vm, value_t *p_closure)
 {
+	// Push the env
+	// pop the env
 	return p_closure;
 }
 
@@ -165,5 +167,6 @@ value_t * eval(vm_t *p_vm, value_t *p_form)
 	 printf("lambda: "); value_print(lambda); printf("\n");
 
 	value_t *closure =  make_closure(p_vm, lambda);
-	return execute(p_vm, closure);
+	vm_exec(p_vm, closure);
+	return p_vm->m_stack[p_vm->m_sp - 1];
 }
