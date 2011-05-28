@@ -2,15 +2,15 @@
 #define __VALUE_H_
 
 typedef enum {
-	VT_NUMBER,
-	VT_POOL,
-	VT_SYMBOL,
-	VT_INTERNAL_FUNCTION,
-	VT_CONS,
-	VT_BYTECODE,
-	VT_LAMBDA,
-	VT_CLOSURE,
-	VT_ENVIRONMENT,
+	VT_NUMBER = 0,	
+	VT_POOL = 1,
+	VT_SYMBOL = 2,
+	VT_INTERNAL_FUNCTION = 3,
+	VT_CONS = 4,
+	VT_BYTECODE = 5,
+	VT_LAMBDA = 6,
+	VT_CLOSURE = 7,
+	VT_ENVIRONMENT = 8,
 } value_type_t;
 
 typedef struct value_s {

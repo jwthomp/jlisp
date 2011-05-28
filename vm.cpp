@@ -3,6 +3,7 @@
 #include "value_helpers.h"
 #include "assert.h"
 #include "lambda.h"
+#include "compile.h"
 
 #include "vm.h"
 
@@ -23,6 +24,7 @@ void op_dup(vm_t *, unsigned long p_arg, value_t *p_pool);
 void op_load(vm_t *, unsigned long p_arg, value_t *p_pool);
 void op_loadf(vm_t *, unsigned long p_arg, value_t *p_pool);
 void op_call(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_lambda(vm_t *, unsigned long p_arg, value_t *p_pool);
 
 
 static bytecode_jump_t g_bytecode[] = {
@@ -34,6 +36,7 @@ static bytecode_jump_t g_bytecode[] = {
 	{ {OP_LOAD, 0}, &op_load },
 	{ {OP_LOADF, 0}, &op_loadf },
 	{ {OP_CALL, 0}, &op_call },
+	{ {OP_LAMBDA, 0}, &op_lambda },
 };
 
 
@@ -65,21 +68,21 @@ void exec_instruction(vm_t *p_vm, bytecode_t p_bc, value_t *p_pool)
 
 void op_push(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
-	p_vm->m_stack[p_vm->m_sp++] = &p_pool[p_arg];
+	p_vm->m_stack[p_vm->m_sp++] = ((value_t **)p_pool->m_data)[p_arg];
 }
 
 void op_bind(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
-	binding_t *binding = binding_create( p_vm->m_stack[p_vm->m_sp - 2],
-								p_vm->m_stack[p_vm->m_sp - 1]);
+	value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+	binding_t *binding = binding_create( sym, p_vm->m_stack[p_vm->m_sp - 1]);
 	binding->m_next = ((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_bindings;
 	((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_bindings = binding;
 }
 
 void op_bindf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
-	binding_t *binding = binding_create( p_vm->m_stack[p_vm->m_sp - 2],
-								p_vm->m_stack[p_vm->m_sp - 1]);
+	value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+	binding_t *binding = binding_create( sym, p_vm->m_stack[p_vm->m_sp - 1]);
 	binding->m_next = ((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings;
 	((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings = binding;
 }
@@ -104,14 +107,16 @@ void op_load(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
 	binding_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], false);
 
+	printf("op_load: key: "); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("\n");
+
 	// Push it onto the stack
 	p_vm->m_stack[p_vm->m_sp++] = b->m_value;
 }
 
 void op_loadf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
-	//printf("loadf: "); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("\n");
-	//printf("ev: %lu\n", p_vm->m_ev);
+	printf("loadf: "); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("\n");
+	printf("ev: %lu\n", p_vm->m_ev);
 
 	binding_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
 
@@ -120,6 +125,14 @@ void op_loadf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 
 	// Push it onto the stack
 	p_vm->m_stack[p_vm->m_sp++] = b->m_value;
+}
+
+void op_lambda(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
+{
+	// get value from pool
+	value_t *lambda = ((value_t **)p_pool->m_data)[p_arg];
+	value_t *closure = make_closure(p_vm, lambda);
+	p_vm->m_stack[p_vm->m_sp++] = closure;
 }
 
 void op_call(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -138,9 +151,6 @@ void op_call(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 	if (func_val->m_type == VT_INTERNAL_FUNCTION) {
 		vm_func_t func = *(vm_func_t *)func_val->m_data;
 		ret = func(p_vm);
-	} else if (func_val->m_type == VT_BYTECODE) {
-		vm_exec(p_vm, func_val);
-		ret = p_vm->m_stack[p_vm->m_sp - 1];
 	}  else {
 		printf("ERROR: UNKNOWN FUNCTION TYPE\n");
 		*(int *)0;
@@ -213,17 +223,50 @@ void vm_pop_env(vm_t *p_vm)
 	p_vm->m_ev--;
 }
 
-void vm_exec(vm_t *p_vm, value_t *p_closure)
+void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 {
+	// Store current bp & sp
+	int old_bp = p_vm->m_bp;
+
+	// Set bp to the name of the function we are calling
+	p_vm->m_bp = p_vm->m_sp - p_nargs;
+
+printf("obp: %d nbp: %d sp: %d nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p_nargs);
+
     assert(p_closure && p_closure->m_type == VT_CLOSURE && p_closure->m_cons[1]);
     lambda_t *l = (lambda_t *)(p_closure->m_cons[1]->m_data);
 
-//printf("in exec: bc len: %lu \n", l->m_bytecode->m_size);
+	value_t *env = value_create_environment(p_closure->m_cons[0]);
+	vm_push_env(p_vm, env);
+
+	// Bind parameters
+	value_t *p = l->m_parameters;
+
+
+	int bp_offset = 0;
+	while(p && p->m_cons[0]) {
+		value_t *stack_val = p_vm->m_stack[p_vm->m_bp + bp_offset];
+
+printf("binding: "); value_print(p->m_cons[0]); printf ("to: "); value_print(stack_val); printf("\n");
+
+		vm_bind(p_vm, p->m_cons[0]->m_data, stack_val);
+
+		bp_offset++;
+		p = p->m_cons[1];
+	}
+
 
 	for(unsigned long i = 0; i < (l->m_bytecode->m_size / sizeof(bytecode_t *)); i++) {
-//printf("bc: %lu\n", i);
 		exec_instruction(p_vm, ((bytecode_t *)l->m_bytecode->m_data)[i], l->m_pool);
 	}
+
+
+	// Consume the stack back through the function name
+	p_vm->m_stack[p_vm->m_bp] = p_vm->m_stack[p_vm->m_sp - 1];
+	p_vm->m_sp = p_vm->m_bp + 1;
+	p_vm->m_bp = old_bp;
+
+	vm_pop_env(p_vm);
 
 }
 

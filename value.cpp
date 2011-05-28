@@ -15,7 +15,8 @@ char const *g_opcode_print[] =  {
 	"OP_DUP",
 	"OP_LOAD",
 	"OP_LOADF",
-	"OP_CALL"
+	"OP_CALL",
+	"OP_LAMBDA",
 };
 
 
@@ -155,6 +156,7 @@ void value_print(value_t *p_value)
 	switch(p_value->m_type) {
 		case VT_BYTECODE:
 		{
+			printf("bytecode: ");
 			bytecode_t *bc = (bytecode_t *)p_value->m_data;
 			for (unsigned long i = 0; i < (p_value->m_size / sizeof(bytecode_t)); i++) {
 				printf("op: %s code: %lu\n", g_opcode_print[bc[i].m_opcode], bc[i].m_value);
@@ -164,7 +166,7 @@ void value_print(value_t *p_value)
 		case VT_LAMBDA:
 		{
 			lambda_t *l = (lambda_t *)p_value->m_data;
-			printf(" args: ");
+			printf("lambda: args: ");
 			value_print(l->m_parameters);
 			printf("\n");
 
@@ -216,6 +218,7 @@ void value_print(value_t *p_value)
 			break;
 		}
 		default:
+			printf("no printer for value type: %d\n", p_value->m_type);
 			break;
 	};
 }

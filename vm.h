@@ -19,6 +19,7 @@ typedef enum opcode_s {
 	OP_LOAD,		// 5
 	OP_LOADF,		// 6
 	OP_CALL,		// 7
+	OP_LAMBDA,		// 8
 } opcode_e;
 
 
@@ -40,7 +41,7 @@ typedef value_t *(*vm_func_t)(vm_t *p_vm);
 
 vm_t *vm_create(unsigned long p_stack_size);
 void vm_destroy(vm_t *);
-void vm_exec(vm_t *p_vm, value_t *p_closure );
+void vm_exec(vm_t *p_vm, value_t *p_closure, int p_arg_count );
 void vm_bind(vm_t *p_vm, char *p_symbol, value_t *p_value);
 void vm_bindf(vm_t *p_vm, char *p_symbol, vm_func_t p_func);
 void vm_bindf(vm_t *p_vm, char *p_symbol, value_t *p_func);

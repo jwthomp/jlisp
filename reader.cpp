@@ -59,6 +59,10 @@ value_t *read_atom(stream_t *p_stream)
 
 		assert(index < 32);
 	}
+
+	atom[index] = 0;
+	value_t *ret = value_create_symbol(atom);
+	return ret;
 }
 
 int reader(vm_t *p_vm, stream_t *p_stream, bool p_in_list)
