@@ -17,6 +17,7 @@ char const *g_opcode_print[] =  {
 	"OP_LOADF",
 	"OP_CALL",
 	"OP_LAMBDA",
+	"OP_BINDGF",
 };
 
 

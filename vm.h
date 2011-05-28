@@ -20,6 +20,7 @@ typedef enum opcode_s {
 	OP_LOADF,		// 6
 	OP_CALL,		// 7
 	OP_LAMBDA,		// 8
+	OP_BINDGF,		// 9
 } opcode_e;
 
 

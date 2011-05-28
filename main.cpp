@@ -18,7 +18,7 @@ value_t *call(vm_t *p_vm)
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 	int nargs = p_vm->m_sp - p_vm->m_bp - 2;
 
-printf("exec: "); value_print(first); printf("\n");
+printf("exec: args: %d", nargs); value_print(first); printf("\n");
 
 	vm_exec(p_vm, first, nargs);
 

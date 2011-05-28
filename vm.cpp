@@ -18,6 +18,7 @@ typedef struct bytecode_jump {
 
 void op_push(vm_t *, unsigned long p_arg, value_t *p_pool);
 void op_bind(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_bindgf(vm_t *, unsigned long p_arg, value_t *p_pool);
 void op_bindf(vm_t *, unsigned long p_arg, value_t *p_pool);
 void op_print(vm_t *, unsigned long p_arg, value_t *p_pool);
 void op_dup(vm_t *, unsigned long p_arg, value_t *p_pool);
@@ -37,6 +38,7 @@ static bytecode_jump_t g_bytecode[] = {
 	{ {OP_LOADF, 0}, &op_loadf },
 	{ {OP_CALL, 0}, &op_call },
 	{ {OP_LAMBDA, 0}, &op_lambda },
+	{ {OP_BINDGF, 0}, &op_bindgf },
 };
 
 
@@ -85,6 +87,14 @@ void op_bindf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 	binding_t *binding = binding_create( sym, p_vm->m_stack[p_vm->m_sp - 1]);
 	binding->m_next = ((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings;
 	((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings = binding;
+}
+
+void op_bindgf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
+{
+	value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+	binding_t *binding = binding_create( sym, p_vm->m_stack[p_vm->m_sp - 1]);
+	binding->m_next = ((environment_t *)p_vm->m_user_env->m_data)->m_function_bindings;
+	((environment_t *)p_vm->m_user_env->m_data)->m_function_bindings = binding;
 }
 
 void op_print(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -151,6 +161,9 @@ void op_call(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 	if (func_val->m_type == VT_INTERNAL_FUNCTION) {
 		vm_func_t func = *(vm_func_t *)func_val->m_data;
 		ret = func(p_vm);
+	} else if (func_val->m_type == VT_CLOSURE) {
+		vm_exec(p_vm, func_val, p_arg);
+		ret = p_vm->m_stack[p_vm->m_sp - 1];
 	}  else {
 		printf("ERROR: UNKNOWN FUNCTION TYPE\n");
 		*(int *)0;
