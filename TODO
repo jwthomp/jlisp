@@ -1,11 +1,13 @@
-[ ] Get typing a symbol in by itself working
-[ ] Fix search for a binding in an environment
-[ ] Implement special operators - quote, setq, lambda
 [ ] Make binding a lisp object (cons)
-[X] Make an environment type lisp object
 [ ] Modify reader to handle numbers
 [ ] Modify reader to handle strings
 [ ] Fix value_destroy to properly clean up value types
+
+[ ] Add support for defun add1 (x) (+ 1 x)
+[X] Fix search for a binding in an environment
+[X] Get typing a symbol in by itself working
+[X] Make an environment type lisp object
+[X] Implement special operators - quote, setq, lambda
 [X] Write compiler
 [X] Implement Closure lisp object
 [X] Implement Lambda lisp object

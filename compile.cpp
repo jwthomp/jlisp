@@ -66,6 +66,12 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			push_opcode(OP_BIND, index, p_bytecode, p_bytecode_index);
 			break;
 		}
+		case OP_BINDF:
+		{
+			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
+			push_opcode(OP_BINDF, index, p_bytecode, p_bytecode_index);
+			break;
+		}
 		case OP_LAMBDA:
 		{
 			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
@@ -127,6 +133,21 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BIND, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defun", func->m_data)) {
+		printf("defun: "); value_print(args); printf("\n");
+		value_t *sym = args->m_cons[0];
+		value_t *largs = args->m_cons[1]->m_cons[0];
+		value_t *body = args->m_cons[1]->m_cons[1]->m_cons[0];
+
+		// compile args, body
+		value_t *lambda = compile(p_vm, largs, list(body));
+
+		// lambda
+		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+		// bindf symbol
+		assemble(OP_BINDF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("lambda", func->m_data)) {
 //		printf("lambda: "); value_print(args->m_cons[1]->m_cons[0]); printf("\n");
