@@ -44,6 +44,13 @@ value_t * value_create_number(int p_number)
 	return ret;
 }
 
+value_t * value_create_string(char const * const p_string)
+{
+	value_t *ret =  value_create(VT_STRING, strlen(p_string));
+	memcpy(ret->m_data, p_string, strlen(p_string));
+	return ret;
+}
+
 value_t * value_create_symbol(char const * const p_symbol)
 {
 	value_t *ret =  value_create(VT_SYMBOL, strlen(p_symbol));
@@ -198,6 +205,11 @@ void value_print(value_t *p_value)
 		{
 			int number = *((int *)p_value->m_data);
 			printf("%d", number);
+			break;
+		}
+		case VT_STRING:
+		{
+			printf("\"%s\"", p_value->m_data);
 			break;
 		}
 		case VT_SYMBOL:

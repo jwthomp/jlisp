@@ -1,6 +1,4 @@
 [ ] Make binding a lisp object (cons)
-[ ] Modify reader to handle numbers
-[ ] Modify reader to handle strings
 [ ] Fix value_destroy to properly clean up value types
 
 [ ] Defparameter
@@ -13,7 +11,8 @@
 )
 
 
-
+[X] Modify reader to handle numbers
+[X] Modify reader to handle strings
 [X] Fix search for a binding in an environment
 [X] Get typing a symbol in by itself working
 [X] Make an environment type lisp object

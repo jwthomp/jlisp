@@ -55,6 +55,9 @@ value_t *plus(vm_t *p_vm)
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
 
+	assert(first->m_type == VT_NUMBER);
+	assert(second->m_type == VT_NUMBER);
+
 	int first_num = *(int *)first->m_data;
 	int second_num = *(int *)second->m_data;
 	return value_create_number(first_num + second_num);
@@ -79,17 +82,17 @@ int main(int argc, char *arg[])
 	char p5[] = "status";
 	char p6[] = "car";
 	char p7[] = "cdr";
-	char p8[] = "1";
 	char p9[] = "call";
+	char p10[] = "+";
 	vm_bindf(vm, p1, print);
 	vm_bindf(vm, p2, cons);
 	vm_bindf(vm, p5, status);
 	vm_bindf(vm, p6, car);
 	vm_bindf(vm, p7, cdr);
 	vm_bindf(vm, p9, call);
+	vm_bindf(vm, p10, plus);
 	vm_bind(vm, p3, value_create_number(1));
 	vm_bind(vm, p4, value_create_number(2));
-	vm_bind(vm, p8, value_create_number(1));
 
 	char input[256];
 	input[0] = 0;

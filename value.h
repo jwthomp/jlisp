@@ -11,6 +11,7 @@ typedef enum {
 	VT_LAMBDA = 6,
 	VT_CLOSURE = 7,
 	VT_ENVIRONMENT = 8,
+	VT_STRING = 9,
 } value_type_t;
 
 typedef struct value_s {

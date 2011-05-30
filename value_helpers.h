@@ -13,6 +13,7 @@ bool is_lambda(value_t *);
 bool is_null(value_t *);
 
 value_t * value_create_number(int p_number);
+value_t * value_create_string(char const * const p_symbol);
 value_t * value_create_symbol(char const * const p_symbol);
 value_t * value_create_internal_func(vm_func_t p_func);
 value_t * value_create_cons(value_t *p_car, value_t *p_cdr);

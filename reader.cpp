@@ -43,25 +43,56 @@ value_t *read_atom(stream_t *p_stream)
 {
 	char atom[33];
 	int index = 0;
+	bool non_numeric = false;
+	bool is_string = false;
+
+	// Check if this is a string
+	if(p_stream->pop() == '\"') {
+		is_string = true;
+	} else {
+		p_stream->restore();
+	}
 
 	while(p_stream->index < p_stream->length) {
 		char val = p_stream->pop();
-		if ((val == ' ') || (val == '(') || (val == ')')) {
+		if (((is_string == false) && ((val == ' ') || (val == '(') || (val == ')'))) || ((is_string == true) && (val == '\"'))) {
 			atom[index] = 0;
-			value_t *ret = value_create_symbol(atom);
-			if ((val == '(') || (val == ')')) {
+
+			value_t *ret = 0;
+			if (is_string == true) {
+				ret = value_create_string(atom);
+			} else if (non_numeric == false) {
+				int i = atoi(atom);
+				ret = value_create_number(i);
+			} else {
+				ret = value_create_symbol(atom);
+			}
+
+			if ((is_string == false) && ((val == '(') || (val == ')'))) {
 				p_stream->restore();
 			}
 
 			return ret;
 		}
 		atom[index++] = val;
+		if (val > '9' || val < '0') {
+			non_numeric = true;
+		}
 
 		assert(index < 32);
 	}
 
 	atom[index] = 0;
-	value_t *ret = value_create_symbol(atom);
+
+	value_t *ret = 0;
+	if (is_string == true) {
+		ret = value_create_string(atom);
+	} else if (non_numeric == false) {
+		int i = atoi(atom);
+		ret = value_create_number(i);
+	} else {
+		ret = value_create_symbol(atom);
+	}
 	return ret;
 }
 
