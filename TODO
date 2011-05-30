@@ -1,16 +1,19 @@
 [ ] Make binding a lisp object (cons)
 [ ] Fix value_destroy to properly clean up value types
 
-[ ] Defparameter
 [ ] cond
-[ ] Add support for defun add1 (x) (+ 1 x)
+
+[ ] quote, atom, eq, cons, car, cdr, cond
+
+
 
 (cond (test result)
 	(test result)
 	(test result)
 )
 
-
+[X] Defparameter
+[X] Add support for defun add1 (x) (+ 1 x)
 [X] Modify reader to handle numbers
 [X] Modify reader to handle strings
 [X] Fix search for a binding in an environment

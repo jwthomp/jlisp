@@ -28,6 +28,12 @@ printf("exec: args: %d", nargs); value_print(first); printf("\n");
 	return p_vm->m_stack[p_vm->m_sp - 1];
 }
 
+value_t *cond(vm_t *p_vm)
+{
+	int nargs = p_vm->m_sp - p_vm->m_bp - 2;
+}
+
+
 value_t *cons(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
