@@ -3,7 +3,17 @@
 [ ] Modify reader to handle strings
 [ ] Fix value_destroy to properly clean up value types
 
+[ ] Defparameter
+[ ] cond
 [ ] Add support for defun add1 (x) (+ 1 x)
+
+(cond (test result)
+	(test result)
+	(test result)
+)
+
+
+
 [X] Fix search for a binding in an environment
 [X] Get typing a symbol in by itself working
 [X] Make an environment type lisp object

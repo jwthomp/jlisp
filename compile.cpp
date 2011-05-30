@@ -40,7 +40,7 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 {
 	switch (p_opcode) {
 		case OP_CALL:
-			push_opcode(OP_CALL, (int)p_arg, p_bytecode, p_bytecode_index);
+			push_opcode(OP_CALL, (long)p_arg, p_bytecode, p_bytecode_index);
 			break;
 		case OP_LOAD:
 		{
@@ -67,6 +67,12 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			break;
 		}
 		case OP_BINDGF:
+		{
+			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
+			push_opcode(OP_BINDGF, index, p_bytecode, p_bytecode_index);
+			break;
+		}
+		case OP_BINDG:
 		{
 			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
 			push_opcode(OP_BINDGF, index, p_bytecode, p_bytecode_index);
@@ -139,6 +145,14 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BIND, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defparameter", func->m_data)) {
+		assert(args->m_cons[0] && args->m_cons[1] && args->m_cons[1]->m_cons[0]);
+
+		value_t *sym = args->m_cons[0];
+		value_t *form = args->m_cons[1]->m_cons[0];
+
+		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+		assemble(OP_BINDG, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defun", func->m_data)) {
 		printf("defun: "); value_print(args); printf("\n");
