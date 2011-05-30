@@ -75,7 +75,7 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 		case OP_BINDG:
 		{
 			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
-			push_opcode(OP_BINDGF, index, p_bytecode, p_bytecode_index);
+			push_opcode(OP_BINDG, index, p_bytecode, p_bytecode_index);
 			break;
 		}
 		case OP_BINDF:

@@ -40,7 +40,7 @@ static bytecode_jump_t g_bytecode[] = {
 	{ {OP_CALL, 0}, &op_call },
 	{ {OP_LAMBDA, 0}, &op_lambda },
 	{ {OP_BINDGF, 0}, &op_bindgf },
-	{ {OP_BINDG, 0}, &op_bindgf },
+	{ {OP_BINDG, 0}, &op_bindg },
 };
 
 
