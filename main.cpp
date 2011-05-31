@@ -1,11 +1,13 @@
 
-#include <stdio.h>
 
 #include "value.h"
 #include "value_helpers.h"
 #include "reader.h"
 #include "compile.h"
 #include "env.h"
+
+#include <stdio.h>
+#include <string.h>
 
 value_t *status(vm_t *p_vm)
 {
@@ -56,6 +58,45 @@ value_t *cdr(vm_t *p_vm)
 	return first->m_cons[1];
 }
 
+value_t *eq(vm_t *p_vm)
+{
+	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
+	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
+
+	assert(first->m_type == second->m_type);
+
+	switch (first->m_type) {
+		case VT_NUMBER:
+			if (*(int *)(first->m_data) == *(int *)(second->m_data)) {
+				return value_create_symbol("t");
+			} else {
+				return value_create_symbol("nil");
+			}
+			break;
+
+		case VT_SYMBOL:
+			if(!strcmp(first->m_data, second->m_data)) {
+				return value_create_symbol("t");
+			} else {
+				return value_create_symbol("nil");
+			}
+			break;
+
+		case VT_STRING:
+			if(!strcmp(first->m_data, second->m_data)) {
+				return value_create_symbol("t");
+			} else {
+				return value_create_symbol("nil");
+			}
+			break;
+
+		default:
+			assert(!"Trying to test unsupported type with eq");
+			break;
+	}
+
+}
+
 value_t *plus(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
@@ -88,8 +129,10 @@ int main(int argc, char *arg[])
 	char p5[] = "status";
 	char p6[] = "car";
 	char p7[] = "cdr";
+	char p8[] = "nil";
 	char p9[] = "call";
 	char p10[] = "+";
+	char p11[] = "eq";
 	vm_bindf(vm, p1, print);
 	vm_bindf(vm, p2, cons);
 	vm_bindf(vm, p5, status);
@@ -97,6 +140,8 @@ int main(int argc, char *arg[])
 	vm_bindf(vm, p7, cdr);
 	vm_bindf(vm, p9, call);
 	vm_bindf(vm, p10, plus);
+	vm_bindf(vm, p11, eq);
+	vm_bind(vm, p8, value_create_symbol("nil"));
 	vm_bind(vm, p3, value_create_number(1));
 	vm_bind(vm, p4, value_create_number(2));
 
