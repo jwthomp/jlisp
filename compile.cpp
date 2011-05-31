@@ -2,6 +2,7 @@
 #include "value_helpers.h"
 #include "assert.h"
 #include "vm.h"
+#include "gc.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,7 +20,7 @@ int compile_form(value_t *p_form, vm_t *p_vm,
 
 void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_bytecode_index)
 {
-	printf("push opcode: %s %u\n", g_opcode_print[p_opcode], p_arg);
+	//printf("push opcode: %s %u\n", g_opcode_print[p_opcode], p_arg);
 	(p_bytecode)[*p_bytecode_index].m_opcode = p_opcode;
 	(p_bytecode)[*p_bytecode_index].m_value = p_arg;
 	(*p_bytecode_index)++;
@@ -27,7 +28,7 @@ void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_by
 
 int push_pool(value_t *p_value, value_t **p_pool, int *p_pool_index)
 {
-	printf("push pool: "); value_print(p_value); printf("\n");
+	//printf("push pool: "); value_print(p_value); printf("\n");
 	(p_pool)[*p_pool_index] = p_value;
 	(*p_pool_index)++;
 	return (*p_pool_index) - 1;
@@ -111,7 +112,7 @@ int compile_args(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-	printf("Compile args: "); value_print(p_form); printf("\n");
+	//printf("Compile args: "); value_print(p_form); printf("\n");
 
 	// Just run through cons until we get to a nil and compile_form them
 	// Return how many there were
@@ -132,7 +133,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-	printf("Compile function: "); value_print(p_form); printf("\n");
+	//printf("Compile function: "); value_print(p_form); printf("\n");
 
 	assert(p_form && is_cons(p_form));
 	value_t *func = p_form->m_cons[0];
@@ -186,7 +187,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 			// Next test
 			args = args->m_cons[1];
 		}
-printf("cond: "); value_print(args->m_cons[0]); printf("\n");
+//printf("cond: "); value_print(args->m_cons[0]); printf("\n");
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defparameter", func->m_data)) {
 		assert(args->m_cons[0] && args->m_cons[1] && args->m_cons[1]->m_cons[0]);
 
@@ -197,13 +198,13 @@ printf("cond: "); value_print(args->m_cons[0]); printf("\n");
 		assemble(OP_BINDG, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defun", func->m_data)) {
-		printf("defun: "); value_print(args); printf("\n");
+		//printf("defun: "); value_print(args); printf("\n");
 		value_t *sym = args->m_cons[0];
 		value_t *largs = args->m_cons[1]->m_cons[0];
 		value_t *body = args->m_cons[1]->m_cons[1]->m_cons[0];
 
 		// compile args, body
-		value_t *lambda = compile(p_vm, largs, list(body));
+		value_t *lambda = compile(p_vm, largs, list(p_vm, body));
 
 		// lambda
 		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
@@ -215,7 +216,7 @@ printf("cond: "); value_print(args->m_cons[0]); printf("\n");
 //		printf("lambda: "); value_print(args->m_cons[1]->m_cons[0]); printf("\n");
 		value_t *largs = args->m_cons[0];
 		value_t *body = args->m_cons[1]->m_cons[0];
-		value_t *lambda = compile(p_vm, largs, list(body));
+		value_t *lambda = compile(p_vm, largs, list(p_vm, body));
 //printf("lambda: "); value_print(lambda); printf("\n");
 		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 	} else {
@@ -229,7 +230,7 @@ int compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-	printf("Compile form: "); value_print(p_form); printf("\n");
+	//printf("Compile form: "); value_print(p_form); printf("\n");
 
 	if (is_cons(p_form)) {
 		compile_function(p_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
@@ -250,7 +251,7 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 	int pool_index = 0;
 	int bytecode_index = 0;
 
-printf("POOL: %p\n", pool);
+//printf("POOL: %p\n", pool);
 
 	assert(p_parameters == NULL || is_cons(p_parameters));
 
@@ -267,21 +268,23 @@ printf("POOL: %p\n", pool);
 		val = val->m_cons[1];
 	}
 
-	bytecode[bytecode_index++] = {OP_RET, 0};
+	bytecode_t bc = {OP_RET, 0};
+	bytecode[bytecode_index++] = bc;
 
 	bytecode_t *bc_allocd = (bytecode_t *)malloc(sizeof(bytecode_t) * bytecode_index);
 	memcpy(bc_allocd, bytecode, sizeof(bytecode_t) * bytecode_index);
-	value_t *bytecode_final = value_create_bytecode(bc_allocd, bytecode_index);
-	value_t *pool_final = value_create_pool(pool, pool_index);
+	value_t *bytecode_final = value_create_bytecode(p_vm, bc_allocd, bytecode_index);
+	free(bc_allocd);
+	value_t *pool_final = value_create_pool(p_vm, pool, pool_index);
 
-printf("POOL OUT: %p\n", pool);
-	return value_create_lambda(p_parameters, bytecode_final, pool_final);
+//printf("POOL OUT: %p\n", pool);
+	return value_create_lambda(p_vm, p_parameters, bytecode_final, pool_final);
 }
 
 value_t * make_closure(vm_t *p_vm, value_t *p_lambda)
 {
-	value_t *env = value_create_environment(p_vm->m_current_env[p_vm->m_ev - 1]);
-	return value_create_closure(env, p_lambda);
+	value_t *env = value_create_environment(p_vm, p_vm->m_current_env[p_vm->m_ev - 1]);
+	return value_create_closure(p_vm, env, p_lambda);
 }
 
 value_t *execute(vm_t *p_vm, value_t *p_closure)
@@ -293,7 +296,7 @@ value_t *execute(vm_t *p_vm, value_t *p_closure)
 
 value_t * eval(vm_t *p_vm, value_t * p_form)
 {
-	value_t *lambda = compile(p_vm, NULL, list(p_form));
+	value_t *lambda = compile(p_vm, NULL, list(p_vm, p_form));
 	value_t *closure =  make_closure(p_vm, lambda);
 	vm_exec(p_vm, closure, 0);
 

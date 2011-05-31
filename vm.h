@@ -33,6 +33,10 @@ typedef struct vm_s {
 
     value_t **m_current_env;
 	value_t **m_stack;
+
+	value_t *m_heap;
+	value_t *m_free_heap;
+
 	unsigned long m_sp;
 	unsigned long m_bp;
 	unsigned long m_ev;

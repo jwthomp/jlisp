@@ -39,7 +39,7 @@ void stream_destroy(stream_t *p_stream)
 }
 
 
-value_t *read_atom(stream_t *p_stream)
+value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 {
 	char atom[33];
 	int index = 0;
@@ -60,12 +60,12 @@ value_t *read_atom(stream_t *p_stream)
 
 			value_t *ret = 0;
 			if (is_string == true) {
-				ret = value_create_string(atom);
+				ret = value_create_string(p_vm, atom);
 			} else if (non_numeric == false) {
 				int i = atoi(atom);
-				ret = value_create_number(i);
+				ret = value_create_number(p_vm, i);
 			} else {
-				ret = value_create_symbol(atom);
+				ret = value_create_symbol(p_vm, atom);
 			}
 
 			if ((is_string == false) && ((val == '(') || (val == ')'))) {
@@ -86,12 +86,12 @@ value_t *read_atom(stream_t *p_stream)
 
 	value_t *ret = 0;
 	if (is_string == true) {
-		ret = value_create_string(atom);
+		ret = value_create_string(p_vm, atom);
 	} else if (non_numeric == false) {
 		int i = atoi(atom);
-		ret = value_create_number(i);
+		ret = value_create_number(p_vm, i);
 	} else {
-		ret = value_create_symbol(atom);
+		ret = value_create_symbol(p_vm, atom);
 	}
 	return ret;
 }
@@ -121,7 +121,7 @@ int reader(vm_t *p_vm, stream_t *p_stream, bool p_in_list)
 		} else {
 			// This is an atom (symbol or fixnum)
 			p_stream->restore();
-			value_t *ret = read_atom(p_stream);
+			value_t *ret = read_atom(p_vm, p_stream);
 			vm_push(p_vm, ret);
 			list_size++;
 		}

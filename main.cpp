@@ -5,15 +5,97 @@
 #include "reader.h"
 #include "compile.h"
 #include "env.h"
+#include "gc.h"
+
+//#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 value_t *status(vm_t *p_vm)
 {
+	// Display stack
 	printf("sp: %lu\n", p_vm->m_sp);
+
+	// Display memory
+	value_t *heap = p_vm->m_heap;
+	int count = 0;
+	unsigned long mem = 0;
+	while(heap) {
+		count++;
+		mem += sizeof(value_t) + heap->m_size;
+		printf("%d] %lu ", count, sizeof(value_t) + heap->m_size);
+		value_print(heap);
+		printf("\n");
+		heap = heap->m_heapptr;
+	}
+
+#if 0
+	printf("\n\n-----FREE HEAP----\n\n");
+
+	heap = p_vm->m_free_heap;
+	while(heap) {
+		printf("%d] %lu ", count, sizeof(value_t) + heap->m_size);
+		value_print(heap);
+		printf("\n");
+		heap = heap->m_heapptr;
+	}
+#endif
+
+
+	printf("Live Objects: %d\n", count);
+	printf("Memory used: %lu\n", mem);
+	
 	return NULL;
 }
+
+value_t *gc_go(vm_t *p_vm)
+{
+	gc(p_vm);
+	return NULL;
+}
+	
+
+value_t *load(vm_t *p_vm)
+{
+	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
+	assert(first->m_type == VT_STRING);
+
+	struct stat st;
+	if (stat(first->m_data, &st) != 0) {
+		return value_create_symbol(p_vm, "nil");
+	}
+
+	FILE *fp = fopen(first->m_data, "r");
+	char *input = (char *)malloc(st.st_size);
+
+	unsigned long file_size = (unsigned long)st.st_size;
+	
+	while(int read_in_size = getline(&input, (size_t *)&file_size, fp) != -1) {
+printf("\n>%d<\n", read_in_size);
+		if (input[read_in_size - 1] == '\n') {
+			input[read_in_size - 1] = '\0';
+		}
+
+		stream_t *strm = stream_create(input);
+		reader(p_vm, strm, false);
+
+		value_t *rd = p_vm->m_stack[p_vm->m_sp - 1];
+		p_vm->m_sp--;
+
+		eval(p_vm, rd);
+		p_vm->m_sp--;
+
+		stream_destroy(strm);
+	}
+	free(input);
+	fclose(fp);
+}
+
 
 value_t *call(vm_t *p_vm)
 {
@@ -41,7 +123,7 @@ value_t *cons(vm_t *p_vm)
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
 
-	return value_create_cons(first, second);
+	return value_create_cons(p_vm, first, second);
 }
 
 value_t *car(vm_t *p_vm)
@@ -68,25 +150,25 @@ value_t *eq(vm_t *p_vm)
 	switch (first->m_type) {
 		case VT_NUMBER:
 			if (*(int *)(first->m_data) == *(int *)(second->m_data)) {
-				return value_create_symbol("t");
+				return value_create_symbol(p_vm, "t");
 			} else {
-				return value_create_symbol("nil");
+				return value_create_symbol(p_vm, "nil");
 			}
 			break;
 
 		case VT_SYMBOL:
 			if(!strcmp(first->m_data, second->m_data)) {
-				return value_create_symbol("t");
+				return value_create_symbol(p_vm, "t");
 			} else {
-				return value_create_symbol("nil");
+				return value_create_symbol(p_vm, "nil");
 			}
 			break;
 
 		case VT_STRING:
 			if(!strcmp(first->m_data, second->m_data)) {
-				return value_create_symbol("t");
+				return value_create_symbol(p_vm, "t");
 			} else {
-				return value_create_symbol("nil");
+				return value_create_symbol(p_vm, "nil");
 			}
 			break;
 
@@ -107,7 +189,7 @@ value_t *plus(vm_t *p_vm)
 
 	int first_num = *(int *)first->m_data;
 	int second_num = *(int *)second->m_data;
-	return value_create_number(first_num + second_num);
+	return value_create_number(p_vm, first_num + second_num);
 }
 
 value_t *print(vm_t *p_vm)
@@ -133,6 +215,11 @@ int main(int argc, char *arg[])
 	char p9[] = "call";
 	char p10[] = "+";
 	char p11[] = "eq";
+	char p12[] = "load";
+	char p13[] = "gc";
+
+printf("vm ev: %lu\n", vm->m_ev);
+
 	vm_bindf(vm, p1, print);
 	vm_bindf(vm, p2, cons);
 	vm_bindf(vm, p5, status);
@@ -141,9 +228,11 @@ int main(int argc, char *arg[])
 	vm_bindf(vm, p9, call);
 	vm_bindf(vm, p10, plus);
 	vm_bindf(vm, p11, eq);
-	vm_bind(vm, p8, value_create_symbol("nil"));
-	vm_bind(vm, p3, value_create_number(1));
-	vm_bind(vm, p4, value_create_number(2));
+	vm_bindf(vm, p12, load);
+	vm_bindf(vm, p13, gc_go);
+	vm_bind(vm, p8, value_create_symbol(vm, "nil"));
+	vm_bind(vm, p3, value_create_number(vm, 1));
+	vm_bind(vm, p4, value_create_number(vm, 2));
 
 	char input[256];
 	input[0] = 0;
