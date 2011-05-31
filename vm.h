@@ -22,6 +22,8 @@ typedef enum opcode_s {
 	OP_LAMBDA,		// 8
 	OP_BINDGF,		// 9
 	OP_BINDG,		// 10
+	OP_IFNILJMP,	// 11
+	OP_RET,			// 12
 } opcode_e;
 
 
@@ -34,6 +36,7 @@ typedef struct vm_s {
 	unsigned long m_sp;
 	unsigned long m_bp;
 	unsigned long m_ev;
+	int m_ip;
 
 	value_t *m_symbols;
 	

@@ -19,6 +19,8 @@ char const *g_opcode_print[] =  {
 	"OP_LAMBDA",
 	"OP_BINDGF",
 	"OP_BINDG",
+	"OP_IFNILJMP",
+	"OP_RET",
 };
 
 

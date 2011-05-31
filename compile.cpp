@@ -84,6 +84,16 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			push_opcode(OP_BINDF, index, p_bytecode, p_bytecode_index);
 			break;
 		}
+		case OP_IFNILJMP:
+		{
+			push_opcode(OP_IFNILJMP, (int)p_arg, p_bytecode, p_bytecode_index);
+			break;
+		}
+		case OP_RET:
+		{
+			push_opcode(OP_RET, (int)p_arg, p_bytecode, p_bytecode_index);
+			break;
+		}
 		case OP_LAMBDA:
 		{
 			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
@@ -145,6 +155,38 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BIND, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+	} else if ((func->m_type == VT_SYMBOL) && !strcmp("cond", func->m_data)) {
+		while(args->m_cons[0]) {
+			value_t * test = args->m_cons[0]->m_cons[0];
+			value_t * if_true = args->m_cons[0]->m_cons[1]->m_cons[0];
+
+			// compile test
+			compile_form(test, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+
+			// Call test
+//			assemble(OP_CALL, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+			// Ifniljump 2
+			assemble(OP_IFNILJMP, (int *)3, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+			int old_index = *p_bytecode_index - 1;
+
+			// compile_form body
+			compile_form(if_true, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+//			assemble(OP_CALL, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+			// return
+			assemble(OP_RET, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+			int save_index = *p_bytecode_index;
+			assemble(OP_IFNILJMP, (int *)(save_index - old_index), p_vm, p_bytecode, &old_index, p_pool, p_pool_index);
+			*p_bytecode_index = save_index;
+			
+
+			// Next test
+			args = args->m_cons[1];
+		}
+printf("cond: "); value_print(args->m_cons[0]); printf("\n");
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defparameter", func->m_data)) {
 		assert(args->m_cons[0] && args->m_cons[1] && args->m_cons[1]->m_cons[0]);
 
@@ -224,6 +266,8 @@ printf("POOL: %p\n", pool);
 		compile_form(val->m_cons[0], p_vm, (bytecode_t *)bytecode, &bytecode_index, (value_t **)pool, &pool_index, false);
 		val = val->m_cons[1];
 	}
+
+	bytecode[bytecode_index++] = {OP_RET, 0};
 
 	bytecode_t *bc_allocd = (bytecode_t *)malloc(sizeof(bytecode_t) * bytecode_index);
 	memcpy(bc_allocd, bytecode, sizeof(bytecode_t) * bytecode_index);

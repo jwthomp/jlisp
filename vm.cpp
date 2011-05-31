@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct bytecode_jump {
 	bytecode_t m_bytecode;
@@ -27,6 +28,8 @@ void op_load(vm_t *, unsigned long p_arg, value_t *p_pool);
 void op_loadf(vm_t *, unsigned long p_arg, value_t *p_pool);
 void op_call(vm_t *, unsigned long p_arg, value_t *p_pool);
 void op_lambda(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_ifniljmp(vm_t *, unsigned long p_arg, value_t *p_pool);
+void op_ret(vm_t *, unsigned long p_arg, value_t *p_pool);
 
 
 static bytecode_jump_t g_bytecode[] = {
@@ -41,6 +44,8 @@ static bytecode_jump_t g_bytecode[] = {
 	{ {OP_LAMBDA, 0}, &op_lambda },
 	{ {OP_BINDGF, 0}, &op_bindgf },
 	{ {OP_BINDG, 0}, &op_bindg },
+	{ {OP_IFNILJMP, 0}, &op_ifniljmp },
+	{ {OP_RET, 0}, &op_ret },
 };
 
 
@@ -55,6 +60,7 @@ vm_t *vm_create(unsigned long p_stack_size)
 	vm->m_sp = 0;
 	vm->m_bp = 0;
 	vm->m_ev = 1;
+	vm->m_ip = 0;
 }
 
 void vm_destroy(vm_t *p_vm)
@@ -66,6 +72,8 @@ void vm_destroy(vm_t *p_vm)
 
 void exec_instruction(vm_t *p_vm, bytecode_t p_bc, value_t *p_pool)
 {
+printf("exec instruction: %d -> %d\n", p_vm->m_ip, p_bc.m_opcode);
+
 	g_bytecode[p_bc.m_opcode].m_func(p_vm, p_bc.m_value, p_pool);
 }
 
@@ -73,6 +81,7 @@ void exec_instruction(vm_t *p_vm, bytecode_t p_bc, value_t *p_pool)
 void op_push(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
 	p_vm->m_stack[p_vm->m_sp++] = ((value_t **)p_pool->m_data)[p_arg];
+	p_vm->m_ip++;
 }
 
 void op_bind(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -81,6 +90,7 @@ void op_bind(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 	binding_t *binding = binding_create( sym, p_vm->m_stack[p_vm->m_sp - 1]);
 	binding->m_next = ((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_bindings;
 	((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_bindings = binding;
+	p_vm->m_ip++;
 }
 
 void op_bindf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -89,6 +99,7 @@ void op_bindf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 	binding_t *binding = binding_create( sym, p_vm->m_stack[p_vm->m_sp - 1]);
 	binding->m_next = ((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings;
 	((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings = binding;
+	p_vm->m_ip++;
 }
 
 void op_bindg(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -97,6 +108,7 @@ void op_bindg(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 	binding_t *binding = binding_create( sym, p_vm->m_stack[p_vm->m_sp - 1]);
 	binding->m_next = ((environment_t *)p_vm->m_user_env->m_data)->m_bindings;
 	((environment_t *)p_vm->m_user_env->m_data)->m_bindings = binding;
+	p_vm->m_ip++;
 }
 
 void op_bindgf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -105,6 +117,7 @@ void op_bindgf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 	binding_t *binding = binding_create( sym, p_vm->m_stack[p_vm->m_sp - 1]);
 	binding->m_next = ((environment_t *)p_vm->m_user_env->m_data)->m_function_bindings;
 	((environment_t *)p_vm->m_user_env->m_data)->m_function_bindings = binding;
+	p_vm->m_ip++;
 }
 
 void op_print(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -112,6 +125,7 @@ void op_print(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 	printf("\nVAL: ");
 	value_print(p_vm->m_stack[p_vm->m_sp - 1]);
 	printf("\n");
+	p_vm->m_ip++;
 }
 
 void op_dup(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -121,6 +135,7 @@ void op_dup(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 
 	// Push it onto the stack
 	p_vm->m_stack[p_vm->m_sp++] = v;
+	p_vm->m_ip++;
 }
 
 void op_load(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -131,6 +146,7 @@ void op_load(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 
 	// Push it onto the stack
 	p_vm->m_stack[p_vm->m_sp++] = b->m_value;
+	p_vm->m_ip++;
 }
 
 void op_loadf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -145,6 +161,7 @@ void op_loadf(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 
 	// Push it onto the stack
 	p_vm->m_stack[p_vm->m_sp++] = b->m_value;
+	p_vm->m_ip++;
 }
 
 void op_lambda(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -153,6 +170,26 @@ void op_lambda(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 	value_t *lambda = ((value_t **)p_pool->m_data)[p_arg];
 	value_t *closure = make_closure(p_vm, lambda);
 	p_vm->m_stack[p_vm->m_sp++] = closure;
+	p_vm->m_ip++;
+}
+
+void op_ret(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
+{
+	p_vm->m_ip = -1;
+}
+
+void op_ifniljmp(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
+{
+	value_t *top = p_vm->m_stack[p_vm->m_sp - 1];
+
+printf("ifniljmp: "); value_print(top); printf("\n");
+
+	if (top->m_type == VT_SYMBOL && (!strcmp(top->m_data, "nil"))) {
+		printf("op_ifniljmp: %d\n", (int)p_arg);
+		p_vm->m_ip += (int)p_arg;
+	}  else { 
+		p_vm->m_ip++;
+	}
 }
 
 void op_call(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
@@ -183,6 +220,7 @@ void op_call(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 	p_vm->m_sp = p_vm->m_bp;
 	p_vm->m_stack[p_vm->m_sp++] = ret;
 	p_vm->m_bp = old_bp;
+	p_vm->m_ip++;
 }
 
 // TODO - Bind calls should replace existing bindings
@@ -254,7 +292,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 	// Set bp to the name of the function we are calling
 	p_vm->m_bp = p_vm->m_sp - p_nargs;
 
-printf("obp: %d nbp: %d sp: %d nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p_nargs);
+printf("obp: %d nbp: %lu sp: %lu nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p_nargs);
 
     assert(p_closure && p_closure->m_type == VT_CLOSURE && p_closure->m_cons[1]);
     lambda_t *l = (lambda_t *)(p_closure->m_cons[1]->m_data);
@@ -278,9 +316,10 @@ printf("binding: "); value_print(p->m_cons[0]); printf ("to: "); value_print(sta
 		p = p->m_cons[1];
 	}
 
+	p_vm->m_ip = 0;
 
-	for(unsigned long i = 0; i < (l->m_bytecode->m_size / sizeof(bytecode_t *)); i++) {
-		exec_instruction(p_vm, ((bytecode_t *)l->m_bytecode->m_data)[i], l->m_pool);
+	while(p_vm->m_ip != -1) {
+		exec_instruction(p_vm, ((bytecode_t *)l->m_bytecode->m_data)[p_vm->m_ip], l->m_pool);
 	}
 
 
