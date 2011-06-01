@@ -35,7 +35,7 @@ extern char const *g_opcode_print[];
 
 typedef struct vm_s vm_t;
 
-value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size);
+value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static);
 void value_destroy(value_t *);
 void value_print(value_t *p_value);
 

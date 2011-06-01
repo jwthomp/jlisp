@@ -8,11 +8,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-value_t *gc_alloc(vm_t *p_vm, size_t p_size)
+value_t *gc_alloc(vm_t *p_vm, size_t p_size, bool p_is_static)
 {
 	value_t * val = (value_t *)malloc(p_size);
-	val->m_heapptr = p_vm->m_heap;
-	p_vm->m_heap = val;
+
+	if (p_is_static == false) {
+		val->m_heapptr = p_vm->m_heap;
+		p_vm->m_heap = val;
+	} else {
+		val->m_heapptr = p_vm->m_static_heap;
+		p_vm->m_static_heap = val;
+	}
+	val->m_is_static = p_is_static;
 	return val;
 }
 
@@ -52,7 +59,7 @@ void retain(value_t *p_value)
 			break;
 
 		case VT_POOL:
-			for (int i = 0; i < (p_value->m_size / sizeof(value_t *)); i++) {
+			for (unsigned long i = 0; i < (p_value->m_size / sizeof(value_t *)); i++) {
 				retain(((value_t **)p_value->m_data)[i]);
 			}
 			break;
@@ -82,7 +89,7 @@ void retain(value_t *p_value)
 
 void mark(vm_t *p_vm)
 {
-	for(int i = 0; i < p_vm->m_sp; i++) {
+	for(unsigned long i = 0; i < p_vm->m_sp; i++) {
 		retain(p_vm->m_stack[i]);
 	}
 
@@ -101,6 +108,7 @@ void sweep(vm_t *p_vm)
   for(;p;p = safe) {
     safe = p->m_heapptr;
 
+assert(p->m_is_static == false);
 
     // keep on heap or free
     if (p->m_in_use || p->m_is_static) {
@@ -108,6 +116,7 @@ void sweep(vm_t *p_vm)
       p->m_heapptr = p_vm->m_heap;
       p_vm->m_heap = p;
     } else {
+printf("Freeing(%d): %p\n", p->m_type, p);
       free(p);
 //		p->m_heapptr = p_vm->m_free_heap;
 //		p_vm->m_free_heap = p;

@@ -35,6 +35,7 @@ stream_t *stream_create(char const *code)
 
 void stream_destroy(stream_t *p_stream)
 {
+printf("stream free: %p\n", p_stream);
 	free(p_stream);
 }
 

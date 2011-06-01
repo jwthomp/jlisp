@@ -6,7 +6,7 @@
 
 #include <sys/types.h>
 
-value_t *gc_alloc(vm_t *p_vm, size_t p_size);
+value_t *gc_alloc(vm_t *p_vm, size_t p_size, bool p_is_static);
 
 void gc(vm_t *p_vm);
 void mark(vm_t *p_vm);

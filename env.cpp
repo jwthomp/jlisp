@@ -25,5 +25,7 @@ value_t *environment_binding_find(value_t * p_env, value_t * p_symbol, bool p_fu
 
 		p_env = ((environment_t *)p_env->m_data)->m_parent;
 	}
+
+	return NULL;
 }
 

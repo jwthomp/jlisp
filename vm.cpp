@@ -53,6 +53,7 @@ vm_t *vm_create(unsigned long p_stack_size)
 {
 	vm_t *vm = (vm_t *)malloc(sizeof(vm_t));
 	vm->m_heap = NULL;
+	vm->m_static_heap = NULL;
 	vm->m_sp = 0;
 	vm->m_bp = 0;
 	vm->m_ev = 1;
@@ -74,6 +75,7 @@ void vm_destroy(vm_t *p_vm)
 {
 	//free(p_vm->m_stack);
 	//free(p_vm->m_current_env);
+printf("free vm: %p\n", p_vm);
 	free(p_vm);
 }
 
@@ -227,8 +229,7 @@ void op_call(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 		vm_exec(p_vm, func_val, p_arg);
 		ret = p_vm->m_stack[p_vm->m_sp - 1];
 	}  else {
-		printf("ERROR: UNKNOWN FUNCTION TYPE\n");
-		*(int *)0;
+		assert(!"ERROR: UNKNOWN FUNCTION TYPE\n");
 	}
 
 	// Consume the stack back through the function name
@@ -327,6 +328,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 	value_t *env = value_create_environment(p_vm, p_closure->m_cons[0]);
 	vm_push_env(p_vm, env);
 
+	vm_push(p_vm, p_closure);
 
 	// Bind parameters
 	value_t *p = l->m_parameters;
@@ -347,7 +349,9 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 	p_vm->m_ip = 0;
 
 	while(p_vm->m_ip != -1) {
-		exec_instruction(p_vm, ((bytecode_t *)l->m_bytecode->m_data)[p_vm->m_ip], l->m_pool);
+		exec_instruction(p_vm, 
+				((bytecode_t *)l->m_bytecode->m_data)[p_vm->m_ip], 
+					l->m_pool);
 	}
 
 

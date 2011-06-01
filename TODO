@@ -3,6 +3,7 @@
 [ ] atom
 [ ] Fix reading from command line to not submit to reader until a complete form is ready
 [ ] fix crash in (cond ((eq 1 1) (status)))
+[ ] fix crash in (gc) then (cons a b)
 
 
 [X] cond

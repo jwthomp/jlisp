@@ -13,7 +13,7 @@
 
 value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body);
 
-int compile_form(value_t *p_form, vm_t *p_vm, 
+void compile_form(value_t *p_form, vm_t *p_vm, 
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function);
 
@@ -102,6 +102,10 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			push_opcode(OP_LAMBDA, index, p_bytecode, p_bytecode_index);
 			break;
 		}
+		case OP_PRINT:
+		case OP_DUP:
+			assert(!"op_print and op_dup are not supported. Write the code");
+			break;
 	}
 
 
@@ -226,7 +230,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 	}
 }
 
-int compile_form(value_t *p_form, vm_t *p_vm, 
+void compile_form(value_t *p_form, vm_t *p_vm, 
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
@@ -274,6 +278,7 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 	bytecode_t *bc_allocd = (bytecode_t *)malloc(sizeof(bytecode_t) * bytecode_index);
 	memcpy(bc_allocd, bytecode, sizeof(bytecode_t) * bytecode_index);
 	value_t *bytecode_final = value_create_bytecode(p_vm, bc_allocd, bytecode_index);
+printf("free bc: %p\n", bc_allocd);
 	free(bc_allocd);
 	value_t *pool_final = value_create_pool(p_vm, pool, pool_index);
 

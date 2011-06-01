@@ -25,9 +25,9 @@ char const *g_opcode_print[] =  {
 };
 
 
-value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size)
+value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static)
 {
-	value_t *v = gc_alloc(p_vm, sizeof(value_t) + p_size);
+	value_t *v = gc_alloc(p_vm, sizeof(value_t) + p_size, p_is_static);
 	v->m_type = p_type;
 	v->m_size = p_size;
 	v->m_in_use = false;
@@ -42,21 +42,21 @@ void value_destroy(value_t *p_value)
 
 value_t * value_create_number(vm_t *p_vm, int p_number)
 {
-	value_t *ret =  value_create(p_vm, VT_NUMBER, 4);
+	value_t *ret =  value_create(p_vm, VT_NUMBER, 4, false);
 	*(int *)ret->m_data = p_number;
 	return ret;
 }
 
 value_t * value_create_string(vm_t *p_vm, char const * const p_string)
 {
-	value_t *ret =  value_create(p_vm, VT_STRING, strlen(p_string));
+	value_t *ret =  value_create(p_vm, VT_STRING, strlen(p_string) + 1, false);
 	strcpy((char *)ret->m_data, p_string);
 	return ret;
 }
 
 value_t * value_create_symbol(vm_t *p_vm, char const * const p_symbol)
 {
-	value_t *ret =  value_create(p_vm, VT_SYMBOL, strlen(p_symbol));
+	value_t *ret =  value_create(p_vm, VT_SYMBOL, strlen(p_symbol) + 1, true);
 	strcpy((char *)ret->m_data, p_symbol);
 //	ret->m_is_static = true;
 	return ret;
@@ -64,7 +64,7 @@ value_t * value_create_symbol(vm_t *p_vm, char const * const p_symbol)
 
 value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func)
 {
-	value_t *ret =  value_create(p_vm, VT_INTERNAL_FUNCTION, sizeof(vm_func_t));
+	value_t *ret =  value_create(p_vm, VT_INTERNAL_FUNCTION, sizeof(vm_func_t), true);
 	memcpy(ret->m_data, (char *)&p_func, sizeof(vm_func_t));
 //	ret->m_is_static = true;
 	return ret;
@@ -72,7 +72,7 @@ value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func)
 
 value_t * value_create_cons(vm_t *p_vm, value_t *p_car, value_t *p_cdr)
 {
-	value_t *ret =  value_create(p_vm, VT_CONS, sizeof(value_t *) * 2);
+	value_t *ret =  value_create(p_vm, VT_CONS, sizeof(value_t *) * 2, false);
 	ret->m_cons[0] = p_car;
 	ret->m_cons[1] = p_cdr;
 	return ret;
@@ -80,14 +80,14 @@ value_t * value_create_cons(vm_t *p_vm, value_t *p_car, value_t *p_cdr)
 
 value_t * value_create_bytecode(vm_t *p_vm, bytecode_t *p_code, int p_code_count)
 {
-	value_t *ret = value_create(p_vm, VT_BYTECODE, sizeof(bytecode_t) * p_code_count);
+	value_t *ret = value_create(p_vm, VT_BYTECODE, sizeof(bytecode_t) * p_code_count, false);
 	memcpy(ret->m_data, (char *)p_code, sizeof(bytecode_t) * p_code_count);
 	return ret;
 }
 
 value_t * value_create_pool(vm_t *p_vm, value_t *p_literals[], int p_literal_count)
 {
-	value_t *ret = value_create(p_vm, VT_POOL, sizeof(value_t *) * p_literal_count);
+	value_t *ret = value_create(p_vm, VT_POOL, sizeof(value_t *) * p_literal_count, false);
 	memcpy(ret->m_data, p_literals, p_literal_count * sizeof(value_t *));
 	return ret;
 }
@@ -98,7 +98,7 @@ value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_byte
 	assert(p_bytecode && (p_bytecode->m_type == VT_BYTECODE));
 	assert((p_pool == NULL) || (p_pool->m_type == VT_POOL));
 
-	value_t *ret = value_create(p_vm, VT_LAMBDA, sizeof(lambda_t));
+	value_t *ret = value_create(p_vm, VT_LAMBDA, sizeof(lambda_t), false);
 	lambda_t *l = (lambda_t *)ret->m_data;
 	l->m_parameters = p_parameters;
 	l->m_bytecode = p_bytecode;
@@ -109,7 +109,7 @@ value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_byte
 
 value_t * value_create_closure(vm_t *p_vm, value_t *p_env, value_t *p_lambda)
 {
-	value_t *ret = value_create(p_vm, VT_CLOSURE, sizeof(value_t *) * 2);
+	value_t *ret = value_create(p_vm, VT_CLOSURE, sizeof(value_t *) * 2, false);
 	ret->m_cons[0] = p_env;
 	ret->m_cons[1] = p_lambda;
 	return ret;
@@ -117,7 +117,7 @@ value_t * value_create_closure(vm_t *p_vm, value_t *p_env, value_t *p_lambda)
 
 value_t * value_create_binding(vm_t *p_vm, value_t *p_key, value_t *p_value)
 {
-	value_t *ret = value_create(p_vm, VT_BINDING, sizeof(binding_t));
+	value_t *ret = value_create(p_vm, VT_BINDING, sizeof(binding_t), false);
 	binding_t *bind = (binding_t *)ret->m_data;
 	bind->m_key = p_key;
 	bind->m_value = p_value;
@@ -129,7 +129,7 @@ value_t * value_create_binding(vm_t *p_vm, value_t *p_key, value_t *p_value)
 
 value_t * value_create_environment(vm_t *p_vm, value_t *p_env)
 {
-	value_t *ret = value_create(p_vm, VT_ENVIRONMENT, sizeof(environment_t));
+	value_t *ret = value_create(p_vm, VT_ENVIRONMENT, sizeof(environment_t), false);
 	environment_t *env = (environment_t *)ret->m_data;
 	env->m_bindings = NULL;
 	env->m_function_bindings = NULL;
@@ -214,8 +214,8 @@ void value_print(value_t *p_value)
 		{
 			int pool_size = p_value->m_size / sizeof(value_t *);
 			printf("pool: ");
-			for (unsigned long i = 0; i < pool_size; i++) {
-				printf("%lu] ", i); value_print(((value_t **)p_value->m_data)[i]); printf("\n");
+			for (int i = 0; i < pool_size; i++) {
+				printf("%d] ", i); value_print(((value_t **)p_value->m_data)[i]); printf("\n");
 			}
 			break;
 		}
@@ -254,6 +254,10 @@ void value_print(value_t *p_value)
 			}
 			printf(")");
 			break;
+		}
+		case VT_BINDING:
+		{
+			printf("binding: key: "); value_print(((binding_t *)p_value->m_data)->m_key); printf("\n");
 		}
 		default:
 			printf("no printer for value type: %d\n", p_value->m_type);
@@ -323,6 +327,6 @@ bool is_lambda(value_t *p_val)
 
 value_t * list(vm_t *p_vm, value_t *p_value)
 {
-	value_create_cons(p_vm, p_value, NULL);
+	return value_create_cons(p_vm, p_value, NULL);
 }
 

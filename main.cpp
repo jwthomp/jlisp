@@ -92,8 +92,11 @@ printf("\n>%d<\n", read_in_size);
 
 		stream_destroy(strm);
 	}
+printf("free input: %p\n", input);
 	free(input);
 	fclose(fp);
+
+	return value_create_symbol(p_vm, "nil");
 }
 
 
@@ -110,11 +113,6 @@ printf("exec: args: %d", nargs); value_print(first); printf("\n");
 	p_vm->m_stack[p_vm->m_sp - 2] = p_vm->m_stack[p_vm->m_sp - 1];
 	p_vm->m_sp--;
 	return p_vm->m_stack[p_vm->m_sp - 1];
-}
-
-value_t *cond(vm_t *p_vm)
-{
-	int nargs = p_vm->m_sp - p_vm->m_bp - 2;
 }
 
 
@@ -177,6 +175,7 @@ value_t *eq(vm_t *p_vm)
 			break;
 	}
 
+	return value_create_symbol(p_vm, "nil");
 }
 
 value_t *plus(vm_t *p_vm)
@@ -240,6 +239,8 @@ printf("vm ev: %lu\n", vm->m_ev);
 	while(gets(input) != NULL) {
 		stream_t *strm = stream_create(input);
 		reader(vm, strm, false);
+
+		gc(vm);
 
 		value_t *rd = vm->m_stack[vm->m_sp - 1];
 		vm->m_sp--;
