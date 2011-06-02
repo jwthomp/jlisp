@@ -84,9 +84,9 @@ void vm_bind(vm_t *p_vm, char *p_symbol, value_t *p_value)
 }
 
 // TODO - Bind calls should replace existing bindings
-void vm_bindf(vm_t *p_vm, char *p_symbol, vm_func_t p_func)
+void vm_bindf(vm_t *p_vm, char *p_symbol, vm_func_t p_func, unsigned long p_param_count)
 {
-	value_t *binding = value_create_binding(p_vm, value_create_symbol(p_vm, p_symbol), value_create_internal_func(p_vm, p_func));
+	value_t *binding = value_create_binding(p_vm, value_create_symbol(p_vm, p_symbol), value_create_internal_func(p_vm, p_func, p_param_count));
 
 	assert(binding != NULL);
 
@@ -278,7 +278,8 @@ printf("jumping to %d\n", p_vm->m_ip);
 			{
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], false);
 
-				assert(b && b->m_type == VT_BINDING);
+				verify(b && b->m_type == VT_BINDING, "op_load: Binding lookup failed: %s\n", 
+					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 
 //	printf("op_load: key: %d '", ((value_t **)p_pool->m_data)[p_arg]->m_type); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("'\n");
 

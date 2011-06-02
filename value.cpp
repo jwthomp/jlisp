@@ -46,10 +46,11 @@ value_t * value_create_symbol(vm_t *p_vm, char const * const p_symbol)
 	return ret;
 }
 
-value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func)
+value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func, unsigned long p_param_count)
 {
-	value_t *ret =  value_create(p_vm, VT_INTERNAL_FUNCTION, sizeof(vm_func_t), true);
+	value_t *ret =  value_create(p_vm, VT_INTERNAL_FUNCTION, sizeof(vm_func_t) + 1, true);
 	memcpy(ret->m_data, (char *)&p_func, sizeof(vm_func_t));
+	ret->m_data[sizeof(vm_func_t)] = (char)p_param_count;
 //	ret->m_is_static = true;
 	return ret;
 }

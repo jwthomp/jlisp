@@ -111,7 +111,12 @@ void process_next(vm_t *p_vm, stream_t *p_stream)
 		// Need to change this to vm_list since there could be more than two
 		// args in the list, this will also let me handle the list of size
 		// 0, otherwise known as nil
-		vm_list(p_vm, args);
+		if (args == 0) {
+			value_t *nil = value_create_symbol(p_vm, "nil");
+			vm_push(p_vm, nil);
+		} else {
+			vm_list(p_vm, args);
+		}
 	} else {
 		// This is an atom (symbol or fixnum)
 		p_stream->restore();

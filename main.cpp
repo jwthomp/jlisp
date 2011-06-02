@@ -17,6 +17,16 @@
 
 void load_string(vm_t *p_vm, char const *p_code);
 
+value_t *atom(vm_t *p_vm)
+{
+	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
+	if (first && first->m_type == VT_CONS) {
+		return value_create_symbol(p_vm, "nil");
+	}
+
+	return value_create_symbol(p_vm, "t");
+}
+
 value_t *status(vm_t *p_vm)
 {
 	// Display stack
@@ -136,7 +146,25 @@ value_t *eq(vm_t *p_vm)
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
 
-	assert(first->m_type == second->m_type);
+	if (first->m_type == VT_SYMBOL && second->m_type == VT_CONS) {
+		if (second->m_cons[0] == NULL && !strcmp("nil", first->m_data)) {
+			return value_create_symbol(p_vm, "t");
+		}
+		return value_create_symbol(p_vm, "nil");
+		
+	} else if (first->m_type == VT_CONS && second->m_type == VT_SYMBOL) {
+		if (first->m_cons[0] == NULL && !strcmp("nil", second->m_data)) {
+			return value_create_symbol(p_vm, "t");
+		}
+		return value_create_symbol(p_vm, "nil");
+	}
+
+	if (first->m_type != second->m_type) {
+		return value_create_symbol(p_vm, "nil");
+	}
+
+	verify(first->m_type == second->m_type, "eq: Types are not the same %d != %d\n",
+		first->m_type, second->m_type);
 
 	switch (first->m_type) {
 		case VT_NUMBER:
@@ -246,7 +274,7 @@ printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n
 int main(int argc, char *arg[])
 {
 	vm_t *vm = vm_create(128);
-	char p1[] = "printf";
+	char p1[] = "print";
 	char p2[] = "cons";
 	char p3[] = "a";
 	char p4[] = "b";
@@ -259,19 +287,21 @@ int main(int argc, char *arg[])
 	char p11[] = "eq";
 	char p12[] = "load";
 	char p13[] = "gc";
+	char p14[] = "atom";
 
 printf("vm ev: %lu\n", vm->m_ev);
 
-	vm_bindf(vm, p1, print);
-	vm_bindf(vm, p2, cons);
-	vm_bindf(vm, p5, status);
-	vm_bindf(vm, p6, car);
-	vm_bindf(vm, p7, cdr);
-	vm_bindf(vm, p9, call);
-	vm_bindf(vm, p10, plus);
-	vm_bindf(vm, p11, eq);
-	vm_bindf(vm, p12, load);
-	vm_bindf(vm, p13, gc_go);
+	vm_bindf(vm, p1, print, 1);
+	vm_bindf(vm, p2, cons, 2);
+	vm_bindf(vm, p5, status, 0);
+	vm_bindf(vm, p6, car, 1);
+	vm_bindf(vm, p7, cdr, 1);
+	vm_bindf(vm, p9, call, 2);
+	vm_bindf(vm, p10, plus, 2);
+	vm_bindf(vm, p11, eq, 2);
+	vm_bindf(vm, p12, load, 1);
+	vm_bindf(vm, p13, gc_go, 0);
+	vm_bindf(vm, p14, atom, 1);
 	vm_bind(vm, p8, value_create_symbol(vm, "nil"));
 	vm_bind(vm, p3, value_create_number(vm, 1));
 	vm_bind(vm, p4, value_create_number(vm, 2));
