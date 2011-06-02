@@ -75,10 +75,14 @@ value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 
 			return ret;
 		}
-		atom[index++] = val;
+
 		if (val > '9' || val < '0') {
-			non_numeric = true;
+			if ((index != 0) || (val != '-')) {
+				non_numeric = true;
+			}
 		}
+
+		atom[index++] = val;
 
 		assert(index < 32);
 	}
