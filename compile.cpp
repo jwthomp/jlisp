@@ -81,7 +81,7 @@ void macro_expand(vm_t *p_vm, value_t **p_value)
 
 void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_bytecode_index)
 {
-	printf("push opcode: %s %u\n", g_opcode_print[p_opcode], p_arg);
+	printf("push opcode(%d): %s %u\n", *p_bytecode_index, g_opcode_print[p_opcode], p_arg);
 	(p_bytecode)[*p_bytecode_index].m_opcode = p_opcode;
 	(p_bytecode)[*p_bytecode_index].m_value = p_arg;
 	(*p_bytecode_index)++;
@@ -151,6 +151,11 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			push_opcode(OP_IFNILJMP, (int)p_arg, p_bytecode, p_bytecode_index);
 			break;
 		}
+		case OP_CATCH:
+		{
+			push_opcode(OP_CATCH, (int)p_arg, p_bytecode, p_bytecode_index);
+			break;
+		}
 		case OP_RET:
 		{
 			push_opcode(OP_RET, (int)p_arg, p_bytecode, p_bytecode_index);
@@ -163,9 +168,8 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			push_opcode(OP_LAMBDA, index, p_bytecode, p_bytecode_index);
 			break;
 		}
-		case OP_PRINT:
 		case OP_DUP:
-			assert(!"op_print and op_dup are not supported. Write the code");
+			assert(!"op_dup are not supported. Write the code");
 			break;
 	}
 
@@ -221,6 +225,27 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BIND, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+	} else if ((func->m_type == VT_SYMBOL) && !strcmp("unwind-protect", func->m_data)) {
+		value_t * protect_form = args->m_cons[0];
+		value_t * cleanup_form = args->m_cons[1]->m_cons[0];
+
+		assemble(OP_CATCH, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+		int old_index = *p_bytecode_index - 1;
+
+		compile_form(protect_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+
+		int save_index = *p_bytecode_index;
+		assemble(OP_CATCH, (int *)(save_index - old_index), p_vm, p_bytecode, &old_index, p_pool, p_pool_index);
+printf("catch: %d\n", save_index - old_index);
+		*p_bytecode_index = save_index;
+
+		compile_form(cleanup_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+
+		// return
+		assemble(OP_RET, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("cond", func->m_data)) {
 		while(args->m_cons[0]) {
 			value_t * test = args->m_cons[0]->m_cons[0];
@@ -274,6 +299,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 
 		// bindf symbol
 		assemble(OP_BINDGF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
 
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defun", func->m_data)) {
 		//printf("defun: "); value_print(args); printf("\n");

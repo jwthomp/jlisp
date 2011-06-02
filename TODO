@@ -1,12 +1,12 @@
 [ ] atom
-[ ] Fix reading from command line to not submit to reader until a complete form is ready
-[ ] Support loading from a file
 [ ] Change read.. get from stack.. eval to eval(read)
-[ ] write unwind-protect - does a setjmp that will execute a different body of code
+[ ] Support `,
+[ ] Support ,@
 
-testing perms
 
-
+[X] Fix reading from command line to not submit to reader until a complete form is ready
+[X] write unwind-protect - does a setjmp that will execute a different body of code
+[X] Support loading from a file
 [X] Exceptions
 [X] Reader macro -> '
 [X] fix crash in (cond ((eq 1 1) (status)))

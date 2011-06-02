@@ -14,7 +14,7 @@ typedef enum opcode_s {
 	OP_PUSH,		// 0
 	OP_BIND,		// 1
 	OP_BINDF,		// 2
-	OP_PRINT,		// 3
+	OP_CATCH,		// 3
 	OP_DUP,			// 4
 	OP_LOAD,		// 5
 	OP_LOADF,		// 6

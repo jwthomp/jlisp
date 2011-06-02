@@ -26,25 +26,17 @@ void pop_handler_stack()
 	assert(s_jsp >= 0);
 }
 
-void error(const char *format, ...)
-{
-	va_list argp;
-	va_start(argp, format);
-	vsprintf(g_err, format, argp);
-	va_end(argp);
-
-	assert(s_jsp > 0);
-	longjmp(s_jump_buffers[s_jsp - 1], -1);
-}
-
 void verify(int cond, const char *format, ...)
 {
 	va_list argp;
 
 	if (cond == false) {
+		va_list argp;
 		va_start(argp, format);
-		error(format, argp);
+		vsprintf(g_err, format, argp);
 		va_end(argp);
+		assert(s_jsp > 0);
+		longjmp(s_jump_buffers[s_jsp - 1], -1);
 	}
 }
 
