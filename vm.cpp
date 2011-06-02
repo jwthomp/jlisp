@@ -76,7 +76,6 @@ vm_t *vm_create(unsigned long p_stack_size)
 	vm->m_bp = 0;
 	vm->m_ev = 1;
 	vm->m_ip = 0;
-	vm->m_free_heap = NULL;
 	vm->m_stack = (value_t **)malloc(sizeof(value_t *) * p_stack_size);
 
 	// CANNOT create any value_t's until the above is initialized

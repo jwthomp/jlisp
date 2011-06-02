@@ -39,8 +39,6 @@ printf("Freeing(%d): %p\n", p->m_type, p);
 
 void gc(vm_t *p_vm)
 {
-printf("GCGCGCGC\n");
-
 	mark(p_vm);
 	sweep(p_vm);
 }
@@ -132,7 +130,7 @@ assert(p->m_is_static == false);
       p->m_heapptr = p_vm->m_heap;
       p_vm->m_heap = p;
     } else {
-printf("Freeing(%d): %p\n", p->m_type, p);
+//printf("Freeing(%d): %p\n", p->m_type, p);
       free(p);
 //		p->m_heapptr = p_vm->m_free_heap;
 //		p_vm->m_free_heap = p;

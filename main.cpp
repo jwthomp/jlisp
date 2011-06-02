@@ -1,11 +1,10 @@
-
-
 #include "value.h"
 #include "value_helpers.h"
 #include "reader.h"
 #include "compile.h"
 #include "env.h"
 #include "gc.h"
+#include "err.h"
 
 //#define _GNU_SOURCE
 
@@ -199,6 +198,45 @@ value_t *print(vm_t *p_vm)
 	return NULL;
 }
 
+void load_string(vm_t *p_vm, char const *p_code)
+{
+	int vm_bp = p_vm->m_bp;
+	int vm_sp = p_vm->m_sp;
+	int vm_ev = p_vm->m_ev;
+	int vm_ip = p_vm->m_ip;
+	value_t *vm_current_env = p_vm->m_current_env[p_vm->m_ev - 1];
+
+	int i = setjmp(*push_handler_stack());
+	if (i == 0) {
+		stream_t *strm = stream_create(p_code);
+		reader(p_vm, strm, false);
+
+		value_t *rd = p_vm->m_stack[p_vm->m_sp - 1];
+		p_vm->m_sp--;
+
+printf("read: "); value_print(rd); printf("\n");
+
+		eval(p_vm, rd);
+printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
+		p_vm->m_sp--;
+
+		stream_destroy(strm);
+	} else {
+		p_vm->m_bp = vm_bp;
+		p_vm->m_sp = vm_sp;
+		p_vm->m_ev = vm_ev;
+		p_vm->m_ip = vm_ip;
+		p_vm->m_current_env[p_vm->m_ev - 1] = vm_current_env;
+
+		printf("Error: %s\n", g_err);
+	}
+	pop_handler_stack();
+
+	verify(p_vm->m_sp == vm_sp &&  p_vm->m_bp == vm_bp, "internal error");
+
+	gc(p_vm);
+}
+
 
 int main(int argc, char *arg[])
 {
@@ -237,20 +275,8 @@ printf("vm ev: %lu\n", vm->m_ev);
 	input[0] = 0;
 	printf("> ");
 	while(gets(input) != NULL && strcmp(input, "quit")) {
-		stream_t *strm = stream_create(input);
-		reader(vm, strm, false);
+		load_string(vm, input);
 
-		value_t *rd = vm->m_stack[vm->m_sp - 1];
-		vm->m_sp--;
-
-printf("read: "); value_print(rd); printf("\n");
-
-		eval(vm, rd);
-printf("res: "); value_print(vm->m_stack[vm->m_sp - 1]); printf("\n");
-		vm->m_sp--;
-
-
-		stream_destroy(strm);
 		input[0] = 0;
 
 		printf("> ");
