@@ -4,6 +4,8 @@
 [ ] Change read.. get from stack.. eval to eval(read)
 [ ] write unwind-protect - does a setjmp that will execute a different body of code
 
+testing perms
+
 
 [X] Exceptions
 [X] Reader macro -> '
