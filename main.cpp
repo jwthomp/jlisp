@@ -15,6 +15,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+void load_string(vm_t *p_vm, char const *p_code);
+
 value_t *status(vm_t *p_vm)
 {
 	// Display stack
@@ -80,16 +82,8 @@ printf("\n>%d<\n", read_in_size);
 			input[read_in_size - 1] = '\0';
 		}
 
-		stream_t *strm = stream_create(input);
-		reader(p_vm, strm, false);
-
-		value_t *rd = p_vm->m_stack[p_vm->m_sp - 1];
-		p_vm->m_sp--;
-
-		eval(p_vm, rd);
-		p_vm->m_sp--;
-
-		stream_destroy(strm);
+		load_string(p_vm, input);
+		input[0] = 0;
 	}
 printf("free input: %p\n", input);
 	free(input);
@@ -209,16 +203,27 @@ void load_string(vm_t *p_vm, char const *p_code)
 	int i = setjmp(*push_handler_stack());
 	if (i == 0) {
 		stream_t *strm = stream_create(p_code);
-		reader(p_vm, strm, false);
+		int args = reader(p_vm, strm, false);
 
-		value_t *rd = p_vm->m_stack[p_vm->m_sp - 1];
-		p_vm->m_sp--;
 
+		int count_down = args;
+		while(count_down > 0) {
+			// get value off stack
+			value_t *rd = p_vm->m_stack[p_vm->m_sp - count_down];
 printf("read: "); value_print(rd); printf("\n");
 
-		eval(p_vm, rd);
-printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
-		p_vm->m_sp--;
+			// Evaluate it
+			eval(p_vm, rd);
+
+			// Print a result
+printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
+			count_down--;
+		}
+
+//			p_vm->m_sp--;
+		p_vm->m_sp -= args * 2;
+
+
 
 		stream_destroy(strm);
 	} else {
