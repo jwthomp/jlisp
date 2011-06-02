@@ -199,10 +199,14 @@ void op_load(vm_t *p_vm, unsigned long p_arg, value_t *p_pool)
 {
 	value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], false);
 
+	assert(b && b->m_type == VT_BINDING);
+
 //	printf("op_load: key: %d '", ((value_t **)p_pool->m_data)[p_arg]->m_type); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("'\n");
+
 
 	// Push it onto the stack
 	binding_t *bind = (binding_t *)b->m_data;
+
 	p_vm->m_stack[p_vm->m_sp++] = bind->m_value;
 	p_vm->m_ip++;
 }

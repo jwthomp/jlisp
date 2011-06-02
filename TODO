@@ -1,22 +1,12 @@
 [ ] atom
 [ ] Fix reading from command line to not submit to reader until a complete form is ready
-[ ] fix crash in (cond ((eq 1 1) (status)))
-[ ] Implement macros
-
-Add new VT_MACRO (same as function)
-Create DEFMACRO that is same is DEFUN but does VT_MACRO
-Create functions macro_expand(value_t *) and macro_expand_1(value_t *)
-
-_1
-if (is_cons(p) && is_macro(car(p))) return eval(p); else return p;
-returns 2 values: modified p and bool (true if something was expanded, and false if not)
-
-non_1 recursive that calls macro_expand_1 until there's nothing more to expand
-keep calling _1 until it returns false
-
-do macro_expand_1 like int macro_expand_1(value_t **p) // 0 = p unchanged, 1 = expanded and p is expanded
+[ ] Support loading from a file
+[ ] Exceptions
 
 
+[X] Reader macro -> '
+[X] fix crash in (cond ((eq 1 1) (status)))
+[X] Implement macros
 [X] fix crash in (gc) then (cons a b)
 [X] Make binding a lisp object (cons)
 [X] cond

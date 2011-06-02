@@ -33,6 +33,10 @@ bool is_macro(vm_t *p_vm, value_t *p_value)
 	environment_t *env = (environment_t *)v_env->m_data;
 
 	value_t *v_fbindings = env->m_function_bindings;
+	if (v_fbindings == NULL) {
+		return false;
+	}
+
 	assert(v_fbindings && v_fbindings->m_type == VT_BINDING);
 
 	value_t *v_bind = binding_find(v_fbindings, v_car);

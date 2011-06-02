@@ -56,7 +56,7 @@ value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 
 	while(p_stream->index < p_stream->length) {
 		char val = p_stream->pop();
-		if (((is_string == false) && ((val == ' ') || (val == '(') || (val == ')'))) || ((is_string == true) && (val == '\"'))) {
+		if (((is_string == false) && ((val == ' ') || (val == '\n') || (val == '\r') || (val == '(') || (val == ')'))) || ((is_string == true) && (val == '\"'))) {
 			atom[index] = 0;
 
 			value_t *ret = 0;
@@ -101,37 +101,51 @@ value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 	return ret;
 }
 
+void process_next(vm_t *p_vm, stream_t *p_stream)
+{
+	char val = p_stream->pop();
+	if (val == '(') {
+		// Need to read in rest
+		int args = reader(p_vm, p_stream, true);
+
+		// Need to change this to vm_list since there could be more than two
+		// args in the list, this will also let me handle the list of size
+		// 0, otherwise known as nil
+		vm_list(p_vm, args);
+	} else {
+		// This is an atom (symbol or fixnum)
+		p_stream->restore();
+		value_t *ret = read_atom(p_vm, p_stream);
+		vm_push(p_vm, ret);
+	}
+
+	return;
+}
+
 int reader(vm_t *p_vm, stream_t *p_stream, bool p_in_list)
 {
 	int list_size = 0;
 	while(p_stream->index < p_stream->length) {
 		char val = p_stream->pop();
-		if (val == ' ') {
+		if ((val == ' ') || (val == '\n') || (val == '\r')) {
 			// Clear out white space
 			continue;
+		} else if (val == '\'') {
+			value_t *qt = value_create_symbol(p_vm, "quote");
+			vm_push(p_vm, qt);
+			process_next(p_vm, p_stream);
+			vm_list(p_vm, 2);
+			list_size++;
 		} else if (val == ')') {
 			assert(p_in_list);
 			return list_size;
-		} else if (val == '(') {
-			
-			// Need to read in rest
-			int args = reader(p_vm, p_stream, true);
-
-			// Need to change this to vm_list since there could be more than two
-			// args in the list, this will also let me handle the list of size
-			// 0, otherwise known as nil
-			vm_list(p_vm, args);
-			list_size++;
-
 		} else {
-			// This is an atom (symbol or fixnum)
 			p_stream->restore();
-			value_t *ret = read_atom(p_vm, p_stream);
-			vm_push(p_vm, ret);
+			process_next(p_vm, p_stream);
 			list_size++;
 		}
 	}
 
-	return 1;
+	return list_size;
 }
 
