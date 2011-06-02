@@ -8,22 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-char const *g_opcode_print[] =  {
-	"OP_PUSH",
-	"OP_BIND",
-	"OP_BINDF",
-	"OP_PRINT",
-	"OP_DUP",
-	"OP_LOAD",
-	"OP_LOADF",
-	"OP_CALL",
-	"OP_LAMBDA",
-	"OP_BINDGF",
-	"OP_BINDG",
-	"OP_IFNILJMP",
-	"OP_RET",
-};
-
 
 value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static)
 {
@@ -103,6 +87,7 @@ value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_byte
 	l->m_parameters = p_parameters;
 	l->m_bytecode = p_bytecode;
 	l->m_pool = p_pool;
+	l->m_is_macro = false;
 	return ret;
 }
 
@@ -134,6 +119,8 @@ value_t * value_create_environment(vm_t *p_vm, value_t *p_env)
 	env->m_bindings = NULL;
 	env->m_function_bindings = NULL;
 	env->m_parent = p_env;
+
+	assert((p_env == NULL) || (p_env->m_type == VT_ENVIRONMENT));
 
 	return ret;
 }

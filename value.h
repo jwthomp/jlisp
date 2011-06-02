@@ -14,6 +14,7 @@ typedef enum {
 	VT_ENVIRONMENT = 8,
 	VT_STRING = 9,
 	VT_BINDING = 10,
+	VT_MACRO = 11,
 } value_type_t;
 
 typedef struct value_s {

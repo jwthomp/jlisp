@@ -3,6 +3,7 @@
 #include "assert.h"
 #include "vm.h"
 #include "gc.h"
+#include "lambda.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,10 +18,66 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function);
 
+value_t * eval(vm_t *p_vm, value_t * p_form);
+
+bool is_macro(vm_t *p_vm, value_t *p_value)
+{
+	value_t *v_car = p_value->m_cons[0];
+	
+	if (v_car->m_type != VT_SYMBOL) {
+		return false;
+	}
+
+	value_t *v_env = p_vm->m_current_env[p_vm->m_ev -1];
+	assert(v_env && v_env->m_type == VT_ENVIRONMENT);
+	environment_t *env = (environment_t *)v_env->m_data;
+
+	value_t *v_fbindings = env->m_function_bindings;
+	assert(v_fbindings && v_fbindings->m_type == VT_BINDING);
+
+	value_t *v_bind = binding_find(v_fbindings, v_car);
+	if (v_bind == NULL) {
+		return false;
+	}
+
+	assert(v_bind->m_type == VT_BINDING);
+
+	binding_t *bind = (binding_t *)v_bind->m_data;
+
+	if (bind && bind->m_value && (bind->m_value->m_type == VT_CLOSURE)) {
+		value_t *v_lambda = bind->m_value->m_cons[1];
+		assert(v_lambda && v_lambda->m_type == VT_LAMBDA);
+		lambda_t *l = (lambda_t *)v_lambda->m_data;
+		if (l->m_is_macro) {
+			return true;
+		}
+	}
+
+	// See if 
+	return false;
+}
+
+int macro_expand_1(vm_t *p_vm, value_t **p_value)
+{
+	if (is_cons(*p_value) && is_macro(p_vm, *p_value)) {
+		//*p_value = eval(p_vm, *p_value);
+		//return 1;
+printf("Found macro! "); value_print((*p_value)->m_cons[0]); printf("\n");
+		return 0;
+	} else {
+		return 0;
+	}
+}
+
+void macro_expand(vm_t *p_vm, value_t **p_value)
+{
+	while(macro_expand_1(p_vm, p_value) == 1) { }
+	return;
+}
 
 void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_bytecode_index)
 {
-	//printf("push opcode: %s %u\n", g_opcode_print[p_opcode], p_arg);
+	printf("push opcode: %s %u\n", g_opcode_print[p_opcode], p_arg);
 	(p_bytecode)[*p_bytecode_index].m_opcode = p_opcode;
 	(p_bytecode)[*p_bytecode_index].m_value = p_arg;
 	(*p_bytecode_index)++;
@@ -28,7 +85,7 @@ void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_by
 
 int push_pool(value_t *p_value, value_t **p_pool, int *p_pool_index)
 {
-	//printf("push pool: "); value_print(p_value); printf("\n");
+	printf("push pool: "); value_print(p_value); printf("\n");
 	(p_pool)[*p_pool_index] = p_value;
 	(*p_pool_index)++;
 	return (*p_pool_index) - 1;
@@ -201,6 +258,23 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BINDG, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
+	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defmacro", func->m_data)) {
+		value_t *sym = args->m_cons[0];
+		value_t *largs = args->m_cons[1]->m_cons[0];
+		value_t *body = args->m_cons[1]->m_cons[1]->m_cons[0];
+
+		// compile args, body
+		value_t *lambda = compile(p_vm, largs, list(p_vm, body));
+
+		// Flag this lambda as a macro
+		((lambda_t *)lambda->m_data)->m_is_macro = true;
+
+		// lambda
+		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+		// bindf symbol
+		assemble(OP_BINDGF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defun", func->m_data)) {
 		//printf("defun: "); value_print(args); printf("\n");
 		value_t *sym = args->m_cons[0];
@@ -237,6 +311,7 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 	//printf("Compile form: "); value_print(p_form); printf("\n");
 
 	if (is_cons(p_form)) {
+		macro_expand(p_vm, &p_form);
 		compile_function(p_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 	} else if (is_symbol(p_form)) {
 //printf("cf: sym\n");
@@ -255,7 +330,7 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 	int pool_index = 0;
 	int bytecode_index = 0;
 
-//printf("POOL: %p\n", pool);
+printf("POOL: %p\n", pool);
 
 	assert(p_parameters == NULL || is_cons(p_parameters));
 
@@ -282,7 +357,7 @@ printf("free bc: %p\n", bc_allocd);
 	free(bc_allocd);
 	value_t *pool_final = value_create_pool(p_vm, pool, pool_index);
 
-//printf("POOL OUT: %p\n", pool);
+printf("POOL OUT: %p\n", pool);
 	return value_create_lambda(p_vm, p_parameters, bytecode_final, pool_final);
 }
 
@@ -301,8 +376,11 @@ value_t *execute(vm_t *p_vm, value_t *p_closure)
 
 value_t * eval(vm_t *p_vm, value_t * p_form)
 {
+printf("COMPILE\n");
 	value_t *lambda = compile(p_vm, NULL, list(p_vm, p_form));
+printf("MAKE CLOSURE\n");
 	value_t *closure =  make_closure(p_vm, lambda);
+printf("EXEC\n");
 	vm_exec(p_vm, closure, 0);
 
 	return p_vm->m_stack[p_vm->m_sp - 1];

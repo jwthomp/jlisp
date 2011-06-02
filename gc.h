@@ -12,4 +12,6 @@ void gc(vm_t *p_vm);
 void mark(vm_t *p_vm);
 void sweep(vm_t *p_vm);
 
+void gc_shutdown(vm_t *p_vm);
+
 #endif /* __GC_H_ */

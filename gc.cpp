@@ -23,8 +23,24 @@ value_t *gc_alloc(vm_t *p_vm, size_t p_size, bool p_is_static)
 	return val;
 }
 
+void gc_shutdown(vm_t *p_vm)
+{
+	gc(p_vm);
+
+	value_t* p = p_vm->m_static_heap;
+	value_t* safe = NULL;
+
+	for(;p;p = safe) {
+		safe = p->m_heapptr;
+printf("Freeing(%d): %p\n", p->m_type, p);
+		free(p);
+	}
+}
+
 void gc(vm_t *p_vm)
 {
+printf("GCGCGCGC\n");
+
 	mark(p_vm);
 	sweep(p_vm);
 }

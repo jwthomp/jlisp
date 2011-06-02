@@ -236,11 +236,9 @@ printf("vm ev: %lu\n", vm->m_ev);
 	char input[256];
 	input[0] = 0;
 	printf("> ");
-	while(gets(input) != NULL) {
+	while(gets(input) != NULL && strcmp(input, "quit")) {
 		stream_t *strm = stream_create(input);
 		reader(vm, strm, false);
-
-		gc(vm);
 
 		value_t *rd = vm->m_stack[vm->m_sp - 1];
 		vm->m_sp--;

@@ -4,6 +4,7 @@
 #include "value.h"
 
 typedef struct lambda_s {
+	bool m_is_macro;
 	value_t *m_parameters;
 	value_t *m_bytecode;
 	value_t *m_pool;

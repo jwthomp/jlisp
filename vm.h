@@ -26,6 +26,9 @@ typedef enum opcode_s {
 	OP_RET,			// 12
 } opcode_e;
 
+extern char const *g_opcode_print[];
+
+
 
 typedef struct vm_s {
 	value_t *m_kernel_env;
