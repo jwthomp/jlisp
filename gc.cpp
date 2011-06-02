@@ -107,7 +107,9 @@ void mark(vm_t *p_vm)
 		retain(p_vm->m_stack[i]);
 	}
 
-	retain(p_vm->m_current_env[p_vm->m_ev - 1]);
+	if (p_vm->m_ev > 0) {
+		retain(p_vm->m_current_env[p_vm->m_ev - 1]);
+	}
 }
 
 void sweep(vm_t *p_vm)

@@ -282,5 +282,8 @@ printf("vm ev: %lu\n", vm->m_ev);
 		printf("> ");
 	}
 
+	vm->m_sp = 0;
+	vm->m_ev = 0;
+	gc(vm);
 	vm_destroy(vm);
 }
