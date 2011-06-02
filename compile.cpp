@@ -60,10 +60,10 @@ bool is_macro(vm_t *p_vm, value_t *p_value)
 int macro_expand_1(vm_t *p_vm, value_t **p_value)
 {
 	if (is_cons(*p_value) && is_macro(p_vm, *p_value)) {
-		//*p_value = eval(p_vm, *p_value);
-		//return 1;
+		(*p_value)->m_cons[0]->m_type = VT_MACRO;
+		*p_value = eval(p_vm, *p_value);
+		return 1;
 printf("Found macro! "); value_print((*p_value)->m_cons[0]); printf("\n");
-		return 0;
 	} else {
 		return 0;
 	}
@@ -225,9 +225,6 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 			// compile test
 			compile_form(test, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 
-			// Call test
-//			assemble(OP_CALL, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-
 			// Ifniljump 2
 			assemble(OP_IFNILJMP, (int *)3, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
@@ -235,7 +232,6 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 
 			// compile_form body
 			compile_form(if_true, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
-//			assemble(OP_CALL, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 			// return
 			assemble(OP_RET, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
@@ -310,10 +306,17 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 {
 	//printf("Compile form: "); value_print(p_form); printf("\n");
 
+	// If it's a cons, do a macroexpand in case this is a macro
 	if (is_cons(p_form)) {
 		macro_expand(p_vm, &p_form);
+	}
+
+	// If this was a macro, we need to do checks again here since the form may have changed
+	if (is_cons(p_form)) {
 		compile_function(p_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if (is_symbol(p_form)) {
+	} else if (is_symbol(p_form) || (p_form->m_type == VT_MACRO)) {
+		// Change type back to symbol
+		p_form->m_type = VT_SYMBOL;
 //printf("cf: sym\n");
 		opcode_e opcode = p_function ? OP_LOADF : OP_LOAD;
 		assemble(opcode, p_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
