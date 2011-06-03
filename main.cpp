@@ -90,7 +90,7 @@ value_t *load(vm_t *p_vm)
 	
 	load_string(p_vm, input);
 
-printf("free input: %p\n", input);
+//printf("free input: %p\n", input);
 	free(input);
 	fclose(fp);
 
@@ -103,7 +103,7 @@ value_t *call(vm_t *p_vm)
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 	int nargs = p_vm->m_sp - p_vm->m_bp - 2;
 
-printf("exec: args: %d", nargs); value_print(first); printf("\n");
+//printf("exec: args: %d", nargs); value_print(first); printf("\n");
 
 	vm_exec(p_vm, first, nargs);
 
@@ -228,13 +228,13 @@ void load_string(vm_t *p_vm, char const *p_code)
 		stream_t *strm = stream_create(p_code);
 		int args = reader(p_vm, strm, false);
 
-printf("reader found %d forms\n", args);
+//printf("reader found %d forms\n", args);
 
 		int count_down = args;
 		while(count_down > 0) {
 			// get value off stack
 			value_t *rd = p_vm->m_stack[p_vm->m_sp - count_down];
-printf("read form: "); value_print(rd); printf("\n");
+//printf("read form: "); value_print(rd); printf("\n");
 
 			// Evaluate it
 			eval(p_vm, rd);
@@ -286,7 +286,7 @@ int main(int argc, char *arg[])
 	char p13[] = "gc";
 	char p14[] = "atom";
 
-printf("vm ev: %lu\n", vm->m_ev);
+//printf("vm ev: %lu\n", vm->m_ev);
 
 	vm_bindf(vm, p1, print, 1);
 	vm_bindf(vm, p2, cons, 2);

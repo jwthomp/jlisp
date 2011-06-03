@@ -65,7 +65,6 @@ void vm_destroy(vm_t *p_vm)
 	p_vm->m_current_env[0] = NULL;
 	p_vm->m_ev = 1;
 	gc_shutdown(p_vm);
-printf("free vm: %p\n", p_vm);
 	free(p_vm->m_stack);
 	free(p_vm->m_current_env);
 	free(p_vm);
@@ -77,8 +76,12 @@ printf("free vm: %p\n", p_vm);
 // TODO - Bind calls should replace existing bindings
 void vm_bind(vm_t *p_vm, char *p_symbol, value_t *p_value)
 {
+
 	value_t *binding = value_create_binding(p_vm, value_create_symbol(p_vm, p_symbol), p_value);
 	binding_t *bind = (binding_t *)binding->m_data;
+
+printf("binding "); value_print(bind->m_key); printf(" to "); value_print(bind->m_value); printf("\n");
+
 	bind->m_next = ((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_bindings;
 	((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_bindings = binding;
 }
@@ -122,7 +125,6 @@ void vm_cons(vm_t *p_vm)
 
 void vm_list(vm_t *p_vm, int p_args)
 {
-	value_t *nil = value_create_cons(p_vm, NULL, NULL);
 	vm_push(p_vm, nil);
 
 	for(int i = p_args; i > 0; i--) {
@@ -148,13 +150,25 @@ void vm_pop_env(vm_t *p_vm)
 
 void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 {
+	if (p_closure->m_type == VT_INTERNAL_FUNCTION) {
+		vm_func_t func = *(vm_func_t *)p_closure->m_data;
+		verify(p_nargs == p_closure->m_data[sizeof(vm_func_t)], "Mismatched arg count: %d != %d\n", p_nargs, p_closure->m_data[sizeof(vm_func_t)]);
+		
+		p_vm->m_stack[p_vm->m_sp++] = func(p_vm);
+		return;
+	}
+
 	// Store current bp & sp
 	int old_bp = p_vm->m_bp;
 
 	// Set bp to the name of the function we are calling
 	p_vm->m_bp = p_vm->m_sp - p_nargs;
 
-//printf("obp: %d nbp: %lu sp: %lu nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p_nargs);
+	int old_ip = p_vm->m_ip;
+	p_vm->m_ip = 0;
+
+
+printf("obp: %d nbp: %lu sp: %lu nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p_nargs);
 
 
     assert(p_closure && p_closure->m_type == VT_CLOSURE && p_closure->m_cons[1]);
@@ -181,8 +195,7 @@ printf("binding: "); value_print(p->m_cons[0]); printf ("to: "); value_print(sta
 		p = p->m_cons[1];
 	}
 
-	int old_ip = p_vm->m_ip;
-	p_vm->m_ip = 0;
+	verify(p_nargs == bp_offset, "Mismatched arg count: %d != %d\n", p_nargs, bp_offset);
 
 printf("active pool: %p\n", l->m_pool);
 
@@ -228,12 +241,12 @@ printf("active pool: %p\n", l->m_pool);
 			}
 			case OP_CATCH:
 			{
-				printf("op_catch arg: %d\n", (int)p_arg);
+				//printf("op_catch arg: %d\n", (int)p_arg);
 
 				int ip = (int)p_arg;
 
 				if (p_arg == -1) {
-printf("pop'd handler\n");
+//printf("pop'd handler\n");
 					pop_handler_stack();
 					p_vm->m_ip++;
 					return;
@@ -248,7 +261,7 @@ printf("pop'd handler\n");
 
 				int i = setjmp(*push_handler_stack());
 				if (i != 0) {
-printf("error in catch\n");
+//printf("error in catch\n");
 					p_vm->m_bp = vm_bp;
 					p_vm->m_sp = vm_sp;
 					p_vm->m_ev = vm_ev;
@@ -257,7 +270,7 @@ printf("error in catch\n");
 
 					pop_handler_stack();
 					p_vm->m_ip = ip;
-printf("jumping to %d\n", p_vm->m_ip);
+//printf("jumping to %d\n", p_vm->m_ip);
 				} else {
 					p_vm->m_ip++;
 				}
@@ -299,7 +312,7 @@ printf("jumping to %d\n", p_vm->m_ip);
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
 
 
-printf("sym: %s\n", (char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
+//printf("sym: %s\n", (char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 				verify(b != NULL, "op_loadf: Could not find function binding for symbol: %s\n", 
 					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 
@@ -323,13 +336,13 @@ printf("sym: %s\n", (char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 
 				value_t *ret = 0;
 				if (func_val->m_type == VT_INTERNAL_FUNCTION) {
-					vm_func_t func = *(vm_func_t *)func_val->m_data;
-					ret = func(p_vm);
+					vm_exec(p_vm, func_val, p_arg);
+					ret = p_vm->m_stack[p_vm->m_sp - 1];
 				} else if (func_val->m_type == VT_CLOSURE) {
 					vm_exec(p_vm, func_val, p_arg);
 					ret = p_vm->m_stack[p_vm->m_sp - 1];
 				}  else {
-					assert(!"ERROR: UNKNOWN FUNCTION TYPE\n");
+					verify(false, "ERROR: UNKNOWN FUNCTION TYPE: %d\n", func_val->m_type);
 				}
 
 				// Consume the stack back through the function name
@@ -344,7 +357,7 @@ printf("sym: %s\n", (char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 				// get value from pool
 				value_t *lambda = ((value_t **)p_pool->m_data)[p_arg];
 
-printf("op_lambda: bc: "); value_print(((lambda_t *)lambda->m_data)->m_bytecode); printf("\n");
+//printf("op_lambda: bc: "); value_print(((lambda_t *)lambda->m_data)->m_bytecode); printf("\n");
 
 				value_t *closure = make_closure(p_vm, lambda);
 				p_vm->m_stack[p_vm->m_sp++] = closure;
@@ -398,7 +411,7 @@ printf("op_lambda: bc: "); value_print(((lambda_t *)lambda->m_data)->m_bytecode)
 		}
 	}
 
-printf("left active pool\n");
+//printf("left active pool\n");
 
 
 	// Consume the stack back through the function name

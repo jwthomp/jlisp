@@ -2,6 +2,7 @@
 [ ] Change read.. get from stack.. eval to eval(read)
 [ ] Support `,
 [ ] Support ,@
+[ ] Do argument count checking for built in special forms
 
 
 [X] Fix reading from command line to not submit to reader until a complete form is ready

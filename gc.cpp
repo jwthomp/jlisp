@@ -32,7 +32,7 @@ void gc_shutdown(vm_t *p_vm)
 
 	for(;p;p = safe) {
 		safe = p->m_heapptr;
-printf("Freeing(%d): %p\n", p->m_type, p);
+//printf("Freeing(%d): %p\n", p->m_type, p);
 		free(p);
 	}
 }

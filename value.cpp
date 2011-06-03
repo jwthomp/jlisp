@@ -81,9 +81,9 @@ value_t * value_create_pool(vm_t *p_vm, value_t *p_literals[], int p_literal_cou
 
 value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_bytecode, value_t *p_pool)
 {
-	assert((p_parameters == NULL) || (p_parameters == nil) || (p_parameters->m_type == VT_CONS));
+	assert((p_parameters == nil) || (p_parameters->m_type == VT_CONS));
 	assert(p_bytecode && (p_bytecode->m_type == VT_BYTECODE));
-	assert((p_pool == NULL) || (p_pool->m_type == VT_POOL));
+	assert((p_pool != NULL) && (p_pool->m_type == VT_POOL));
 
 	value_t *ret = value_create(p_vm, VT_LAMBDA, sizeof(lambda_t), false);
 	lambda_t *l = (lambda_t *)ret->m_data;
@@ -164,6 +164,7 @@ bool value_equal(value_t *p_value_1, value_t *p_value_2)
 
 void value_print(value_t *p_value)
 {
+	assert(p_value != NULL);
 	if(p_value == NULL) {
 		printf("()");
 		return;
@@ -234,14 +235,10 @@ void value_print(value_t *p_value)
 		case VT_CONS:
 		{
 			printf("cons:(");
-			if (p_value->m_cons[0] != NULL) {
-				value_print(p_value->m_cons[0]);
-
-				if (p_value->m_cons[1] != NULL) {
-					printf(" ");
-					value_print(p_value->m_cons[1]);
-				}
-			}
+			assert(p_value->m_cons[0] != NULL);
+			value_print(p_value->m_cons[0]);
+			printf(" ");
+			value_print(p_value->m_cons[1]);
 			printf(")");
 			break;
 		}
@@ -257,7 +254,7 @@ void value_print(value_t *p_value)
 
 bool is_null(value_t *p_val)
 {
-	return p_val == NULL ? true : false;
+	return p_val ==  nil ? true : false;
 }
 
 
