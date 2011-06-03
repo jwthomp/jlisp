@@ -2,5 +2,8 @@
 #include "err.h"
 
 void assert(bool x) {
-	verify(x, "An error!");
+	if (x == false) {
+		int a = *(int *)0;
+		a++;
+	}
 }

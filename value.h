@@ -33,11 +33,16 @@ typedef struct value_s {
 } value_t;
 
 extern char const *g_opcode_print[];
+extern value_t *nil;
 
 typedef struct vm_s vm_t;
 
 value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static);
 void value_destroy(value_t *);
 void value_print(value_t *p_value);
+
+value_t *car(value_t *p_value);
+value_t *cdr(value_t *p_value);
+value_t *cadr(value_t *p_value);
 
 #endif /* __VALUE_H_ */

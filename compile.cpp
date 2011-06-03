@@ -4,6 +4,7 @@
 #include "vm.h"
 #include "gc.h"
 #include "lambda.h"
+#include "err.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +30,7 @@ bool is_macro(vm_t *p_vm, value_t *p_value)
 	}
 
 	value_t *v_env = p_vm->m_current_env[p_vm->m_ev -1];
-	assert(v_env && v_env->m_type == VT_ENVIRONMENT);
+	verify(v_env && v_env->m_type == VT_ENVIRONMENT, "is_macro: env is null or not an environment\n");
 	environment_t *env = (environment_t *)v_env->m_data;
 
 	value_t *v_fbindings = env->m_function_bindings;
@@ -37,20 +38,20 @@ bool is_macro(vm_t *p_vm, value_t *p_value)
 		return false;
 	}
 
-	assert(v_fbindings && v_fbindings->m_type == VT_BINDING);
+	verify(v_fbindings && v_fbindings->m_type == VT_BINDING, "is_macro: fbindings are null or not a binding\n");
 
 	value_t *v_bind = binding_find(v_fbindings, v_car);
 	if (v_bind == NULL) {
 		return false;
 	}
 
-	assert(v_bind->m_type == VT_BINDING);
+	verify(v_bind->m_type == VT_BINDING, "is_macro: found binding is not a binding\n");
 
 	binding_t *bind = (binding_t *)v_bind->m_data;
 
 	if (bind && bind->m_value && (bind->m_value->m_type == VT_CLOSURE)) {
 		value_t *v_lambda = bind->m_value->m_cons[1];
-		assert(v_lambda && v_lambda->m_type == VT_LAMBDA);
+		verify(v_lambda && v_lambda->m_type == VT_LAMBDA, "is_macro: found binding value is not a lambda\n");
 		lambda_t *l = (lambda_t *)v_lambda->m_data;
 		if (l->m_is_macro) {
 			return true;
@@ -169,7 +170,7 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			break;
 		}
 		case OP_DUP:
-			assert(!"op_dup are not supported. Write the code");
+			verify(false, "op_dup are not supported. Write the code");
 			break;
 	}
 
@@ -208,7 +209,10 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 	value_t *func = p_form->m_cons[0];
 	value_t *args = p_form->m_cons[1];
 
+printf("cf: "); value_print(args); printf("\n");
+
 	if ((func->m_type == VT_SYMBOL) && !strcmp("quote", func->m_data)) {
+
 		
 		assert(args->m_cons[1] && args->m_cons[1]->m_cons[0] == NULL);
 
@@ -304,8 +308,15 @@ printf("catch: %d\n", save_index - old_index);
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defun", func->m_data)) {
 		//printf("defun: "); value_print(args); printf("\n");
 		value_t *sym = args->m_cons[0];
-		value_t *largs = args->m_cons[1]->m_cons[0];
 		value_t *body = args->m_cons[1]->m_cons[1]->m_cons[0];
+		value_t *largs = nil;
+
+		if (args->m_cons[1] != NULL && (args->m_cons[1] != nil) && args->m_cons[1]->m_cons[0] != NULL) {
+			largs = args->m_cons[1]->m_cons[0];
+		}
+
+printf("largs: "); value_print(largs); printf("\n");
+printf("body: "); value_print(body); printf("\n");
 
 		// compile args, body
 		value_t *lambda = compile(p_vm, largs, list(p_vm, body));
@@ -334,7 +345,7 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-	//printf("Compile form: "); value_print(p_form); printf("\n");
+	printf("Compile form: "); value_print(p_form); printf("\n");
 
 	// If it's a cons, do a macroexpand in case this is a macro
 	if (is_cons(p_form)) {
@@ -347,11 +358,9 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 	} else if (is_symbol(p_form) || (p_form->m_type == VT_MACRO)) {
 		// Change type back to symbol
 		p_form->m_type = VT_SYMBOL;
-//printf("cf: sym\n");
 		opcode_e opcode = p_function ? OP_LOADF : OP_LOAD;
 		assemble(opcode, p_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 	} else {
-//printf("cf: num: %d\n", p_form->m_type);
 		assemble(OP_PUSH, p_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 	}
 }
@@ -365,17 +374,22 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 
 printf("POOL: %p\n", pool);
 
-	assert(p_parameters == NULL || is_cons(p_parameters));
+printf("nil: %p param: %p -> ", nil, p_parameters); value_print(p_parameters); printf("\n");
+
+	assert(p_parameters == NULL || p_parameters == nil || is_cons(p_parameters));
 
 	value_t *param = p_parameters;
-	while(param && param->m_cons[0]) {
+	while(param && (param != nil) && param->m_cons[0]) {
 		assert(is_symbol(param->m_cons[0]));
 		param = param->m_cons[1];
 	}
 
-	assert(p_body && is_cons(p_body));
+	assert(p_body != NULL);
+	verify(p_body != nil, "compile: p_body is nil\n");
+	verify(is_cons(p_body), "compile: p_body is not a cons\n");
+
 	value_t *val = p_body;
-	while(val) {
+	while(val && val != nil) {
 		compile_form(val->m_cons[0], p_vm, (bytecode_t *)bytecode, &bytecode_index, (value_t **)pool, &pool_index, false);
 		val = val->m_cons[1];
 	}
@@ -386,7 +400,6 @@ printf("POOL: %p\n", pool);
 	bytecode_t *bc_allocd = (bytecode_t *)malloc(sizeof(bytecode_t) * bytecode_index);
 	memcpy(bc_allocd, bytecode, sizeof(bytecode_t) * bytecode_index);
 	value_t *bytecode_final = value_create_bytecode(p_vm, bc_allocd, bytecode_index);
-printf("free bc: %p\n", bc_allocd);
 	free(bc_allocd);
 	value_t *pool_final = value_create_pool(p_vm, pool, pool_index);
 
@@ -409,11 +422,8 @@ value_t *execute(vm_t *p_vm, value_t *p_closure)
 
 value_t * eval(vm_t *p_vm, value_t * p_form)
 {
-printf("COMPILE\n");
 	value_t *lambda = compile(p_vm, NULL, list(p_vm, p_form));
-printf("MAKE CLOSURE\n");
 	value_t *closure =  make_closure(p_vm, lambda);
-printf("EXEC\n");
 	vm_exec(p_vm, closure, 0);
 
 	return p_vm->m_stack[p_vm->m_sp - 1];

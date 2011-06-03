@@ -170,10 +170,10 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 
 
 	int bp_offset = 0;
-	while(p && p->m_cons[0]) {
+	while(p && p != nil && p->m_cons[0]) {
 		value_t *stack_val = p_vm->m_stack[p_vm->m_bp + bp_offset];
 
-//printf("binding: "); value_print(p->m_cons[0]); printf ("to: "); value_print(stack_val); printf("\n");
+printf("binding: "); value_print(p->m_cons[0]); printf ("to: "); value_print(stack_val); printf("\n");
 
 		vm_bind(p_vm, p->m_cons[0]->m_data, stack_val);
 

@@ -112,7 +112,6 @@ void process_next(vm_t *p_vm, stream_t *p_stream)
 		// args in the list, this will also let me handle the list of size
 		// 0, otherwise known as nil
 		if (args == 0) {
-			value_t *nil = value_create_symbol(p_vm, "nil");
 			vm_push(p_vm, nil);
 		} else {
 			vm_list(p_vm, args);
@@ -132,7 +131,7 @@ int reader(vm_t *p_vm, stream_t *p_stream, bool p_in_list)
 	int list_size = 0;
 	while(p_stream->index < p_stream->length) {
 		char val = p_stream->pop();
-		if ((val == ' ') || (val == '\n') || (val == '\r')) {
+		if ((val == ' ') || (val == '\n') || (val == '\r') || (val == '\t')) {
 			// Clear out white space
 			continue;
 		} else if (val == '\'') {

@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+value_t *nil;
+
 
 value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static)
 {
@@ -79,7 +81,7 @@ value_t * value_create_pool(vm_t *p_vm, value_t *p_literals[], int p_literal_cou
 
 value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_bytecode, value_t *p_pool)
 {
-	assert((p_parameters == NULL) || (p_parameters->m_type == VT_CONS));
+	assert((p_parameters == NULL) || (p_parameters == nil) || (p_parameters->m_type == VT_CONS));
 	assert(p_bytecode && (p_bytecode->m_type == VT_BYTECODE));
 	assert((p_pool == NULL) || (p_pool->m_type == VT_POOL));
 
@@ -315,6 +317,24 @@ bool is_lambda(value_t *p_val)
 
 value_t * list(vm_t *p_vm, value_t *p_value)
 {
-	return value_create_cons(p_vm, p_value, NULL);
+	return value_create_cons(p_vm, p_value, nil);
 }
 
+value_t *car(value_t *p_value)
+{
+	assert(p_value && p_value->m_type == VT_CONS);
+	return p_value->m_cons[0];
+}
+
+value_t *cdr(value_t *p_value)
+{
+	assert(p_value && p_value->m_type == VT_CONS);
+	return p_value->m_cons[1];
+}
+
+value_t *cadr(value_t *p_value)
+{
+	assert(p_value && p_value->m_type == VT_CONS);
+	assert(p_value->m_cons[1] && p_value->m_cons[1]->m_type == VT_CONS);
+	return p_value->m_cons[1]->m_cons[0];
+}

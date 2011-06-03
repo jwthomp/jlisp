@@ -21,7 +21,7 @@ value_t *atom(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 	if (first && first->m_type == VT_CONS) {
-		return value_create_symbol(p_vm, "nil");
+		return nil;
 	}
 
 	return value_create_symbol(p_vm, "t");
@@ -61,13 +61,13 @@ value_t *status(vm_t *p_vm)
 	printf("Live Objects: %d\n", count);
 	printf("Memory used: %lu\n", mem);
 	
-	return NULL;
+	return nil;
 }
 
 value_t *gc_go(vm_t *p_vm)
 {
 	gc(p_vm);
-	return NULL;
+	return nil;
 }
 	
 
@@ -78,28 +78,23 @@ value_t *load(vm_t *p_vm)
 
 	struct stat st;
 	if (stat(first->m_data, &st) != 0) {
-		return value_create_symbol(p_vm, "nil");
+		return nil;
 	}
 
 	FILE *fp = fopen(first->m_data, "r");
 	char *input = (char *)malloc(st.st_size);
 
 	unsigned long file_size = (unsigned long)st.st_size;
-	
-	while(int read_in_size = getline(&input, (size_t *)&file_size, fp) != -1) {
-printf("\n>%d<\n", read_in_size);
-		if (input[read_in_size - 1] == '\n') {
-			input[read_in_size - 1] = '\0';
-		}
 
-		load_string(p_vm, input);
-		input[0] = 0;
-	}
+	fread(input, file_size, 1, fp);
+	
+	load_string(p_vm, input);
+
 printf("free input: %p\n", input);
 	free(input);
 	fclose(fp);
 
-	return value_create_symbol(p_vm, "nil");
+	return nil;
 }
 
 
@@ -150,17 +145,17 @@ value_t *eq(vm_t *p_vm)
 		if (second->m_cons[0] == NULL && !strcmp("nil", first->m_data)) {
 			return value_create_symbol(p_vm, "t");
 		}
-		return value_create_symbol(p_vm, "nil");
+		return nil;
 		
 	} else if (first->m_type == VT_CONS && second->m_type == VT_SYMBOL) {
 		if (first->m_cons[0] == NULL && !strcmp("nil", second->m_data)) {
 			return value_create_symbol(p_vm, "t");
 		}
-		return value_create_symbol(p_vm, "nil");
+		return nil;
 	}
 
 	if (first->m_type != second->m_type) {
-		return value_create_symbol(p_vm, "nil");
+		return nil;
 	}
 
 	verify(first->m_type == second->m_type, "eq: Types are not the same %d != %d\n",
@@ -171,7 +166,7 @@ value_t *eq(vm_t *p_vm)
 			if (*(int *)(first->m_data) == *(int *)(second->m_data)) {
 				return value_create_symbol(p_vm, "t");
 			} else {
-				return value_create_symbol(p_vm, "nil");
+				return nil;
 			}
 			break;
 
@@ -179,7 +174,7 @@ value_t *eq(vm_t *p_vm)
 			if(!strcmp(first->m_data, second->m_data)) {
 				return value_create_symbol(p_vm, "t");
 			} else {
-				return value_create_symbol(p_vm, "nil");
+				return nil;
 			}
 			break;
 
@@ -187,7 +182,7 @@ value_t *eq(vm_t *p_vm)
 			if(!strcmp(first->m_data, second->m_data)) {
 				return value_create_symbol(p_vm, "t");
 			} else {
-				return value_create_symbol(p_vm, "nil");
+				return nil;
 			}
 			break;
 
@@ -196,7 +191,7 @@ value_t *eq(vm_t *p_vm)
 			break;
 	}
 
-	return value_create_symbol(p_vm, "nil");
+	return nil;
 }
 
 value_t *plus(vm_t *p_vm)
@@ -217,7 +212,7 @@ value_t *print(vm_t *p_vm)
 	printf("%lu>> ", p_vm->m_sp);
 	value_print(p_vm->m_stack[p_vm->m_sp - 1]);
 	printf("\n");
-	return NULL;
+	return nil;
 }
 
 void load_string(vm_t *p_vm, char const *p_code)
@@ -302,7 +297,8 @@ printf("vm ev: %lu\n", vm->m_ev);
 	vm_bindf(vm, p12, load, 1);
 	vm_bindf(vm, p13, gc_go, 0);
 	vm_bindf(vm, p14, atom, 1);
-	vm_bind(vm, p8, value_create_symbol(vm, "nil"));
+	nil = value_create_symbol(vm, "nil");
+	vm_bind(vm, p8, nil);
 	vm_bind(vm, p3, value_create_number(vm, 1));
 	vm_bind(vm, p4, value_create_number(vm, 2));
 
