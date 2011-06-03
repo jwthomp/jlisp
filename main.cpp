@@ -228,23 +228,25 @@ void load_string(vm_t *p_vm, char const *p_code)
 		stream_t *strm = stream_create(p_code);
 		int args = reader(p_vm, strm, false);
 
+printf("reader found %d forms\n", args);
 
 		int count_down = args;
 		while(count_down > 0) {
 			// get value off stack
 			value_t *rd = p_vm->m_stack[p_vm->m_sp - count_down];
-printf("read: "); value_print(rd); printf("\n");
+printf("read form: "); value_print(rd); printf("\n");
 
 			// Evaluate it
 			eval(p_vm, rd);
 
 			// Print a result
 printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
+			p_vm->m_sp--;
+
 			count_down--;
 		}
 
-//			p_vm->m_sp--;
-		p_vm->m_sp -= args * 2;
+		p_vm->m_sp -= args;
 
 
 
@@ -268,7 +270,7 @@ printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n
 
 int main(int argc, char *arg[])
 {
-	vm_t *vm = vm_create(128);
+	vm_t *vm = vm_create(1024);
 	char p1[] = "print";
 	char p2[] = "cons";
 	char p3[] = "a";
