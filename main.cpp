@@ -288,7 +288,7 @@ int main(int argc, char *arg[])
 
 //printf("vm ev: %lu\n", vm->m_ev);
 
-	vm_bindf(vm, p1, print, 1);
+	vm_bindf(vm, p1, print, -1);
 	vm_bindf(vm, p2, cons, 2);
 	vm_bindf(vm, p5, status, 0);
 	vm_bindf(vm, p6, car, 1);

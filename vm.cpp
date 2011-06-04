@@ -150,9 +150,22 @@ void vm_pop_env(vm_t *p_vm)
 
 void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 {
+
 	if (p_closure->m_type == VT_INTERNAL_FUNCTION) {
 		vm_func_t func = *(vm_func_t *)p_closure->m_data;
-		verify(p_nargs == p_closure->m_data[sizeof(vm_func_t)], "Mismatched arg count: %d != %d\n", p_nargs, p_closure->m_data[sizeof(vm_func_t)]);
+
+		int func_arg_count = p_closure->m_data[sizeof(vm_func_t)];
+		// Condense remaining args into a list
+		if (func_arg_count < 0) {
+			func_arg_count = -func_arg_count;
+			for( ; p_nargs >= func_arg_count; p_nargs--) {
+				vm_cons(p_vm);
+			}
+			p_nargs++;
+		}
+
+
+		verify(p_nargs == func_arg_count, "Mismatched ifunc arg count: %d != %d\n", p_nargs, func_arg_count);
 		
 		p_vm->m_stack[p_vm->m_sp++] = func(p_vm);
 		return;
@@ -182,16 +195,27 @@ printf("obp: %d nbp: %lu sp: %lu nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p
 	// Bind parameters
 	value_t *p = l->m_parameters;
 
+	int func_arg_count = (int)p_closure->m_cons[2];
+	// Condense remaining args into a list
+	if (func_arg_count < 0) {
+		func_arg_count = -func_arg_count;
+		for( ; p_nargs >= func_arg_count; p_nargs--) {
+			vm_cons(p_vm);
+		}
+		p_nargs++;
+	}
 
 	int bp_offset = 0;
 	while(p && p != nil && p->m_cons[0]) {
-		value_t *stack_val = p_vm->m_stack[p_vm->m_bp + bp_offset];
+		if (strcmp(p->m_cons[0]->m_data, "&rest")) {
+			value_t *stack_val = p_vm->m_stack[p_vm->m_bp + bp_offset];
 
 printf("binding: "); value_print(p->m_cons[0]); printf ("to: "); value_print(stack_val); printf("\n");
 
-		vm_bind(p_vm, p->m_cons[0]->m_data, stack_val);
+			vm_bind(p_vm, p->m_cons[0]->m_data, stack_val);
 
-		bp_offset++;
+			bp_offset++;
+		}
 		p = p->m_cons[1];
 	}
 

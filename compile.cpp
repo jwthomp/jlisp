@@ -193,8 +193,6 @@ int compile_args(value_t *p_form, vm_t *p_vm,
 		compile_form(val->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		val = val->m_cons[1];
 	}
-		
-
 
 	return n_args;
 }

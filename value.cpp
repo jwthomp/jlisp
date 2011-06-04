@@ -48,11 +48,11 @@ value_t * value_create_symbol(vm_t *p_vm, char const * const p_symbol)
 	return ret;
 }
 
-value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func, unsigned long p_param_count)
+value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func, int p_nargs)
 {
-	value_t *ret =  value_create(p_vm, VT_INTERNAL_FUNCTION, sizeof(vm_func_t) + 1, true);
+	value_t *ret =  value_create(p_vm, VT_INTERNAL_FUNCTION, sizeof(vm_func_t) + 4, true);
 	memcpy(ret->m_data, (char *)&p_func, sizeof(vm_func_t));
-	ret->m_data[sizeof(vm_func_t)] = (char)p_param_count;
+	ret->m_data[sizeof(vm_func_t)] = p_nargs;
 //	ret->m_is_static = true;
 	return ret;
 }
@@ -94,12 +94,44 @@ value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_byte
 	return ret;
 }
 
+int count_lambda_args(value_t *p_lambda)
+{
+	assert(p_lambda && p_lambda->m_type == VT_LAMBDA);
+
+	lambda_t *l = (lambda_t *)p_lambda->m_data;
+	value_t *p = l->m_parameters;
+	int nargs = 0;
+	bool has_rest = false;
+	while (p != nil && p->m_cons[0] != nil) {
+		nargs++;
+
+value_print(p->m_cons[0]); printf("\n");
+
+		if (p->m_cons[0]->m_type == VT_SYMBOL && !strcmp(p->m_cons[0]->m_data, "&rest")) {
+printf("HAS REST\n"); 
+			has_rest = true;
+			nargs--;
+		}
+
+		p = p->m_cons[1];
+	}
+
+	if (has_rest == true) {
+		nargs = -nargs;
+	}
+
+printf("HAS %d ARGS\n", nargs);
+printf("- "); value_print(l->m_parameters); printf("\n");
+	return nargs;
+}
+
 
 value_t * value_create_closure(vm_t *p_vm, value_t *p_env, value_t *p_lambda)
 {
-	value_t *ret = value_create(p_vm, VT_CLOSURE, sizeof(value_t *) * 2, false);
+	value_t *ret = value_create(p_vm, VT_CLOSURE, sizeof(value_t *) * 3, false);
 	ret->m_cons[0] = p_env;
 	ret->m_cons[1] = p_lambda;
+	ret->m_cons[2] = (value_t *)count_lambda_args(p_lambda);
 	return ret;
 }
 
