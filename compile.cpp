@@ -249,7 +249,8 @@ printf("cf: args: "); value_print(args); printf("\n");
 
 
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("cond", func->m_data)) {
-		while(args->m_cons[0]) {
+		while(args != nil) {
+assert(args->m_cons[0]->m_type == VT_CONS);
 			value_t * test = args->m_cons[0]->m_cons[0];
 			value_t * if_true = args->m_cons[0]->m_cons[1]->m_cons[0];
 
@@ -321,6 +322,40 @@ printf("lambda: "); value_print(lambda); printf("\n");
 
 		// bindf symbol
 		assemble(OP_BINDGF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+	} else if ((func->m_type == VT_SYMBOL) && !strcmp("let", func->m_data)) {
+
+		// Transform from (let ((var val) (var val)) body) to
+		// ((lambda (var var) body) val val)
+		value_t *largs = car(args);
+
+		value_t *arg_list = nil;
+		value_t *val_list = nil;
+
+		// Create list of args
+		while(car(largs) != nil) {
+			value_t *arg = car(car(largs));
+			value_t *val = car(cdr(car(largs)));
+
+			arg_list = value_create_cons(p_vm, arg, arg_list);
+			val_list = value_create_cons(p_vm, val, val_list);
+
+			printf("arg: "); value_print(arg); printf(" val: "); value_print(val); printf("\n");
+
+			largs = cdr(largs);
+		}
+
+		// Compile the body of the let
+		value_t *body = car(cdr(args));
+		value_t *lambda = compile(p_vm, arg_list, list(p_vm, body));
+		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+		
+		// Compile the args for calling the lambda
+		int argc = compile_args(val_list, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+		// Call the lambda
+		assemble(OP_CALL, (int *)argc, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
 
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("lambda", func->m_data)) {
 //		printf("lambda: "); value_print(args->m_cons[1]->m_cons[0]); printf("\n");

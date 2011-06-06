@@ -351,18 +351,29 @@ value_t * list(vm_t *p_vm, value_t *p_value)
 
 value_t *car(value_t *p_value)
 {
+	if (p_value == nil) {
+		return nil;
+	}
 	assert(p_value && p_value->m_type == VT_CONS);
 	return p_value->m_cons[0];
 }
 
 value_t *cdr(value_t *p_value)
 {
+	if (p_value == nil) {
+		return nil;
+	}
+
 	assert(p_value && p_value->m_type == VT_CONS);
 	return p_value->m_cons[1];
 }
 
 value_t *cadr(value_t *p_value)
 {
+	if (p_value == nil) {
+		return nil;
+	}
+
 	assert(p_value && p_value->m_type == VT_CONS);
 	assert(p_value->m_cons[1] && p_value->m_cons[1]->m_type == VT_CONS);
 	return p_value->m_cons[1]->m_cons[0];
