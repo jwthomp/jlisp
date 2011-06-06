@@ -24,6 +24,7 @@ typedef enum opcode_s {
 	OP_BINDG,		// 10
 	OP_IFNILJMP,	// 11
 	OP_RET,			// 12
+	OP_UPDATE,		// 13
 } opcode_e;
 
 extern char const *g_opcode_print[];

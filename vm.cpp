@@ -33,6 +33,7 @@ char const *g_opcode_print[] =  {
     "OP_BINDG",
     "OP_IFNILJMP",
     "OP_RET",
+	"OP_UPDATE",
 };
 
 
@@ -335,7 +336,6 @@ printf("active pool: %p\n", l->m_pool);
 
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
 
-
 //printf("sym: %s\n", (char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 				verify(b != NULL, "op_loadf: Could not find function binding for symbol: %s\n", 
 					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
@@ -430,6 +430,21 @@ printf("active pool: %p\n", l->m_pool);
 			case OP_RET:
 			{
 				p_vm->m_ip = -1;
+				break;
+			}
+			case OP_UPDATE:
+			{
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+				value_t *b = environment_binding_find(p_vm, sym, false);
+
+				verify(b && b->m_type == VT_BINDING, "op_load: Binding lookup failed: %s\n", 
+					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
+
+				// Change value
+				binding_t *bind = (binding_t *)b->m_data;
+				bind->m_value = p_vm->m_stack[p_vm->m_sp - 1];
+
+				p_vm->m_ip++;
 				break;
 			}
 		}

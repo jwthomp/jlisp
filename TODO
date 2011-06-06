@@ -4,16 +4,16 @@
 [ ] Function pattern matching
 [ ] receive pattern matching
 [ ] Process spawning
-[ ] Implement let
 [ ] Implement let* (sequential)
 [ ] Try (defvar x 1) (cond ((< x 0) (setq (+ x 10))))
-[ ] Make sure that setq updates x
-
+[ ] Implement progn
 
 [ ] Change read.. get from stack.. eval to eval(read)
 [ ] Support `,
 [ ] Support ,@
 
+[X] Make sure that setq updates x
+[X] Implement defvar binds value in current env
 [X] Fix lambda ((lambda (x) (print x)) 10)
 [X] Do argument count checking for built in special forms
 [X] Fix reading from command line to not submit to reader until a complete form is ready

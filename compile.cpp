@@ -123,6 +123,12 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			push_opcode(OP_PUSH, index, p_bytecode, p_bytecode_index);
 			break;
 		}
+		case OP_UPDATE:
+		{
+			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
+			push_opcode(OP_UPDATE, index, p_bytecode, p_bytecode_index);
+			break;
+		}
 		case OP_BIND:
 		{
 			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
@@ -218,15 +224,23 @@ printf("cf: args: "); value_print(args); printf("\n");
 
 		// is of form (args . nil) so only push car
 		assemble(OP_PUSH, args->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if ((func->m_type == VT_SYMBOL) && !strcmp("setq", func->m_data)) {
+	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defvar", func->m_data)) {
 		assert(args->m_cons[0] != nil && args->m_cons[1] != nil && args->m_cons[1]->m_cons[0] != nil);
-//		assert(args->m_cons[1]->m_cons[1] == NULL);
 
-		value_t *sym = args->m_cons[0];
-		value_t *form = args->m_cons[1]->m_cons[0];
+		value_t *sym = car(args);
+		value_t *form = cadr(args);
 
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BIND, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
+	} else if ((func->m_type == VT_SYMBOL) && !strcmp("setq", func->m_data)) {
+		assert(args->m_cons[0] != nil && args->m_cons[1] != nil && args->m_cons[1]->m_cons[0] != nil);
+
+		value_t *sym = car(args);
+		value_t *form = cadr(args);
+
+		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+		assemble(OP_UPDATE, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 	} else if ((func->m_type == VT_SYMBOL) && !strcmp("unwind-protect", func->m_data)) {
 		value_t * protect_form = args->m_cons[0];
