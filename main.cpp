@@ -82,7 +82,8 @@ value_t *load(vm_t *p_vm)
 	}
 
 	FILE *fp = fopen(first->m_data, "r");
-	char *input = (char *)malloc(st.st_size);
+	char *input = (char *)malloc(st.st_size + 1);
+	memset(input, 0, st.st_size + 1);
 
 	unsigned long file_size = (unsigned long)st.st_size;
 
@@ -90,7 +91,6 @@ value_t *load(vm_t *p_vm)
 	
 	load_string(p_vm, input);
 
-//printf("free input: %p\n", input);
 	free(input);
 	fclose(fp);
 
@@ -141,18 +141,6 @@ value_t *eq(vm_t *p_vm)
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
 
-	if (first->m_type == VT_SYMBOL && second->m_type == VT_CONS) {
-		if (second->m_cons[0] == NULL && !strcmp("nil", first->m_data)) {
-			return value_create_symbol(p_vm, "t");
-		}
-		return nil;
-		
-	} else if (first->m_type == VT_CONS && second->m_type == VT_SYMBOL) {
-		if (first->m_cons[0] == NULL && !strcmp("nil", second->m_data)) {
-			return value_create_symbol(p_vm, "t");
-		}
-		return nil;
-	}
 
 	if (first->m_type != second->m_type) {
 		return nil;
@@ -163,28 +151,13 @@ value_t *eq(vm_t *p_vm)
 
 	switch (first->m_type) {
 		case VT_NUMBER:
-			if (*(int *)(first->m_data) == *(int *)(second->m_data)) {
-				return value_create_symbol(p_vm, "t");
-			} else {
-				return nil;
-			}
-			break;
-
 		case VT_SYMBOL:
-			if(!strcmp(first->m_data, second->m_data)) {
-				return value_create_symbol(p_vm, "t");
-			} else {
-				return nil;
-			}
-			break;
-
 		case VT_STRING:
-			if(!strcmp(first->m_data, second->m_data)) {
+			if (value_equal(first, second) == true) {
 				return value_create_symbol(p_vm, "t");
 			} else {
 				return nil;
 			}
-			break;
 
 		default:
 			assert(!"Trying to test unsupported type with eq");
@@ -209,10 +182,10 @@ value_t *plus(vm_t *p_vm)
 
 value_t *print(vm_t *p_vm)
 {
-	printf("%lu>> ", p_vm->m_sp);
-	value_print(p_vm->m_stack[p_vm->m_sp - 1]);
+//	printf("%lu>> ", p_vm->m_sp);
+	value_print(p_vm->m_stack[p_vm->m_bp + 1]);
 	printf("\n");
-	return nil;
+	return p_vm->m_stack[p_vm->m_bp + 1];
 }
 
 void load_string(vm_t *p_vm, char const *p_code)
@@ -223,9 +196,10 @@ void load_string(vm_t *p_vm, char const *p_code)
 	int vm_ip = p_vm->m_ip;
 	value_t *vm_current_env = p_vm->m_current_env[p_vm->m_ev - 1];
 
+	stream_t *strm = stream_create(p_code);
+
 	int i = setjmp(*push_handler_stack());
 	if (i == 0) {
-		stream_t *strm = stream_create(p_code);
 		int args = reader(p_vm, strm, false);
 
 //printf("reader found %d forms\n", args);
@@ -237,10 +211,12 @@ void load_string(vm_t *p_vm, char const *p_code)
 //printf("read form: "); value_print(rd); printf("\n");
 
 			// Evaluate it
-			eval(p_vm, rd);
+			value_t *res = eval(p_vm, rd);
 
 			// Print a result
-printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
+//printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
+//value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
+value_print(res); printf("\n");
 			p_vm->m_sp--;
 
 			count_down--;
@@ -248,9 +224,6 @@ printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n
 
 		p_vm->m_sp -= args;
 
-
-
-		stream_destroy(strm);
 	} else {
 		p_vm->m_bp = vm_bp;
 		p_vm->m_sp = vm_sp;
@@ -261,6 +234,8 @@ printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n
 		printf("Error: %s\n", g_err);
 	}
 	pop_handler_stack();
+
+	stream_destroy(strm);
 
 	verify(p_vm->m_sp == vm_sp &&  p_vm->m_bp == vm_bp, "internal error");
 
@@ -273,8 +248,6 @@ int main(int argc, char *arg[])
 	vm_t *vm = vm_create(1024);
 	char p1[] = "print";
 	char p2[] = "cons";
-	char p3[] = "a";
-	char p4[] = "b";
 	char p5[] = "status";
 	char p6[] = "car";
 	char p7[] = "cdr";
@@ -301,11 +274,12 @@ int main(int argc, char *arg[])
 	vm_bindf(vm, p14, atom, 1);
 	nil = value_create_symbol(vm, "nil");
 	vm_bind(vm, p8, nil);
-	vm_bind(vm, p3, value_create_number(vm, 1));
-	vm_bind(vm, p4, value_create_number(vm, 2));
+
+	voidobj = value_create(vm, VT_VOID, 0, true);
 
 	char input[256];
-	input[0] = 0;
+	memset(input, 0, 256);
+
 	printf("> ");
 	while(gets(input) != NULL && strcmp(input, "quit")) {
 		load_string(vm, input);

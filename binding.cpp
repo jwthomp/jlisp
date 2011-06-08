@@ -24,7 +24,7 @@ value_t * binding_find(value_t * p_bindings, value_t *p_key)
 	binding_t *bind = (binding_t *)p_bindings->m_data;
 
 	if (bind->m_key->m_type == VT_SYMBOL) {
-		if (!memcmp(bind->m_key->m_data, p_key->m_data, p_key->m_size)) {
+		if (value_equal(bind->m_key, p_key)) {
 			return p_bindings;
 		}
 	}

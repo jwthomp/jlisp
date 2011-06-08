@@ -8,7 +8,26 @@
 #include <stdlib.h>
 #include <string.h>
 
+char const *g_valuetype_print[] = {
+	"VT_NUMBER",
+	"VT_POOL",
+	"VT_SYMBOL",
+	"VT_INTERNAL_FUNCTION",
+	"VT_CONS",
+	"VT_BYTECODE",
+	"VT_LAMBDA",
+	"VT_CLOSURE",
+	"VT_ENVIRONMENT",
+	"VT_STRING",
+	"VT_BINDING",
+	"VT_MACRO",
+	"VT_VOID",
+};
+
+
+
 value_t *nil;
+value_t *voidobj;
 
 
 value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static)
@@ -33,6 +52,13 @@ value_t * value_create_number(vm_t *p_vm, int p_number)
 	return ret;
 }
 
+value_t * value_create_static_string(vm_t *p_vm, char const * const p_string)
+{
+	value_t *ret =  value_create(p_vm, VT_STRING, strlen(p_string) + 1, true);
+	strcpy((char *)ret->m_data, p_string);
+	return ret;
+}
+
 value_t * value_create_string(vm_t *p_vm, char const * const p_string)
 {
 	value_t *ret =  value_create(p_vm, VT_STRING, strlen(p_string) + 1, false);
@@ -42,10 +68,12 @@ value_t * value_create_string(vm_t *p_vm, char const * const p_string)
 
 value_t * value_create_symbol(vm_t *p_vm, char const * const p_symbol)
 {
-	value_t *ret =  value_create(p_vm, VT_SYMBOL, strlen(p_symbol) + 1, true);
-	strcpy((char *)ret->m_data, p_symbol);
-//	ret->m_is_static = true;
-	return ret;
+	value_t *string = value_create_static_string(p_vm, p_symbol);
+	value_t *sym =  value_create(p_vm, VT_SYMBOL, sizeof(value_t *) * 2, true);
+	sym->m_cons[0] = string;
+	sym->m_cons[1] = voidobj;
+
+	return sym;
 }
 
 value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func, int p_nargs)
@@ -53,7 +81,6 @@ value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func, int p_nargs)
 	value_t *ret =  value_create(p_vm, VT_INTERNAL_FUNCTION, sizeof(vm_func_t) + 4, true);
 	memcpy(ret->m_data, (char *)&p_func, sizeof(vm_func_t));
 	ret->m_data[sizeof(vm_func_t)] = p_nargs;
-//	ret->m_is_static = true;
 	return ret;
 }
 
@@ -105,10 +132,10 @@ int count_lambda_args(value_t *p_lambda)
 	while (p != nil && p->m_cons[0] != nil) {
 		nargs++;
 
-value_print(p->m_cons[0]); printf("\n");
+// value_print(p->m_cons[0]); printf("\n");
 
-		if (p->m_cons[0]->m_type == VT_SYMBOL && !strcmp(p->m_cons[0]->m_data, "&rest")) {
-printf("HAS REST\n"); 
+		if (p->m_cons[0]->m_type == VT_SYMBOL && is_symbol_name("&rest", p)) {
+// printf("HAS REST\n"); 
 			has_rest = true;
 			nargs--;
 		}
@@ -120,8 +147,8 @@ printf("HAS REST\n");
 		nargs = -nargs;
 	}
 
-printf("HAS %d ARGS\n", nargs);
-printf("- "); value_print(l->m_parameters); printf("\n");
+//printf("HAS %d ARGS\n", nargs);
+//printf("- "); value_print(l->m_parameters); printf("\n");
 	return nargs;
 }
 
@@ -179,13 +206,15 @@ bool value_equal(value_t *p_value_1, value_t *p_value_2)
 			int number_2 = *((int *)p_value_2->m_data);
 			return number_1 == number_2 ? true : false;
 		}
+		case VT_STRING:
+		{
+			return !strcmp(p_value_1->m_data, p_value_2->m_data);
+		}
 		case VT_SYMBOL:
 		{
-			if (!memcmp(p_value_1->m_data, p_value_2->m_data, p_value_1->m_size)) {
-				return true;
-			} else {
-				return false;
-			}
+			value_t *str1 = p_value_1->m_cons[0];
+			value_t *str2 = p_value_2->m_cons[0];
+			return value_equal(str1, str2);
 		}
 		default:
 			break;
@@ -245,28 +274,31 @@ void value_print(value_t *p_value)
 		case VT_NUMBER:
 		{
 			int number = *((int *)p_value->m_data);
-			printf("num: %d", number);
+			printf("%d", number);
 			break;
 		}
 		case VT_INTERNAL_FUNCTION:
 		{
-			int number = *((int *)p_value->m_data);
-			printf("ifunc: %d", number);
+			void * number = ((void *)p_value->m_data);
+			printf("ifunc: %p", number);
 			break;
 		}
 		case VT_STRING:
 		{
-			printf("string: \"%s\"", p_value->m_data);
+			printf("\"%s\"", p_value->m_data);
 			break;
 		}
 		case VT_SYMBOL:
 		{
-			printf("sym: %s", p_value->m_data);
+			value_t *dt = p_value->m_cons[0];
+	//		printf("type: %d\n", dt->m_type);
+	//		printf("sym: %s", dt->m_data);
+			printf("%s", dt->m_data);
 			break;
 		}
 		case VT_CONS:
 		{
-			printf("cons:(");
+			printf("(");
 			assert(p_value->m_cons[0] != NULL);
 			value_print(p_value->m_cons[0]);
 			printf(" ");
@@ -378,3 +410,9 @@ value_t *cadr(value_t *p_value)
 	assert(p_value->m_cons[1] && p_value->m_cons[1]->m_type == VT_CONS);
 	return p_value->m_cons[1]->m_cons[0];
 }
+
+bool is_symbol_name(char const *p_name, value_t *p_symbol)
+{
+	return !strcmp(p_name, p_symbol->m_cons[0]->m_data);
+}
+

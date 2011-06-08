@@ -82,7 +82,7 @@ void macro_expand(vm_t *p_vm, value_t **p_value)
 
 void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_bytecode_index)
 {
-	printf("push opcode(%d): %s %u\n", *p_bytecode_index, g_opcode_print[p_opcode], p_arg);
+	//printf("push opcode(%d): %s %u\n", *p_bytecode_index, g_opcode_print[p_opcode], p_arg);
 	(p_bytecode)[*p_bytecode_index].m_opcode = p_opcode;
 	(p_bytecode)[*p_bytecode_index].m_value = p_arg;
 	(*p_bytecode_index)++;
@@ -90,7 +90,7 @@ void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_by
 
 int push_pool(value_t *p_value, value_t **p_pool, int *p_pool_index)
 {
-	printf("push pool: "); value_print(p_value); printf("\n");
+	//printf("push pool: "); value_print(p_value); printf("\n");
 	(p_pool)[*p_pool_index] = p_value;
 	(*p_pool_index)++;
 	return (*p_pool_index) - 1;
@@ -188,7 +188,7 @@ int compile_args(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-	printf("Compile args: "); value_print(p_form); printf("\n");
+//	printf("Compile args: "); value_print(p_form); printf("\n");
 
 	// Just run through cons until we get to a nil and compile_form them
 	// Return how many there were
@@ -207,16 +207,15 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-	printf("Compile function: "); value_print(p_form); printf("\n");
+//	printf("Compile function: "); value_print(p_form); printf("\n");
 
 	assert(p_form && is_cons(p_form));
 	value_t *func = p_form->m_cons[0];
 	value_t *args = p_form->m_cons[1];
 
-printf("cf: args: "); value_print(args); printf("\n");
+//printf("cf: args: "); value_print(args); printf("\n");
 
-	if ((func->m_type == VT_SYMBOL) && !strcmp("quote", func->m_data)) {
-
+	if ((func->m_type == VT_SYMBOL) && is_symbol_name("quote", func)) {
 		
 		assert(args->m_cons[1] == nil);
 
@@ -224,7 +223,7 @@ printf("cf: args: "); value_print(args); printf("\n");
 
 		// is of form (args . nil) so only push car
 		assemble(OP_PUSH, args->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defvar", func->m_data)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("defvar", func)) {
 		assert(args->m_cons[0] != nil && args->m_cons[1] != nil && args->m_cons[1]->m_cons[0] != nil);
 
 		value_t *sym = car(args);
@@ -233,7 +232,7 @@ printf("cf: args: "); value_print(args); printf("\n");
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BIND, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if ((func->m_type == VT_SYMBOL) && !strcmp("setq", func->m_data)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("setq", func)) {
 		assert(args->m_cons[0] != nil && args->m_cons[1] != nil && args->m_cons[1]->m_cons[0] != nil);
 
 		value_t *sym = car(args);
@@ -242,7 +241,7 @@ printf("cf: args: "); value_print(args); printf("\n");
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_UPDATE, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if ((func->m_type == VT_SYMBOL) && !strcmp("unwind-protect", func->m_data)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("unwind-protect", func)) {
 		value_t * protect_form = args->m_cons[0];
 		value_t * cleanup_form = args->m_cons[1]->m_cons[0];
 
@@ -262,7 +261,7 @@ printf("cf: args: "); value_print(args); printf("\n");
 		assemble(OP_RET, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
-	} else if ((func->m_type == VT_SYMBOL) && !strcmp("cond", func->m_data)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("cond", func)) {
 		while(args != nil) {
 assert(args->m_cons[0]->m_type == VT_CONS);
 			value_t * test = args->m_cons[0]->m_cons[0];
@@ -291,7 +290,7 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 			args = args->m_cons[1];
 		}
 //printf("cond: "); value_print(args->m_cons[0]); printf("\n");
-	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defparameter", func->m_data)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("defparameter", func)) {
 		assert(args->m_cons[0] && args->m_cons[1] && args->m_cons[1]->m_cons[0]);
 
 		value_t *sym = args->m_cons[0];
@@ -300,7 +299,7 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BINDG, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defmacro", func->m_data)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("defmacro", func)) {
 		value_t *sym = args->m_cons[0];
 		value_t *largs = args->m_cons[1]->m_cons[0];
 		value_t *body = args->m_cons[1]->m_cons[1]->m_cons[0];
@@ -318,18 +317,18 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		assemble(OP_BINDGF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
-	} else if ((func->m_type == VT_SYMBOL) && !strcmp("defun", func->m_data)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("defun", func)) {
 		//printf("defun: "); value_print(args); printf("\n");
 		value_t *sym = args->m_cons[0];
 		value_t *body = args->m_cons[1]->m_cons[1]->m_cons[0];
 		value_t *largs = args->m_cons[1]->m_cons[0];
 
-printf("largs: "); value_print(largs); printf("\n");
-printf("body: "); value_print(body); printf("\n");
+//printf("largs: "); value_print(largs); printf("\n");
+//printf("body: "); value_print(body); printf("\n");
 
 		// compile args, body
 		value_t *lambda = compile(p_vm, largs, list(p_vm, body));
-printf("lambda: "); value_print(lambda); printf("\n");
+//printf("lambda: "); value_print(lambda); printf("\n");
 
 		// lambda
 		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
@@ -337,7 +336,7 @@ printf("lambda: "); value_print(lambda); printf("\n");
 		// bindf symbol
 		assemble(OP_BINDGF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if ((func->m_type == VT_SYMBOL) && !strcmp("let", func->m_data)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("let", func)) {
 
 		// Transform from (let ((var val) (var val)) body) to
 		// ((lambda (var var) body) val val)
@@ -354,7 +353,7 @@ printf("lambda: "); value_print(lambda); printf("\n");
 			arg_list = value_create_cons(p_vm, arg, arg_list);
 			val_list = value_create_cons(p_vm, val, val_list);
 
-			printf("arg: "); value_print(arg); printf(" val: "); value_print(val); printf("\n");
+			//printf("arg: "); value_print(arg); printf(" val: "); value_print(val); printf("\n");
 
 			largs = cdr(largs);
 		}
@@ -371,7 +370,7 @@ printf("lambda: "); value_print(lambda); printf("\n");
 		assemble(OP_CALL, (int *)argc, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
-	} else if ((func->m_type == VT_SYMBOL) && !strcmp("lambda", func->m_data)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("lambda", func)) {
 //		printf("lambda: "); value_print(args->m_cons[1]->m_cons[0]); printf("\n");
 		value_t *largs = args->m_cons[0];
 		value_t *body = args->m_cons[1]->m_cons[0];
@@ -389,7 +388,7 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-	printf("Compile form: "); value_print(p_form); printf("\n");
+//	printf("Compile form: "); value_print(p_form); printf("\n");
 
 	// If it's a cons, do a macroexpand in case this is a macro
 	if (is_cons(p_form)) {
@@ -416,7 +415,7 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 	int pool_index = 0;
 	int bytecode_index = 0;
 
-printf("POOL: %p\n", pool);
+// printf("POOL: %p\n", pool);
 
 //printf("nil: %p param: %p -> ", nil, p_parameters); value_print(p_parameters); printf("\n");
 
@@ -448,7 +447,7 @@ printf("POOL: %p\n", pool);
 	free(bc_allocd);
 	value_t *pool_final = value_create_pool(p_vm, pool, pool_index);
 
-printf("POOL OUT: %p\n", pool);
+// printf("POOL OUT: %p\n", pool);
 	return value_create_lambda(p_vm, p_parameters, bytecode_final, pool_final);
 }
 

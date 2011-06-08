@@ -59,13 +59,12 @@ void retain(value_t *p_value)
 	p_value->m_in_use = true;
 
 	switch(p_value->m_type) {
+		case VT_VOID:
 		case VT_NUMBER:
-		case VT_SYMBOL:
 		case VT_INTERNAL_FUNCTION:
 		case VT_BYTECODE:
 		case VT_STRING:
 			return;
-
 		case VT_BINDING:
 			retain(((binding_t *)p_value->m_data)->m_key);
 			retain(((binding_t *)p_value->m_data)->m_value);
@@ -90,6 +89,7 @@ void retain(value_t *p_value)
 			retain(((environment_t *)p_value->m_data)->m_parent);
 			break;
 
+		case VT_SYMBOL:
 		case VT_CLOSURE:
 		case VT_CONS:
 			retain(p_value->m_cons[0]);
@@ -132,10 +132,23 @@ assert(p->m_is_static == false);
       p->m_heapptr = p_vm->m_heap;
       p_vm->m_heap = p;
     } else {
-//printf("Freeing(%d): %p\n", p->m_type, p);
+#if 1
+		p->m_heapptr = NULL;
+		if (p->m_size > 0) {
+			p->m_data[0] = 0;
+		}
       free(p);
-//		p->m_heapptr = p_vm->m_free_heap;
-//		p_vm->m_free_heap = p;
+#else
+
+		value_t *test = p_vm->m_free_heap;
+		while(test) {
+			assert(test != p);
+			test = test->m_heapptr;
+		}
+
+		p->m_heapptr = p_vm->m_free_heap;
+		p_vm->m_free_heap = p;
+#endif
     }
   }
 }

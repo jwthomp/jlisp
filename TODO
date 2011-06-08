@@ -5,8 +5,10 @@
 [ ] receive pattern matching
 [ ] Process spawning
 [ ] Implement let* (sequential)
-[ ] Try (defvar x 1) (cond ((< x 0) (setq (+ x 10))))
+[ ] Try (defvar x 1) (cond ((< x 0) (setq x (+ x 10))))
 [ ] Implement progn
+[ ] Fix so that value_t's can be compared against eachother
+[ ] Implement dynamic and lexical scoped symbols as totally different namespaces
 
 [ ] Change read.. get from stack.. eval to eval(read)
 [ ] Support `,

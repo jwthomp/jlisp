@@ -5,8 +5,8 @@
 #include "value.h"
 
 typedef struct bytecode_s {
-    unsigned long m_opcode :4;
-    unsigned long m_value :28;
+    unsigned long m_opcode :5;
+    unsigned long m_value :27;
 } bytecode_t;
 
 
@@ -25,6 +25,8 @@ typedef enum opcode_s {
 	OP_IFNILJMP,	// 11
 	OP_RET,			// 12
 	OP_UPDATE,		// 13
+	OP_BINDD,		// 14
+	OP_BINDDF,		// 15
 } opcode_e;
 
 extern char const *g_opcode_print[];
@@ -40,6 +42,7 @@ typedef struct vm_s {
 
 	value_t *m_static_heap;
 	value_t *m_heap;
+	value_t *m_free_heap;
 
 	unsigned long m_sp;
 	unsigned long m_bp;

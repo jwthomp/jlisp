@@ -34,6 +34,8 @@ char const *g_opcode_print[] =  {
     "OP_IFNILJMP",
     "OP_RET",
 	"OP_UPDATE",
+	"OP_BINDD",
+	"OP_BINDDF",
 };
 
 
@@ -43,6 +45,7 @@ vm_t *vm_create(unsigned long p_stack_size)
 	vm_t *vm = (vm_t *)malloc(sizeof(vm_t));
 	vm->m_heap = NULL;
 	vm->m_static_heap = NULL;
+	vm->m_free_heap = NULL;
 	vm->m_sp = 0;
 	vm->m_bp = 0;
 	vm->m_ev = 1;
@@ -71,46 +74,56 @@ void vm_destroy(vm_t *p_vm)
 	free(p_vm);
 }
 
+void bind_dynamic(vm_t *p_vm, value_t *p_symbol, value_t *pvalue)
+{
+assert(!"BIND DYNAMIC NOT SUPPORTED YET");	
+}
 
+void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func, bool p_top)
+{
+	value_t *binding = value_create_binding(p_vm, p_symbol, p_value);
+	binding_t *bind = (binding_t *)binding->m_data;
+
+//printf("binding (%d, %d)", p_func, p_top); value_print(bind->m_key); printf(" to "); 
+//value_print(bind->m_value); printf("\n");
+
+	environment_t *env = NULL;
+	if (p_top) {
+		env = (environment_t *)p_vm->m_user_env->m_data;
+	} else {
+		env = (environment_t *)(p_vm->m_current_env[p_vm->m_ev - 1])->m_data;
+	}
+
+	if (p_func == true) {
+		bind->m_next = env->m_function_bindings;
+		env->m_function_bindings = binding;
+	} else {
+		bind->m_next = env->m_bindings;
+		env->m_bindings = binding;
+	}
+}
 
 
 // TODO - Bind calls should replace existing bindings
 void vm_bind(vm_t *p_vm, char *p_symbol, value_t *p_value)
 {
-
-	value_t *binding = value_create_binding(p_vm, value_create_symbol(p_vm, p_symbol), p_value);
-	binding_t *bind = (binding_t *)binding->m_data;
-
-printf("binding "); value_print(bind->m_key); printf(" to "); value_print(bind->m_value); printf("\n");
-
-	bind->m_next = ((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_bindings;
-	((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_bindings = binding;
+	value_t *sym = value_create_symbol(p_vm, p_symbol);
+	bind_internal(p_vm, sym, p_value, false, false);
 }
 
 // TODO - Bind calls should replace existing bindings
 void vm_bindf(vm_t *p_vm, char *p_symbol, vm_func_t p_func, unsigned long p_param_count)
 {
-	value_t *binding = value_create_binding(p_vm, value_create_symbol(p_vm, p_symbol), value_create_internal_func(p_vm, p_func, p_param_count));
+	value_t *int_func = value_create_internal_func(p_vm, p_func, p_param_count);
+	value_t *sym = value_create_symbol(p_vm, p_symbol);
+	bind_internal(p_vm, sym, int_func, true, false);
 
-	assert(binding != NULL);
-
-	binding_t *bind = (binding_t *)binding->m_data;
-
-	assert(bind != NULL);
-	assert(p_vm->m_current_env[p_vm->m_ev - 1]);
-	assert(p_vm->m_current_env[p_vm->m_ev - 1]->m_data);
-
-	bind->m_next = ((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings;
-
-	((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings = binding;
 }
 
 void vm_bindf(vm_t *p_vm, char *p_symbol, value_t *p_code)
 {
-	value_t *binding = value_create_binding(p_vm, value_create_symbol(p_vm, p_symbol), p_code);
-	binding_t *bind = (binding_t *)binding->m_data;
-	bind->m_next = ((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings;
-	((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings = binding;
+	value_t *sym = value_create_symbol(p_vm, p_symbol);
+	bind_internal(p_vm, sym, p_code, true, false);
 }
 
 // Pull the top two elements off the stack and replace them with a cons value
@@ -182,7 +195,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 	p_vm->m_ip = 0;
 
 
-printf("obp: %d nbp: %lu sp: %lu nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p_nargs);
+//printf("obp: %d nbp: %lu sp: %lu nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p_nargs);
 
 
     assert(p_closure && p_closure->m_type == VT_CLOSURE && p_closure->m_cons[1]);
@@ -211,9 +224,9 @@ printf("obp: %d nbp: %lu sp: %lu nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p
 		if (strcmp(p->m_cons[0]->m_data, "&rest")) {
 			value_t *stack_val = p_vm->m_stack[p_vm->m_bp + bp_offset];
 
-printf("binding: "); value_print(p->m_cons[0]); printf ("to: "); value_print(stack_val); printf("\n");
+//printf("binding: %d ", p->m_cons[0]->m_type); value_print(p->m_cons[0]); printf (" to: "); value_print(stack_val); printf("\n");
 
-			vm_bind(p_vm, p->m_cons[0]->m_data, stack_val);
+			vm_bind(p_vm, p->m_cons[0]->m_cons[0]->m_data, stack_val);
 
 			bp_offset++;
 		}
@@ -222,7 +235,7 @@ printf("binding: "); value_print(p->m_cons[0]); printf ("to: "); value_print(sta
 
 	verify(p_nargs == bp_offset, "Mismatched arg count: %d != %d\n", p_nargs, bp_offset);
 
-printf("active pool: %p\n", l->m_pool);
+//printf("active pool: %p\n", l->m_pool);
 
 	while(p_vm->m_ip != -1) {
 		bytecode_t *bc = &((bytecode_t *)l->m_bytecode->m_data)[p_vm->m_ip];
@@ -239,28 +252,32 @@ printf("active pool: %p\n", l->m_pool);
 			case OP_BIND:
 			{
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
-				value_t *binding = value_create_binding(p_vm, sym, p_vm->m_stack[p_vm->m_sp - 1]);
-				binding_t *bind = (binding_t *)binding->m_data;
-
-				bind->m_next = ((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_bindings;
-				assert((bind->m_next == NULL) || (bind->m_next->m_type == VT_BINDING));
-				assert(binding->m_type == VT_BINDING);
-
-				((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_bindings = binding;
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_internal(p_vm, sym, value, false, false);
 				p_vm->m_ip++;
 				break;
 			}
 			case OP_BINDF:
 			{
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
-				value_t *binding = value_create_binding(p_vm, sym, p_vm->m_stack[p_vm->m_sp - 1]);
-				binding_t *bind = (binding_t *)binding->m_data;
-
-				assert((bind->m_next == NULL) || (bind->m_next->m_type == VT_BINDING));
-				assert(binding->m_type == VT_BINDING);
-
-				bind->m_next = ((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings;
-				((environment_t *)p_vm->m_current_env[p_vm->m_ev - 1]->m_data)->m_function_bindings = binding;
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_internal(p_vm, sym, value, true, false);
+				p_vm->m_ip++;
+				break;
+			}
+			case OP_BINDD:
+			{
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_dynamic(p_vm, sym, value);
+				p_vm->m_ip++;
+				break;
+			}
+			case OP_BINDDF:
+			{
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_dynamic(p_vm, sym, value);
 				p_vm->m_ip++;
 				break;
 			}
@@ -317,7 +334,7 @@ printf("active pool: %p\n", l->m_pool);
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], false);
 
 				verify(b && b->m_type == VT_BINDING, "op_load: Binding lookup failed: %s\n", 
-					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
+					(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
 
 //	printf("op_load: key: %d '", ((value_t **)p_pool->m_data)[p_arg]->m_type); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("'\n");
 
@@ -391,24 +408,16 @@ printf("active pool: %p\n", l->m_pool);
 			case OP_BINDG:
 			{
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
-				value_t *binding = value_create_binding(p_vm, sym, p_vm->m_stack[p_vm->m_sp - 1]);
-				binding_t *bind = (binding_t *)binding->m_data;
-				bind->m_next = ((environment_t *)p_vm->m_user_env->m_data)->m_bindings;
-			assert((bind->m_next == NULL) || (bind->m_next->m_type == VT_BINDING));
-			assert(binding->m_type == VT_BINDING);
-				((environment_t *)p_vm->m_user_env->m_data)->m_bindings = binding;
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_internal(p_vm, sym, value, false, true);
 				p_vm->m_ip++;
 				break;
 			}
 			case OP_BINDGF:
 			{
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
-				value_t *binding = value_create_binding(p_vm, sym, p_vm->m_stack[p_vm->m_sp - 1]);
-				binding_t *bind = (binding_t *)binding->m_data;
-				bind->m_next = ((environment_t *)p_vm->m_user_env->m_data)->m_function_bindings;
-				assert((bind->m_next == NULL) || (bind->m_next->m_type == VT_BINDING));
-				assert(binding->m_type == VT_BINDING);
-				((environment_t *)p_vm->m_user_env->m_data)->m_function_bindings = binding;
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_internal(p_vm, sym, value, true, true);
 				p_vm->m_ip++;
 				break;
 			}
@@ -418,7 +427,7 @@ printf("active pool: %p\n", l->m_pool);
 
 //printf("ifniljmp: "); value_print(top); printf("\n");
 
-				if (top->m_type == VT_SYMBOL && (!strcmp(top->m_data, "nil"))) {
+				if (top == nil) {
 					//printf("op_ifniljmp: %d\n", (int)p_arg);
 					p_vm->m_ip += (int)p_arg;
 				}  else { 

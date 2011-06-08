@@ -15,6 +15,7 @@ typedef enum {
 	VT_STRING = 9,
 	VT_BINDING = 10,
 	VT_MACRO = 11,
+	VT_VOID = 11,
 } value_type_t;
 
 typedef struct value_s {
@@ -32,8 +33,9 @@ typedef struct value_s {
 
 } value_t;
 
-extern char const *g_opcode_print[];
+extern char const *g_valuetype_print[];
 extern value_t *nil;
+extern value_t *voidobj;
 
 typedef struct vm_s vm_t;
 
@@ -44,5 +46,8 @@ void value_print(value_t *p_value);
 value_t *car(value_t *p_value);
 value_t *cdr(value_t *p_value);
 value_t *cadr(value_t *p_value);
+
+bool value_equal(value_t *p_value_1, value_t *p_value_2);
+bool is_symbol_name(char const *p_name, value_t *p_symbol);
 
 #endif /* __VALUE_H_ */
