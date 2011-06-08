@@ -26,6 +26,7 @@ char const *g_valuetype_print[] = {
 
 
 
+value_t *t;
 value_t *nil;
 value_t *voidobj;
 

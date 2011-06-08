@@ -35,6 +35,7 @@ typedef struct value_s {
 
 extern char const *g_valuetype_print[];
 extern value_t *nil;
+extern value_t *t;
 extern value_t *voidobj;
 
 typedef struct vm_s vm_t;

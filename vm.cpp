@@ -105,14 +105,14 @@ void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func,
 
 
 // TODO - Bind calls should replace existing bindings
-void vm_bind(vm_t *p_vm, char *p_symbol, value_t *p_value)
+void vm_bind(vm_t *p_vm, char const *p_symbol, value_t *p_value)
 {
 	value_t *sym = value_create_symbol(p_vm, p_symbol);
 	bind_internal(p_vm, sym, p_value, false, false);
 }
 
 // TODO - Bind calls should replace existing bindings
-void vm_bindf(vm_t *p_vm, char *p_symbol, vm_func_t p_func, unsigned long p_param_count)
+void vm_bindf(vm_t *p_vm, char const *p_symbol, vm_func_t p_func, unsigned long p_param_count)
 {
 	value_t *int_func = value_create_internal_func(p_vm, p_func, p_param_count);
 	value_t *sym = value_create_symbol(p_vm, p_symbol);
@@ -120,7 +120,7 @@ void vm_bindf(vm_t *p_vm, char *p_symbol, vm_func_t p_func, unsigned long p_para
 
 }
 
-void vm_bindf(vm_t *p_vm, char *p_symbol, value_t *p_code)
+void vm_bindf(vm_t *p_vm, char const *p_symbol, value_t *p_code)
 {
 	value_t *sym = value_create_symbol(p_vm, p_symbol);
 	bind_internal(p_vm, sym, p_code, true, false);
