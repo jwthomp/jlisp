@@ -241,7 +241,7 @@ void value_print(value_t *p_value)
 			break;
 		case VT_BYTECODE:
 		{
-			printf("bytecode: ");
+			printf("bytecode: \n");
 			bytecode_t *bc = (bytecode_t *)p_value->m_data;
 			for (unsigned long i = 0; i < (p_value->m_size / sizeof(bytecode_t)); i++) {
 				printf("op: %s code: %lu\n", g_opcode_print[bc[i].m_opcode], bc[i].m_value);

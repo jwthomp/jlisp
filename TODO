@@ -5,13 +5,21 @@
 [ ] receive pattern matching
 [ ] Process spawning
 [ ] Implement let* (sequential)
-[ ] Implement progn
 [ ] Fix so that value_t's can be compared against eachother
-[ ] Implement dynamic and lexical scoped symbols as totally different namespaces
-
+[ ] Add support for floats
+[ ] Allow C lisp functions to be flagged as macros
 [ ] Support `,
 [ ] Support ,@
+[ ] Implement dynamic and lexical scoped symbols as totally different namespaces
+[ ] Move special form macro's out of compile and into lib
 
+[/] fix &rest so 'a sets args to ('a)
+[ ] (let ((counter 1)) (defun inc () (setq counter (+ counter 1))) (defun reset () (setq counter 0)))
+
+
+[X] Make lambda handle multiple args in body and only return result of last
+[X] Implement progn -> convert to lambda
+[X] Modify let to just result in a lambda
 [X] Try (defvar x 1) (cond ((< x 0) (setq x (+ x 10))))
 [X] Make sure that setq updates x
 [X] Implement defvar binds value in current env

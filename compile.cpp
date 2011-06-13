@@ -302,10 +302,10 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("defmacro", func)) {
 		value_t *sym = args->m_cons[0];
 		value_t *largs = args->m_cons[1]->m_cons[0];
-		value_t *body = args->m_cons[1]->m_cons[1]->m_cons[0];
+		value_t *body_list = args->m_cons[1]->m_cons[1];
 
 		// compile args, body
-		value_t *lambda = compile(p_vm, largs, list(p_vm, body));
+		value_t *lambda = compile(p_vm, largs, body_list);
 
 		// Flag this lambda as a macro
 		((lambda_t *)lambda->m_data)->m_is_macro = true;
@@ -318,23 +318,21 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 
 
 	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("defun", func)) {
+		// (defun func (args) body) ==> (bindgf func (lambda (args) body))
 		//printf("defun: "); value_print(args); printf("\n");
 		value_t *sym = args->m_cons[0];
-		value_t *body = args->m_cons[1]->m_cons[1]->m_cons[0];
-		value_t *largs = args->m_cons[1]->m_cons[0];
+		value_t *arg_list = args->m_cons[1]->m_cons[0];
+		value_t *body_list = args->m_cons[1]->m_cons[1];
 
-//printf("largs: "); value_print(largs); printf("\n");
-//printf("body: "); value_print(body); printf("\n");
+//printf("largs: "); value_print(arg_list); printf("\n");
+//printf("body: "); value_print(body_list); printf("\n");
 
-		// compile args, body
-		value_t *lambda = compile(p_vm, largs, list(p_vm, body));
-//printf("lambda: "); value_print(lambda); printf("\n");
-
-		// lambda
+		value_t *lambda = compile(p_vm, arg_list, body_list);
 		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-
+		
 		// bindf symbol
 		assemble(OP_BINDGF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
 
 	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("let", func)) {
 
@@ -342,6 +340,8 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		// ((lambda (var var) body) val val)
 		value_t *largs = car(args);
 
+
+		// Break ((var val) (var val)) down into a list of args and vals
 		value_t *arg_list = nil;
 		value_t *val_list = nil;
 
@@ -359,8 +359,8 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		}
 
 		// Compile the body of the let
-		value_t *body = car(cdr(args));
-		value_t *lambda = compile(p_vm, arg_list, list(p_vm, body));
+		value_t *body_list = cdr(args);
+		value_t *lambda = compile(p_vm, arg_list, body_list);
 		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 		
 		// Compile the args for calling the lambda
@@ -370,12 +370,16 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		assemble(OP_CALL, (int *)argc, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("progn", func)) {
+		value_t *largs = nil;
+		value_t *body_list = args;
+		value_t *lambda = compile(p_vm, largs, body_list);
+		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+		assemble(OP_CALL, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("lambda", func)) {
-//		printf("lambda: "); value_print(args->m_cons[1]->m_cons[0]); printf("\n");
 		value_t *largs = args->m_cons[0];
-		value_t *body = args->m_cons[1]->m_cons[0];
-		value_t *lambda = compile(p_vm, largs, list(p_vm, body));
-//printf("lambda: "); value_print(lambda); printf("\n");
+		value_t *body_list = args->m_cons[1];
+		value_t *lambda = compile(p_vm, largs, body_list);
 		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 	} else {
 		compile_form(func, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, true);

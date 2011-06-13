@@ -172,6 +172,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 		// Condense remaining args into a list
 		if (func_arg_count < 0) {
 			func_arg_count = -func_arg_count;
+			vm_push(p_vm, nil);
 			for( ; p_nargs >= func_arg_count; p_nargs--) {
 				vm_cons(p_vm);
 			}
@@ -241,6 +242,8 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 		bytecode_t *bc = &((bytecode_t *)l->m_bytecode->m_data)[p_vm->m_ip];
 		unsigned long p_arg = bc->m_value;
 		value_t *p_pool = l->m_pool;
+
+printf("ip: %d] %s\n", p_vm->m_ip, g_valuetype_print[bc->m_opcode]);
 
 		switch (bc->m_opcode) {
 			case OP_PUSH:

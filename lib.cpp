@@ -27,6 +27,7 @@ value_t *plus(vm_t *p_vm);
 value_t *status(vm_t *p_vm);
 value_t *eq(vm_t *p_vm);
 value_t *load(vm_t *p_vm);
+value_t *progn(vm_t *p_vm);
 
 static internal_func_def_t g_ifuncs[] = {
 	{"print", print, -1},
@@ -38,10 +39,29 @@ static internal_func_def_t g_ifuncs[] = {
 	{"status", status, 0},
 	{"eq", eq, 2},
 	{"load", load, 1},
+	{"progn", progn, -1}
 };
 
-#define NUM_IFUNCS 9
+#define NUM_IFUNCS 10
 
+value_t *progn(vm_t *p_vm)
+{
+	value_t *args = p_vm->m_stack[p_vm->m_bp + 1];
+	printf("progn: %s\n", g_valuetype_print[args->m_type]);
+	value_print(args);
+	printf("\nE progn:\n");
+
+	while(args != nil) {
+		value_t *form = car(args);
+//		vm_exec(p_vm, form, 0);
+printf("progn exec: ");
+value_print(form);
+printf("\n");
+		args = cdr(args);
+	}
+
+	return p_vm->m_stack[p_vm->m_sp - 1];;
+}
 
 value_t *atom(vm_t *p_vm)
 {
