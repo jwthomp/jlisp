@@ -38,6 +38,8 @@ char const *g_opcode_print[] =  {
 	"OP_BINDDF",
 };
 
+bool g_debug_display = false;
+
 
 
 vm_t *vm_create(unsigned long p_stack_size)
@@ -243,7 +245,9 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 		unsigned long p_arg = bc->m_value;
 		value_t *p_pool = l->m_pool;
 
-printf("ip: %d] %s\n", p_vm->m_ip, g_valuetype_print[bc->m_opcode]);
+		if (g_debug_display == true) {
+			printf("ip: %d] %s\n", p_vm->m_ip, g_valuetype_print[bc->m_opcode]);
+		}
 
 		switch (bc->m_opcode) {
 			case OP_PUSH:

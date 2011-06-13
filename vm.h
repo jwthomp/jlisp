@@ -31,6 +31,7 @@ typedef enum opcode_s {
 
 extern char const *g_opcode_print[];
 
+extern bool g_debug_display;
 
 
 typedef struct vm_s {

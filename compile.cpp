@@ -82,7 +82,9 @@ void macro_expand(vm_t *p_vm, value_t **p_value)
 
 void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_bytecode_index)
 {
-	//printf("push opcode(%d): %s %u\n", *p_bytecode_index, g_opcode_print[p_opcode], p_arg);
+	if (g_debug_display == true) {
+		printf("push opcode(%d): %s %u\n", *p_bytecode_index, g_opcode_print[p_opcode], p_arg);
+	}
 	(p_bytecode)[*p_bytecode_index].m_opcode = p_opcode;
 	(p_bytecode)[*p_bytecode_index].m_value = p_arg;
 	(*p_bytecode_index)++;
@@ -90,7 +92,9 @@ void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_by
 
 int push_pool(value_t *p_value, value_t **p_pool, int *p_pool_index)
 {
-	//printf("push pool: "); value_print(p_value); printf("\n");
+	if (g_debug_display == true) {
+		printf("push pool: "); value_print(p_value); printf("\n");
+	}
 	(p_pool)[*p_pool_index] = p_value;
 	(*p_pool_index)++;
 	return (*p_pool_index) - 1;
