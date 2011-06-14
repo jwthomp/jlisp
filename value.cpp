@@ -77,11 +77,12 @@ value_t * value_create_symbol(vm_t *p_vm, char const * const p_symbol)
 	return sym;
 }
 
-value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func, int p_nargs)
+value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func, int p_nargs, bool p_is_macro)
 {
-	value_t *ret =  value_create(p_vm, VT_INTERNAL_FUNCTION, sizeof(vm_func_t) + 4, true);
+	value_t *ret =  value_create(p_vm, VT_INTERNAL_FUNCTION, sizeof(vm_func_t) + 5, true);
 	memcpy(ret->m_data, (char *)&p_func, sizeof(vm_func_t));
-	ret->m_data[sizeof(vm_func_t)] = p_nargs;
+	*((int *)&ret->m_data[sizeof(vm_func_t)]) = p_nargs;
+	*((bool *)&ret->m_data[sizeof(vm_func_t) + 4]) = p_is_macro;
 	return ret;
 }
 
@@ -289,6 +290,7 @@ void value_print(value_t *p_value)
 			printf("\"%s\"", p_value->m_data);
 			break;
 		}
+		case VT_MACRO:
 		case VT_SYMBOL:
 		{
 			value_t *dt = p_value->m_cons[0];

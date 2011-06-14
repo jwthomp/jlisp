@@ -7,7 +7,6 @@
 [ ] Implement let* (sequential)
 [ ] Fix so that value_t's can be compared against eachother
 [ ] Add support for floats
-[ ] Allow C lisp functions to be flagged as macros
 [ ] Support `,
 [ ] Support ,@
 [ ] Add in support for multi-generational GC
@@ -18,6 +17,9 @@
 [/] fix &rest so 'a sets args to ('a)
 
 
+[X] Fix (progn 'a 'b)
+[X] macro's do not have their arguments expanded. Fix this
+[X] Allow C lisp functions to be flagged as macros
 [X] (let ((counter 1)) (defun inc () (setq counter (+ counter 1))) (defun reset () (setq counter 0)))
 [X] Make lambda handle multiple args in body and only return result of last
 [X] Implement progn -> convert to lambda

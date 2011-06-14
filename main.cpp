@@ -82,6 +82,7 @@ int main(int argc, char *arg[])
 	char input[256];
 	memset(input, 0, 256);
 
+	printf("\nawesome-lang 0.0.1, copyright (c) 2011 by jeffrey thompson\n");
 	printf("> ");
 	while(gets(input) != NULL && strcmp(input, "quit")) {
 		load_string(vm, input);

@@ -56,6 +56,11 @@ bool is_macro(vm_t *p_vm, value_t *p_value)
 		if (l->m_is_macro) {
 			return true;
 		}
+	} else if (bind && bind->m_value && (bind->m_value->m_type == VT_INTERNAL_FUNCTION)) {
+		value_t *ifunc = bind->m_value;
+		if (*(bool *)&ifunc->m_data[sizeof(vm_func_t) + 4] == true) {
+			return true;
+		}
 	}
 
 	// See if 
@@ -67,8 +72,11 @@ int macro_expand_1(vm_t *p_vm, value_t **p_value)
 	if (is_cons(*p_value) && is_macro(p_vm, *p_value)) {
 		(*p_value)->m_cons[0]->m_type = VT_MACRO;
 		*p_value = eval(p_vm, *p_value);
+
+		// Have the value, but it is also on the stack and we need to remove it.
+		p_vm->m_sp--;
+		
 		return 1;
-//printf("Found macro! "); value_print((*p_value)->m_cons[0]); printf("\n");
 	} else {
 		return 0;
 	}
@@ -211,7 +219,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-//	printf("Compile function: "); value_print(p_form); printf("\n");
+	//printf("Compile function: "); value_print(p_form); printf("\n");
 
 	assert(p_form && is_cons(p_form));
 	value_t *func = p_form->m_cons[0];
@@ -221,8 +229,6 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 
 	if ((func->m_type == VT_SYMBOL) && is_symbol_name("quote", func)) {
 		
-		assert(args->m_cons[1] == nil);
-
 //printf("quote: %d", args->m_cons[0]->m_type); value_print(args->m_cons[0]); printf("\n");
 
 		// is of form (args . nil) so only push car
@@ -374,11 +380,9 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		assemble(OP_CALL, (int *)argc, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("progn", func)) {
-		value_t *largs = nil;
-		value_t *body_list = args;
-		value_t *lambda = compile(p_vm, largs, body_list);
-		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("funcall", func)) {
+		value_t *closure = args->m_cons[0];
+		compile_form(closure, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, true);
 		assemble(OP_CALL, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("lambda", func)) {
 		value_t *largs = args->m_cons[0];
@@ -386,8 +390,17 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		value_t *lambda = compile(p_vm, largs, body_list);
 		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 	} else {
+		// Must do test on whether this is a macro prior to calling compile_form as that will
+		// switch a symbol from type VT_MACRO to type VT_SYMBOL
+		bool is_macro = func->m_type == VT_MACRO ? true : false;
 		compile_form(func, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, true);
-		int argc = compile_args(args, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+		value_t * final_args = args;
+		int argc = 1;
+		if (is_macro) {
+			assemble(OP_PUSH, (int *)final_args, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+		} else {
+			argc = compile_args(final_args, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+		}
 		assemble(OP_CALL, (int *)argc, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 	}
 }
@@ -396,12 +409,14 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-//	printf("Compile form: "); value_print(p_form); printf("\n");
+	//printf("Compile form: "); value_print(p_form); printf("\n");
 
 	// If it's a cons, do a macroexpand in case this is a macro
 	if (is_cons(p_form)) {
 		macro_expand(p_vm, &p_form);
 	}
+
+	//printf("Compile post macro form: "); value_print(p_form); printf("\n");
 
 	// If this was a macro, we need to do checks again here since the form may have changed
 	if (is_cons(p_form)) {
@@ -442,6 +457,7 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 
 	value_t *val = p_body;
 	while(val && val != nil) {
+//printf("compile!: "); value_print(val->m_cons[0]); printf("\n");
 		compile_form(val->m_cons[0], p_vm, (bytecode_t *)bytecode, &bytecode_index, (value_t **)pool, &pool_index, false);
 		val = val->m_cons[1];
 	}

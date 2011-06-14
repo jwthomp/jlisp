@@ -16,6 +16,7 @@ typedef struct {
 	char const*m_name;
 	vm_func_t m_func;
 	int m_arg_count;
+	bool m_is_macro;
 } internal_func_def_t;
 
 value_t *print(vm_t *p_vm);
@@ -29,22 +30,39 @@ value_t *eq(vm_t *p_vm);
 value_t *load(vm_t *p_vm);
 value_t *progn(vm_t *p_vm);
 value_t *debug(vm_t *p_vm);
+value_t *progn(vm_t *p_vm);
 
 
 static internal_func_def_t g_ifuncs[] = {
-	{"print", print, -1},
-	{"cons", cons, 2},
-	{"car", car, 1},
-	{"cdr", cdr, 1},
-	{"call", call, 2},
-	{"+", plus, 2},
-	{"status", status, 0},
-	{"eq", eq, 2},
-	{"load", load, 1},
-	{"debug", debug, 1},
+	{"print", print, -1, false},
+	{"cons", cons, 2, false},
+	{"car", car, 1, false},
+	{"cdr", cdr, 1, false},
+	{"call", call, 2, false},
+	{"+", plus, 2, false},
+	{"status", status, 0, false},
+	{"eq", eq, 2, false},
+	{"load", load, 1, false},
+	{"debug", debug, 1, false},
+	{"progn", progn, -1, true},
 };
 
-#define NUM_IFUNCS 10
+#define NUM_IFUNCS 11
+
+value_t *progn(vm_t *p_vm)
+{
+//printf("prognC: "); value_print(car(p_vm->m_stack[p_vm->m_bp + 1])); printf("\n");
+	vm_push(p_vm, value_create_symbol(p_vm, "funcall"));
+	vm_push(p_vm, value_create_symbol(p_vm, "lambda"));
+	vm_push(p_vm, nil);
+	vm_push(p_vm, car(p_vm->m_stack[p_vm->m_bp + 1]));
+	vm_cons(p_vm);
+	vm_cons(p_vm);
+	vm_list(p_vm, 1);
+	vm_cons(p_vm);
+//printf("end prognC: "); value_print(p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
+	return p_vm->m_stack[p_vm->m_sp - 1];
+}
 
 value_t *debug(vm_t *p_vm)
 {
@@ -235,7 +253,7 @@ void lib_init(vm_t *p_vm)
 {
 	int i;
 	for (i = 0; i < NUM_IFUNCS; i++) {
-		vm_bindf(p_vm, g_ifuncs[i].m_name, g_ifuncs[i].m_func, g_ifuncs[i].m_arg_count);
+		vm_bindf(p_vm, g_ifuncs[i].m_name, g_ifuncs[i].m_func, g_ifuncs[i].m_arg_count, g_ifuncs[i].m_is_macro);
 	}
 
 	nil = value_create_symbol(p_vm, "nil");

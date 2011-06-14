@@ -114,9 +114,9 @@ void vm_bind(vm_t *p_vm, char const *p_symbol, value_t *p_value)
 }
 
 // TODO - Bind calls should replace existing bindings
-void vm_bindf(vm_t *p_vm, char const *p_symbol, vm_func_t p_func, unsigned long p_param_count)
+void vm_bindf(vm_t *p_vm, char const *p_symbol, vm_func_t p_func, unsigned long p_param_count, bool p_is_macro)
 {
-	value_t *int_func = value_create_internal_func(p_vm, p_func, p_param_count);
+	value_t *int_func = value_create_internal_func(p_vm, p_func, p_param_count, p_is_macro);
 	value_t *sym = value_create_symbol(p_vm, p_symbol);
 	bind_internal(p_vm, sym, int_func, true, false);
 

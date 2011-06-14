@@ -60,7 +60,7 @@ vm_t *vm_create(unsigned long p_stack_size);
 void vm_destroy(vm_t *);
 void vm_exec(vm_t *p_vm, value_t *p_closure, int p_arg_count );
 void vm_bind(vm_t *p_vm, char const *p_symbol, value_t *p_value);
-void vm_bindf(vm_t *p_vm, char const *p_symbol, vm_func_t p_func, unsigned long p_param_count);
+void vm_bindf(vm_t *p_vm, char const *p_symbol, vm_func_t p_func, unsigned long p_param_count, bool p_is_macro);
 void vm_bindf(vm_t *p_vm, char const *p_symbol, value_t *p_func);
 void vm_cons(vm_t *p_vm);
 void vm_list(vm_t *p_vm, int p_list_size);
