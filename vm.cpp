@@ -167,7 +167,7 @@ void vm_pop_env(vm_t *p_vm)
 void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 {
 
-	if (p_closure->m_type == VT_INTERNAL_FUNCTION) {
+	if (is_ifunc(p_closure)) {
 		vm_func_t func = *(vm_func_t *)p_closure->m_data;
 
 		int func_arg_count = p_closure->m_data[sizeof(vm_func_t)];
@@ -201,7 +201,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 //printf("obp: %d nbp: %lu sp: %lu nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p_nargs);
 
 
-    assert(p_closure && p_closure->m_type == VT_CLOSURE && p_closure->m_cons[1]);
+    assert(p_closure && is_closure(p_closure) && p_closure->m_cons[1]);
     lambda_t *l = (lambda_t *)(p_closure->m_cons[1]->m_data);
 
 	value_t *env = value_create_environment(p_vm, p_closure->m_cons[0]);
@@ -340,7 +340,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 			{
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], false);
 
-				verify(b && b->m_type == VT_BINDING, "The variable %s is unbound.\n", 
+				verify(b && is_binding(b), "The variable %s is unbound.\n", 
 					(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
 
 //	printf("op_load: key: %d '", ((value_t **)p_pool->m_data)[p_arg]->m_type); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("'\n");
@@ -383,10 +383,10 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 
 
 				value_t *ret = 0;
-				if (func_val->m_type == VT_INTERNAL_FUNCTION) {
+				if (is_ifunc(func_val)) {
 					vm_exec(p_vm, func_val, p_arg);
 					ret = p_vm->m_stack[p_vm->m_sp - 1];
-				} else if (func_val->m_type == VT_CLOSURE) {
+				} else if (is_closure(func_val)) {
 					vm_exec(p_vm, func_val, p_arg);
 					ret = p_vm->m_stack[p_vm->m_sp - 1];
 				}  else {
@@ -453,7 +453,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
 				value_t *b = environment_binding_find(p_vm, sym, false);
 
-				verify(b && b->m_type == VT_BINDING, "op_load: Binding lookup failed: %s\n", 
+				verify(b && is_binding(b), "op_load: Binding lookup failed: %s\n", 
 					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 
 				// Change value

@@ -1,4 +1,5 @@
 #include "value.h"
+#include "value_helpers.h"
 
 #include "binding.h"
 
@@ -13,17 +14,17 @@ value_t * binding_find(value_t * p_bindings, value_t *p_key)
 		return NULL;
 	}
 
-	if (p_bindings->m_type != VT_BINDING) {
+	if (is_binding(p_bindings) == false) {
 		return NULL;
 	}
 
-	if (p_key->m_type != VT_SYMBOL) {
+	if (is_symbol(p_key) == false) {
 		return NULL;
 	}
 
 	binding_t *bind = (binding_t *)p_bindings->m_data;
 
-	if (bind->m_key->m_type == VT_SYMBOL) {
+	if (is_symbol(bind->m_key)) {
 		if (value_equal(bind->m_key, p_key)) {
 			return p_bindings;
 		}

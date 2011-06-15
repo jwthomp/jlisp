@@ -4,7 +4,17 @@
 #include "vm.h"
 #include "env.h"
 
+#define make_fixnum(n) ((value_t *)(((n) << 1)|1))
+#define is_fixnum(p) (((size_t)(p)) & 1)
+#define to_fixnum(p) (((long)(p)) >> 1)
+
+bool is_environment(value_t *);
+bool is_binding(value_t *);
+bool is_closure(value_t *);
+bool is_ifunc(value_t *);
+bool is_string(value_t *);
 bool is_cons(value_t *);
+bool is_macro(value_t *);
 bool is_symbol(value_t *);
 bool is_number(value_t *);
 bool is_bytecode(value_t *);

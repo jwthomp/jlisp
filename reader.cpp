@@ -64,7 +64,8 @@ value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 				ret = value_create_string(p_vm, atom);
 			} else if (non_numeric == false) {
 				int i = atoi(atom);
-				ret = value_create_number(p_vm, i);
+//				ret = value_create_number(p_vm, i);
+				ret = make_fixnum(i);
 			} else {
 				ret = value_create_symbol(p_vm, atom);
 			}
@@ -94,7 +95,8 @@ value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 		ret = value_create_string(p_vm, atom);
 	} else if (non_numeric == false) {
 		int i = atoi(atom);
-		ret = value_create_number(p_vm, i);
+		ret = make_fixnum(i);
+//		ret = value_create_number(p_vm, i);
 	} else {
 		ret = value_create_symbol(p_vm, atom);
 	}

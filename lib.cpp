@@ -125,7 +125,7 @@ value_t *debug(vm_t *p_vm)
 value_t *atom(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
-	if (first && first->m_type == VT_CONS) {
+	if (first && is_cons(first)) {
 		return nil;
 	}
 
@@ -173,7 +173,7 @@ value_t *status(vm_t *p_vm)
 value_t *load(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
-	assert(first->m_type == VT_STRING);
+	assert(is_string(first));
 
 	struct stat st;
 	if (stat(first->m_data, &st) != 0) {
@@ -240,6 +240,17 @@ value_t *eq(vm_t *p_vm)
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
 
+	bool first_num = is_fixnum(first);
+	bool second_num = is_fixnum(second);
+
+	if (first_num != second_num) {
+		return nil;
+	}
+
+	if (first_num == true && second_num == true) {
+		return to_fixnum(first) == to_fixnum(second) ? t : nil;
+	}
+
 
 	if (first->m_type != second->m_type) {
 		return nil;
@@ -253,7 +264,7 @@ value_t *eq(vm_t *p_vm)
 		case VT_SYMBOL:
 		case VT_STRING:
 			if (value_equal(first, second) == true) {
-				return value_create_symbol(p_vm, "T");
+				return t;
 			} else {
 				return nil;
 			}
@@ -271,12 +282,10 @@ value_t *plus(vm_t *p_vm)
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
 
-	verify(first->m_type == VT_NUMBER, "argument X is not a number: %s");
-	verify(second->m_type == VT_NUMBER, "argument Y is not a number: %s");
+	verify(is_fixnum(first), "argument X is not a number: %s", value_sprint(p_vm, first));
+	verify(is_fixnum(second), "argument Y is not a number: %s", value_sprint(p_vm, second));
 
-	int first_num = *(int *)first->m_data;
-	int second_num = *(int *)second->m_data;
-	return value_create_number(p_vm, first_num + second_num);
+	return make_fixnum(to_fixnum(first) + to_fixnum(second));
 }
 
 value_t *print(vm_t *p_vm)

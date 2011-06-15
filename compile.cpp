@@ -25,12 +25,12 @@ bool is_macro(vm_t *p_vm, value_t *p_value)
 {
 	value_t *v_car = p_value->m_cons[0];
 	
-	if (v_car->m_type != VT_SYMBOL) {
+	if (is_symbol(v_car) == false) {
 		return false;
 	}
 
 	value_t *v_env = p_vm->m_current_env[p_vm->m_ev -1];
-	verify(v_env && v_env->m_type == VT_ENVIRONMENT, "is_macro: env is null or not an environment\n");
+	verify(v_env && is_environment(v_env), "is_macro: env is null or not an environment\n");
 	environment_t *env = (environment_t *)v_env->m_data;
 
 	value_t *v_fbindings = env->m_function_bindings;
@@ -38,25 +38,25 @@ bool is_macro(vm_t *p_vm, value_t *p_value)
 		return false;
 	}
 
-	verify(v_fbindings && v_fbindings->m_type == VT_BINDING, "is_macro: fbindings are null or not a binding\n");
+	verify(v_fbindings && is_binding(v_fbindings), "is_macro: fbindings are null or not a binding\n");
 
 	value_t *v_bind = binding_find(v_fbindings, v_car);
 	if (v_bind == NULL) {
 		return false;
 	}
 
-	verify(v_bind->m_type == VT_BINDING, "is_macro: found binding is not a binding\n");
+	verify(is_binding(v_bind), "is_macro: found binding is not a binding\n");
 
 	binding_t *bind = (binding_t *)v_bind->m_data;
 
-	if (bind && bind->m_value && (bind->m_value->m_type == VT_CLOSURE)) {
+	if (bind && bind->m_value && is_closure(bind->m_value)) {
 		value_t *v_lambda = bind->m_value->m_cons[1];
-		verify(v_lambda && v_lambda->m_type == VT_LAMBDA, "is_macro: found binding value is not a lambda\n");
+		verify(v_lambda && is_lambda(v_lambda), "is_macro: found binding value is not a lambda\n");
 		lambda_t *l = (lambda_t *)v_lambda->m_data;
 		if (l->m_is_macro) {
 			return true;
 		}
-	} else if (bind && bind->m_value && (bind->m_value->m_type == VT_INTERNAL_FUNCTION)) {
+	} else if (bind && bind->m_value && is_ifunc(bind->m_value)) {
 		value_t *ifunc = bind->m_value;
 		if (*(bool *)&ifunc->m_data[sizeof(vm_func_t) + 4] == true) {
 			return true;
@@ -186,13 +186,13 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 
 //printf("cf: args: "); value_print(args); printf("\n");
 
-	if ((func->m_type == VT_SYMBOL) && is_symbol_name("QUOTE", func)) {
+	if (is_symbol(func) && is_symbol_name("QUOTE", func)) {
 		
 //printf("quote: %d", args->m_cons[0]->m_type); value_print(args->m_cons[0]); printf("\n");
 
 		// is of form (args . nil) so only push car
 		assemble(OP_PUSH, args->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("DEFVAR", func)) {
+	} else if (is_symbol(func) && is_symbol_name("DEFVAR", func)) {
 		assert(args->m_cons[0] != nil && args->m_cons[1] != nil && args->m_cons[1]->m_cons[0] != nil);
 
 		value_t *sym = car(args);
@@ -201,7 +201,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BIND, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("SETQ", func)) {
+	} else if (is_symbol(func) && is_symbol_name("SETQ", func)) {
 		assert(args->m_cons[0] != nil && args->m_cons[1] != nil && args->m_cons[1]->m_cons[0] != nil);
 
 		value_t *sym = car(args);
@@ -210,7 +210,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_UPDATE, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("UNWIND-PROTECT", func)) {
+	} else if (is_symbol(func) && is_symbol_name("UNWIND-PROTECT", func)) {
 		value_t * protect_form = args->m_cons[0];
 		value_t * cleanup_form = args->m_cons[1]->m_cons[0];
 
@@ -230,9 +230,9 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 		assemble(OP_RET, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("COND", func)) {
+	} else if (is_symbol(func) && is_symbol_name("COND", func)) {
 		while(args != nil) {
-assert(args->m_cons[0]->m_type == VT_CONS);
+assert(is_cons(args->m_cons[0]));
 			value_t * test = args->m_cons[0]->m_cons[0];
 			value_t * if_true = args->m_cons[0]->m_cons[1]->m_cons[0];
 
@@ -259,7 +259,7 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 			args = args->m_cons[1];
 		}
 //printf("cond: "); value_print(args->m_cons[0]); printf("\n");
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("DEFPARAMETER", func)) {
+	} else if (is_symbol(func) && is_symbol_name("DEFPARAMETER", func)) {
 		assert(args->m_cons[0] && args->m_cons[1] && args->m_cons[1]->m_cons[0]);
 
 		value_t *sym = args->m_cons[0];
@@ -268,7 +268,7 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BINDG, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("DEFMACRO", func)) {
+	} else if (is_symbol(func) && is_symbol_name("DEFMACRO", func)) {
 		value_t *sym = args->m_cons[0];
 		value_t *largs = args->m_cons[1]->m_cons[0];
 		value_t *body_list = args->m_cons[1]->m_cons[1];
@@ -286,7 +286,7 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		assemble(OP_BINDGF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("DEFUN", func)) {
+	} else if (is_symbol(func) && is_symbol_name("DEFUN", func)) {
 		// (defun func (args) body) ==> (bindgf func (lambda (args) body))
 		//printf("defun: "); value_print(args); printf("\n");
 		value_t *sym = args->m_cons[0];
@@ -304,11 +304,11 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 
 
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("FUNCALL", func)) {
+	} else if (is_symbol(func) && is_symbol_name("FUNCALL", func)) {
 		value_t *closure = args->m_cons[0];
 		compile_form(closure, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, true);
 		assemble(OP_CALL, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("LAMBDA", func)) {
+	} else if (is_symbol(func) == VT_SYMBOL && is_symbol_name("LAMBDA", func)) {
 		value_t *largs = args->m_cons[0];
 		value_t *body_list = args->m_cons[1];
 		value_t *lambda = compile(p_vm, largs, body_list);
@@ -316,11 +316,10 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 	} else {
 		// Must do test on whether this is a macro prior to calling compile_form as that will
 		// switch a symbol from type VT_MACRO to type VT_SYMBOL
-		bool is_macro = func->m_type == VT_MACRO ? true : false;
 		compile_form(func, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, true);
 		value_t * final_args = args;
 		int argc = 1;
-		if (is_macro) {
+		if (is_macro(func)) {
 			assemble(OP_PUSH, (int *)final_args, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 		} else {
 			argc = compile_args(final_args, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
@@ -345,7 +344,7 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 	// If this was a macro, we need to do checks again here since the form may have changed
 	if (is_cons(p_form)) {
 		compile_function(p_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if (is_symbol(p_form) || (p_form->m_type == VT_MACRO)) {
+	} else if (is_symbol(p_form) || (is_macro(p_form))) {
 		// Change type back to symbol
 		p_form->m_type = VT_SYMBOL;
 		opcode_e opcode = p_function ? OP_LOADF : OP_LOAD;

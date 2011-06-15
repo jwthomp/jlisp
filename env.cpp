@@ -1,5 +1,6 @@
 #include "binding.h"
 #include "assert.h"
+#include "value_helpers.h"
 
 #include "env.h"
 
@@ -13,16 +14,15 @@ value_t *environment_binding_find(vm_t *p_vm, value_t * p_symbol, bool p_func)
 
 value_t *environment_binding_find(value_t * p_env, value_t * p_symbol, bool p_func)
 {
-	assert(p_env && p_env->m_type == VT_ENVIRONMENT);
-	assert(p_symbol && p_symbol->m_type == VT_SYMBOL);
+	assert(p_env && is_environment(p_env));
+	assert(p_symbol && is_symbol(p_symbol));
 
 
 	while(p_env) {
 		environment_t *env = (environment_t *)p_env->m_data;
-		assert((env->m_parent == NULL) || (env->m_parent->m_type == VT_ENVIRONMENT));
-
-		assert((env->m_bindings == NULL) || (env->m_bindings->m_type == VT_BINDING));
-		assert((env->m_function_bindings == NULL) || (env->m_function_bindings->m_type == VT_BINDING));
+		assert((env->m_parent == NULL) || is_environment(env->m_parent));
+		assert((env->m_bindings == NULL) || is_binding(env->m_bindings));
+		assert((env->m_function_bindings == NULL) || is_binding(env->m_function_bindings));
 
 		value_t *top_binding = p_func == true ? 
 				((environment_t *)p_env->m_data)->m_function_bindings :

@@ -50,9 +50,7 @@ void retain(value_t *p_value)
 		return;
 	}
 
-	assert(p_value->m_is_static == false);
-
-	if (p_value->m_in_use || p_value->m_is_static) {
+	if (is_fixnum(p_value) || p_value->m_in_use || p_value->m_is_static) {
 		return;
 	}
 

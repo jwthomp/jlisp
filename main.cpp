@@ -77,6 +77,10 @@ int main(int argc, char *arg[])
 {
 	vm_t *vm = vm_create(1024);
 
+	value_t *num = make_fixnum(1);
+	printf("%d\n", is_fixnum(num));
+	printf("%ld\n", to_fixnum(num));
+
 	lib_init(vm);
 
 	char input[256];
