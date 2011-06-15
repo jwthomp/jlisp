@@ -143,8 +143,13 @@ value_t *status(vm_t *p_vm)
 	unsigned long mem = 0;
 	while(heap) {
 		count++;
+		if (is_fixnum(heap)) {
+			mem += sizeof(heap);
+			printf("%d] %u ", count, sizeof(heap));
+		} else {
 		mem += sizeof(value_t) + heap->m_size;
 		printf("%d] %lu ", count, sizeof(value_t) + heap->m_size);
+		}
 		value_print(p_vm, heap);
 		printf("\n");
 		heap = heap->m_heapptr;
