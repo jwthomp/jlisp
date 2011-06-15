@@ -31,6 +31,7 @@ value_t *load(vm_t *p_vm);
 value_t *progn(vm_t *p_vm);
 value_t *debug(vm_t *p_vm);
 value_t *progn(vm_t *p_vm);
+value_t *let(vm_t *p_vm);
 
 
 static internal_func_def_t g_ifuncs[] = {
@@ -45,9 +46,48 @@ static internal_func_def_t g_ifuncs[] = {
 	{"load", load, 1, false},
 	{"debug", debug, 1, false},
 	{"progn", progn, -1, true},
+	{"let", let, -1, true},
 };
 
-#define NUM_IFUNCS 11
+#define NUM_IFUNCS 12
+
+value_t *let(vm_t *p_vm)
+{
+	// Transform from (let ((var val) (var val)) body) to
+	// ((lambda (var var) body) val val)
+
+	value_t *largs = car(car(p_vm->m_stack[p_vm->m_bp + 1]));
+	value_t *body = cdr(car(p_vm->m_stack[p_vm->m_bp + 1]));
+
+printf("let: args "); value_print(largs); printf("\n");
+printf("let: body "); value_print(largs); printf("\n");
+
+	// Break ((var val) (var val)) down into a list of args and vals
+	value_t *arg_list = nil;
+	value_t *val_list = nil;
+
+	while(car(largs) != nil) {
+		value_t *arg = car(car(largs));
+		value_t *val = car(cdr(car(largs)));
+
+		arg_list = value_create_cons(p_vm, arg, arg_list);
+		val_list = value_create_cons(p_vm, val, val_list);
+
+		largs = cdr(largs);
+	}
+		
+	vm_push(p_vm, value_create_symbol(p_vm, "lambda"));
+	vm_push(p_vm, arg_list);
+	vm_push(p_vm, body);
+	vm_cons(p_vm);
+	vm_cons(p_vm);
+	vm_push(p_vm, val_list);
+	vm_cons(p_vm);
+	
+printf("let end: "); value_print(p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
+	return p_vm->m_stack[p_vm->m_sp - 1];
+}
+
 
 value_t *progn(vm_t *p_vm)
 {

@@ -12,11 +12,11 @@
 [ ] Add in support for multi-generational GC
 
 [ ] Implement dynamic and lexical scoped symbols as totally different namespaces
-[ ] Move special form macro's out of compile and into lib
 
 [/] fix &rest so 'a sets args to ('a)
 
 
+[X] Move special form macro's out of compile and into lib
 [X] Fix (progn 'a 'b)
 [X] macro's do not have their arguments expanded. Fix this
 [X] Allow C lisp functions to be flagged as macros

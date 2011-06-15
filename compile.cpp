@@ -344,41 +344,6 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		assemble(OP_BINDGF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("let", func)) {
-
-		// Transform from (let ((var val) (var val)) body) to
-		// ((lambda (var var) body) val val)
-		value_t *largs = car(args);
-
-
-		// Break ((var val) (var val)) down into a list of args and vals
-		value_t *arg_list = nil;
-		value_t *val_list = nil;
-
-		// Create list of args
-		while(car(largs) != nil) {
-			value_t *arg = car(car(largs));
-			value_t *val = car(cdr(car(largs)));
-
-			arg_list = value_create_cons(p_vm, arg, arg_list);
-			val_list = value_create_cons(p_vm, val, val_list);
-
-			//printf("arg: "); value_print(arg); printf(" val: "); value_print(val); printf("\n");
-
-			largs = cdr(largs);
-		}
-
-		// Compile the body of the let
-		value_t *body_list = cdr(args);
-		value_t *lambda = compile(p_vm, arg_list, body_list);
-		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-		
-		// Compile the args for calling the lambda
-		int argc = compile_args(val_list, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-
-		// Call the lambda
-		assemble(OP_CALL, (int *)argc, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-
 
 	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("funcall", func)) {
 		value_t *closure = args->m_cons[0];
@@ -409,14 +374,14 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-	//printf("Compile form: "); value_print(p_form); printf("\n");
+	printf("Compile form: "); value_print(p_form); printf("\n");
 
 	// If it's a cons, do a macroexpand in case this is a macro
 	if (is_cons(p_form)) {
 		macro_expand(p_vm, &p_form);
 	}
 
-	//printf("Compile post macro form: "); value_print(p_form); printf("\n");
+	printf("Compile post macro form: "); value_print(p_form); printf("\n");
 
 	// If this was a macro, we need to do checks again here since the form may have changed
 	if (is_cons(p_form)) {
