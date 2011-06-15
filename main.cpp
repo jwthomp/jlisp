@@ -46,7 +46,7 @@ void load_string(vm_t *p_vm, char const *p_code)
 			// Print a result
 //printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
 //value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
-value_print(res); printf("\n");
+value_print(p_vm, res); printf("\n");
 			p_vm->m_sp--;
 
 			count_down--;
@@ -61,7 +61,7 @@ value_print(res); printf("\n");
 		p_vm->m_ip = vm_ip;
 		p_vm->m_current_env[p_vm->m_ev - 1] = vm_current_env;
 
-		printf("Error: %s\n", g_err);
+		printf("\t%s\n", g_err);
 	}
 	pop_handler_stack();
 

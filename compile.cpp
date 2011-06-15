@@ -98,10 +98,10 @@ void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_by
 	(*p_bytecode_index)++;
 }
 
-int push_pool(value_t *p_value, value_t **p_pool, int *p_pool_index)
+int push_pool(vm_t *p_vm, value_t *p_value, value_t **p_pool, int *p_pool_index)
 {
 	if (g_debug_display == true) {
-		printf("push pool: "); value_print(p_value); printf("\n");
+		printf("push pool: "); value_print(p_vm, p_value); printf("\n");
 	}
 	(p_pool)[*p_pool_index] = p_value;
 	(*p_pool_index)++;
@@ -118,51 +118,17 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			push_opcode(OP_CALL, (long)p_arg, p_bytecode, p_bytecode_index);
 			break;
 		case OP_LOAD:
-		{
-			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
-			push_opcode(OP_LOAD, index, p_bytecode, p_bytecode_index);
-			break;
-		}
 		case OP_LOADF:
-		{
-			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
-			push_opcode(OP_LOADF, index, p_bytecode, p_bytecode_index);
-			break;
-		}
 		case OP_PUSH:
-		{
-			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
-			push_opcode(OP_PUSH, index, p_bytecode, p_bytecode_index);
-			break;
-		}
 		case OP_UPDATE:
-		{
-			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
-			push_opcode(OP_UPDATE, index, p_bytecode, p_bytecode_index);
-			break;
-		}
 		case OP_BIND:
-		{
-			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
-			push_opcode(OP_BIND, index, p_bytecode, p_bytecode_index);
-			break;
-		}
 		case OP_BINDGF:
-		{
-			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
-			push_opcode(OP_BINDGF, index, p_bytecode, p_bytecode_index);
-			break;
-		}
 		case OP_BINDG:
-		{
-			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
-			push_opcode(OP_BINDG, index, p_bytecode, p_bytecode_index);
-			break;
-		}
 		case OP_BINDF:
+		case OP_LAMBDA:
 		{
-			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
-			push_opcode(OP_BINDF, index, p_bytecode, p_bytecode_index);
+			int index = push_pool(p_vm, (value_t *)p_arg, p_pool, p_pool_index);
+			push_opcode(p_opcode, index, p_bytecode, p_bytecode_index);
 			break;
 		}
 		case OP_IFNILJMP:
@@ -178,13 +144,6 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 		case OP_RET:
 		{
 			push_opcode(OP_RET, (int)p_arg, p_bytecode, p_bytecode_index);
-			break;
-		}
-		case OP_LAMBDA:
-		{
-			int index = push_pool((value_t *)p_arg, p_pool, p_pool_index);
-//printf("pushed lambda to index: %d\n", index);
-			push_opcode(OP_LAMBDA, index, p_bytecode, p_bytecode_index);
 			break;
 		}
 		case OP_DUP:
@@ -227,13 +186,13 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 
 //printf("cf: args: "); value_print(args); printf("\n");
 
-	if ((func->m_type == VT_SYMBOL) && is_symbol_name("quote", func)) {
+	if ((func->m_type == VT_SYMBOL) && is_symbol_name("QUOTE", func)) {
 		
 //printf("quote: %d", args->m_cons[0]->m_type); value_print(args->m_cons[0]); printf("\n");
 
 		// is of form (args . nil) so only push car
 		assemble(OP_PUSH, args->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("defvar", func)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("DEFVAR", func)) {
 		assert(args->m_cons[0] != nil && args->m_cons[1] != nil && args->m_cons[1]->m_cons[0] != nil);
 
 		value_t *sym = car(args);
@@ -242,7 +201,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BIND, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("setq", func)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("SETQ", func)) {
 		assert(args->m_cons[0] != nil && args->m_cons[1] != nil && args->m_cons[1]->m_cons[0] != nil);
 
 		value_t *sym = car(args);
@@ -251,7 +210,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_UPDATE, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("unwind-protect", func)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("UNWIND-PROTECT", func)) {
 		value_t * protect_form = args->m_cons[0];
 		value_t * cleanup_form = args->m_cons[1]->m_cons[0];
 
@@ -271,7 +230,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 		assemble(OP_RET, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("cond", func)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("COND", func)) {
 		while(args != nil) {
 assert(args->m_cons[0]->m_type == VT_CONS);
 			value_t * test = args->m_cons[0]->m_cons[0];
@@ -300,7 +259,7 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 			args = args->m_cons[1];
 		}
 //printf("cond: "); value_print(args->m_cons[0]); printf("\n");
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("defparameter", func)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("DEFPARAMETER", func)) {
 		assert(args->m_cons[0] && args->m_cons[1] && args->m_cons[1]->m_cons[0]);
 
 		value_t *sym = args->m_cons[0];
@@ -309,7 +268,7 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BINDG, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("defmacro", func)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("DEFMACRO", func)) {
 		value_t *sym = args->m_cons[0];
 		value_t *largs = args->m_cons[1]->m_cons[0];
 		value_t *body_list = args->m_cons[1]->m_cons[1];
@@ -327,7 +286,7 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 		assemble(OP_BINDGF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("defun", func)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("DEFUN", func)) {
 		// (defun func (args) body) ==> (bindgf func (lambda (args) body))
 		//printf("defun: "); value_print(args); printf("\n");
 		value_t *sym = args->m_cons[0];
@@ -345,11 +304,11 @@ assert(args->m_cons[0]->m_type == VT_CONS);
 
 
 
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("funcall", func)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("FUNCALL", func)) {
 		value_t *closure = args->m_cons[0];
 		compile_form(closure, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, true);
 		assemble(OP_CALL, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("lambda", func)) {
+	} else if ((func->m_type == VT_SYMBOL) && is_symbol_name("LAMBDA", func)) {
 		value_t *largs = args->m_cons[0];
 		value_t *body_list = args->m_cons[1];
 		value_t *lambda = compile(p_vm, largs, body_list);
@@ -374,14 +333,14 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-	printf("Compile form: "); value_print(p_form); printf("\n");
+//	printf("Compile form: "); value_print(p_form); printf("\n");
 
 	// If it's a cons, do a macroexpand in case this is a macro
 	if (is_cons(p_form)) {
 		macro_expand(p_vm, &p_form);
 	}
 
-	printf("Compile post macro form: "); value_print(p_form); printf("\n");
+//	printf("Compile post macro form: "); value_print(p_form); printf("\n");
 
 	// If this was a macro, we need to do checks again here since the form may have changed
 	if (is_cons(p_form)) {

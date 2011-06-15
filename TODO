@@ -7,11 +7,20 @@
 [ ] Implement let* (sequential)
 [ ] Fix so that value_t's can be compared against eachother
 [ ] Add support for floats
+[ ] Add in support for multi-generational GC
+[ ] Implement for
+[ ] List comprehensions
+[ ] implement deconstruct-bind
+[ ] Support packages
+[ ] Add FFI support
+
 [ ] Support `,
 [ ] Support ,@
-[ ] Add in support for multi-generational GC
-
+[ ] Improve verify messages
 [ ] Implement dynamic and lexical scoped symbols as totally different namespaces
+[ ] Support for examining stack
+[ ] Support for examining closure
+[ ] Make a master VM which handles things like temporary strings, and static binds
 
 [/] fix &rest so 'a sets args to ('a)
 

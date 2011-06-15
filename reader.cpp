@@ -3,6 +3,7 @@
 #include "assert.h"
 #include "reader.h"
 #include "value_helpers.h"
+#include "err.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -41,7 +42,7 @@ void stream_destroy(stream_t *p_stream)
 
 value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 {
-	char atom[33];
+	char atom[1024];
 	int index = 0;
 	bool non_numeric = false;
 	bool is_string = false;
@@ -83,7 +84,7 @@ value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 
 		atom[index++] = val;
 
-		assert(index < 32);
+		verify(index < 1024, "Atom is greater than 1024 characters");
 	}
 
 	atom[index] = 0;
@@ -134,7 +135,7 @@ int reader(vm_t *p_vm, stream_t *p_stream, bool p_in_list)
 			// Clear out white space
 			continue;
 		} else if (val == '\'') {
-			value_t *qt = value_create_symbol(p_vm, "quote");
+			value_t *qt = value_create_symbol(p_vm, "QUOTE");
 			vm_push(p_vm, qt);
 			process_next(p_vm, p_stream);
 			vm_list(p_vm, 2);

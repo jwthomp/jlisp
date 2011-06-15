@@ -5,6 +5,8 @@
 #include "vm.h"
 #include "assert.h"
 
+#include <ctype.h>
+
 typedef struct stream_s {
     char const * code;
     unsigned long index;
@@ -12,7 +14,7 @@ typedef struct stream_s {
 
     char pop() {
 		assert(index < length);
-        return code[index++];
+        return toupper(code[index++]);
     }
 
     void restore() {

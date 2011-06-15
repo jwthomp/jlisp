@@ -42,7 +42,8 @@ typedef struct vm_s vm_t;
 
 value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static);
 void value_destroy(value_t *);
-void value_print(value_t *p_value);
+void value_print(vm_t *p_vm, value_t *p_value);
+value_t *value_sprint(vm_t *p_vm, value_t *p_value);
 
 value_t *car(value_t *p_value);
 value_t *cdr(value_t *p_value);

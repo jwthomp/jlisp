@@ -225,32 +225,41 @@ bool value_equal(value_t *p_value_1, value_t *p_value_2)
 	return false;
 }
 
-void value_print(value_t *p_value)
+void value_print(vm_t *p_vm, value_t *p_value) {
+	printf("%s", value_sprint(p_vm, p_value)->m_data);
+}
+
+value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 {
+	value_t *ret = value_create(p_vm, VT_STRING, 1024, false);
+
 	assert(p_value != NULL);
 	if(p_value == NULL) {
-		printf("()");
-		return;
+		snprintf(ret->m_data, 1024, "()");
+		return ret;
 	}
 
 	switch(p_value->m_type) {
 		case VT_CLOSURE:
-			printf("closure");
+			snprintf(ret->m_data, 1024, "closure");
 			break;
 		case VT_ENVIRONMENT:
-			printf("environment");
+			snprintf(ret->m_data, 1024, "environment");
 			break;
 		case VT_BYTECODE:
 		{
-			printf("bytecode: \n");
-			bytecode_t *bc = (bytecode_t *)p_value->m_data;
-			for (unsigned long i = 0; i < (p_value->m_size / sizeof(bytecode_t)); i++) {
-				printf("op: %s code: %lu\n", g_opcode_print[bc[i].m_opcode], bc[i].m_value);
-			}
+			snprintf(ret->m_data, 1024, "bytecode");
+			//printf("bytecode: \n");
+			//bytecode_t *bc = (bytecode_t *)p_value->m_data;
+			//for (unsigned long i = 0; i < (p_value->m_size / sizeof(bytecode_t)); i++) {
+		//		printf("op: %s code: %lu\n", g_opcode_print[bc[i].m_opcode], bc[i].m_value);
+		//	}
 			break;
 		}
 		case VT_LAMBDA:
 		{
+			snprintf(ret->m_data, 1024, "lambda <0x%p>", p_value);
+#if 0
 			lambda_t *l = (lambda_t *)p_value->m_data;
 			printf("lambda: args: ");
 			value_print(l->m_parameters);
@@ -262,61 +271,62 @@ void value_print(value_t *p_value)
 
 			printf("bc:\n");
 			value_print(l->m_bytecode);
+#endif
 			break;
 		}
 		case VT_POOL:
 		{
+			snprintf(ret->m_data, 1024, "pool <0x%p>", p_value);
+#if 0
 			int pool_size = p_value->m_size / sizeof(value_t *);
 			printf("pool: ");
 			for (int i = 0; i < pool_size; i++) {
 				printf("%d] ", i); value_print(((value_t **)p_value->m_data)[i]); printf("\n");
 			}
+#endif
 			break;
 		}
 		case VT_NUMBER:
 		{
 			int number = *((int *)p_value->m_data);
-			printf("%d", number);
+			snprintf(ret->m_data, 1024, "%d", number);
 			break;
 		}
 		case VT_INTERNAL_FUNCTION:
 		{
-			void * number = ((void *)p_value->m_data);
-			printf("ifunc: %p", number);
+			snprintf(ret->m_data, 1024, "INTERNAL FUNCTION: <0x%p>", p_value);
 			break;
 		}
 		case VT_STRING:
 		{
-			printf("\"%s\"", p_value->m_data);
+			snprintf(ret->m_data, 1024, "\"%s\"", p_value->m_data);
 			break;
 		}
 		case VT_MACRO:
 		case VT_SYMBOL:
 		{
 			value_t *dt = p_value->m_cons[0];
-	//		printf("type: %d\n", dt->m_type);
-	//		printf("sym: %s", dt->m_data);
-			printf("%s", dt->m_data);
+			snprintf(ret->m_data, 1024, "%s", dt->m_data);
 			break;
 		}
 		case VT_CONS:
 		{
-			printf("(");
-			assert(p_value->m_cons[0] != NULL);
-			value_print(p_value->m_cons[0]);
-			printf(" ");
-			value_print(p_value->m_cons[1]);
-			printf(")");
+			snprintf(ret->m_data, 1024, "(%s %s)", 
+				value_sprint(p_vm, p_value->m_cons[0])->m_data,
+				value_sprint(p_vm, p_value->m_cons[1])->m_data);
 			break;
 		}
 		case VT_BINDING:
 		{
-			printf("binding: key: "); value_print(((binding_t *)p_value->m_data)->m_key); printf("\n");
+			snprintf(ret->m_data, 1024, "BINDING <%s>", 
+				value_sprint(p_vm, ((binding_t *)p_value->m_data)->m_key)->m_data); 
 		}
 		default:
 			printf("no printer for value type: %d\n", p_value->m_type);
 			break;
 	};
+
+	return ret;
 }
 
 bool is_null(value_t *p_val)

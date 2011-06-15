@@ -340,7 +340,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 			{
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], false);
 
-				verify(b && b->m_type == VT_BINDING, "op_load: Binding lookup failed: %s\n", 
+				verify(b && b->m_type == VT_BINDING, "The variable %s is unbound.\n", 
 					(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
 
 //	printf("op_load: key: %d '", ((value_t **)p_pool->m_data)[p_arg]->m_type); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("'\n");
@@ -361,7 +361,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
 
 //printf("sym: %s\n", (char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
-				verify(b != NULL, "op_loadf: Could not find function binding for symbol: %s\n", 
+				verify(b != NULL, "The variable %s is unbound.\n", 
 					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 
 				// Push it onto the stack

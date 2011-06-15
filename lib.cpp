@@ -35,18 +35,18 @@ value_t *let(vm_t *p_vm);
 
 
 static internal_func_def_t g_ifuncs[] = {
-	{"print", print, -1, false},
-	{"cons", cons, 2, false},
-	{"car", car, 1, false},
-	{"cdr", cdr, 1, false},
-	{"call", call, 2, false},
+	{"PRINT", print, -1, false},
+	{"CONS", cons, 2, false},
+	{"CAR", car, 1, false},
+	{"CDR", cdr, 1, false},
+	{"CALL", call, 2, false},
 	{"+", plus, 2, false},
-	{"status", status, 0, false},
-	{"eq", eq, 2, false},
-	{"load", load, 1, false},
-	{"debug", debug, 1, false},
-	{"progn", progn, -1, true},
-	{"let", let, -1, true},
+	{"STATUS", status, 0, false},
+	{"EQ", eq, 2, false},
+	{"LOAD", load, 1, false},
+	{"DEBUG", debug, 1, false},
+	{"PROGN", progn, -1, true},
+	{"LET", let, -1, true},
 };
 
 #define NUM_IFUNCS 12
@@ -59,8 +59,8 @@ value_t *let(vm_t *p_vm)
 	value_t *largs = car(car(p_vm->m_stack[p_vm->m_bp + 1]));
 	value_t *body = cdr(car(p_vm->m_stack[p_vm->m_bp + 1]));
 
-printf("let: args "); value_print(largs); printf("\n");
-printf("let: body "); value_print(largs); printf("\n");
+printf("let: args "); value_print(p_vm, largs); printf("\n");
+printf("let: body "); value_print(p_vm, largs); printf("\n");
 
 	// Break ((var val) (var val)) down into a list of args and vals
 	value_t *arg_list = nil;
@@ -76,7 +76,7 @@ printf("let: body "); value_print(largs); printf("\n");
 		largs = cdr(largs);
 	}
 		
-	vm_push(p_vm, value_create_symbol(p_vm, "lambda"));
+	vm_push(p_vm, value_create_symbol(p_vm, "LAMBDA"));
 	vm_push(p_vm, arg_list);
 	vm_push(p_vm, body);
 	vm_cons(p_vm);
@@ -84,7 +84,7 @@ printf("let: body "); value_print(largs); printf("\n");
 	vm_push(p_vm, val_list);
 	vm_cons(p_vm);
 	
-printf("let end: "); value_print(p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
+printf("let end: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
 	return p_vm->m_stack[p_vm->m_sp - 1];
 }
 
@@ -92,8 +92,8 @@ printf("let end: "); value_print(p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
 value_t *progn(vm_t *p_vm)
 {
 //printf("prognC: "); value_print(car(p_vm->m_stack[p_vm->m_bp + 1])); printf("\n");
-	vm_push(p_vm, value_create_symbol(p_vm, "funcall"));
-	vm_push(p_vm, value_create_symbol(p_vm, "lambda"));
+	vm_push(p_vm, value_create_symbol(p_vm, "FUNCALL"));
+	vm_push(p_vm, value_create_symbol(p_vm, "LAMBDA"));
 	vm_push(p_vm, nil);
 	vm_push(p_vm, car(p_vm->m_stack[p_vm->m_bp + 1]));
 	vm_cons(p_vm);
@@ -108,7 +108,7 @@ value_t *debug(vm_t *p_vm)
 {
 	value_t *args = p_vm->m_stack[p_vm->m_bp + 1];
 
-	value_print(p_vm->m_stack[p_vm->m_bp + 1]);
+	value_print(p_vm, p_vm->m_stack[p_vm->m_bp + 1]);
 
 	if (args != nil) {
 		g_debug_display = true;
@@ -129,7 +129,7 @@ value_t *atom(vm_t *p_vm)
 		return nil;
 	}
 
-	return value_create_symbol(p_vm, "t");
+	return value_create_symbol(p_vm, "T");
 }
 
 value_t *status(vm_t *p_vm)
@@ -145,7 +145,7 @@ value_t *status(vm_t *p_vm)
 		count++;
 		mem += sizeof(value_t) + heap->m_size;
 		printf("%d] %lu ", count, sizeof(value_t) + heap->m_size);
-		value_print(heap);
+		value_print(p_vm, heap);
 		printf("\n");
 		heap = heap->m_heapptr;
 	}
@@ -253,7 +253,7 @@ value_t *eq(vm_t *p_vm)
 		case VT_SYMBOL:
 		case VT_STRING:
 			if (value_equal(first, second) == true) {
-				return value_create_symbol(p_vm, "t");
+				return value_create_symbol(p_vm, "T");
 			} else {
 				return nil;
 			}
@@ -271,8 +271,8 @@ value_t *plus(vm_t *p_vm)
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
 
-	assert(first->m_type == VT_NUMBER);
-	assert(second->m_type == VT_NUMBER);
+	verify(first->m_type == VT_NUMBER, "argument X is not a number: %s");
+	verify(second->m_type == VT_NUMBER, "argument Y is not a number: %s");
 
 	int first_num = *(int *)first->m_data;
 	int second_num = *(int *)second->m_data;
@@ -282,7 +282,7 @@ value_t *plus(vm_t *p_vm)
 value_t *print(vm_t *p_vm)
 {
 //	printf("%lu>> ", p_vm->m_sp);
-	value_print(p_vm->m_stack[p_vm->m_bp + 1]);
+	value_print(p_vm, p_vm->m_stack[p_vm->m_bp + 1]);
 	printf("\n");
 	return p_vm->m_stack[p_vm->m_bp + 1];
 }
@@ -296,10 +296,10 @@ void lib_init(vm_t *p_vm)
 		vm_bindf(p_vm, g_ifuncs[i].m_name, g_ifuncs[i].m_func, g_ifuncs[i].m_arg_count, g_ifuncs[i].m_is_macro);
 	}
 
-	nil = value_create_symbol(p_vm, "nil");
-	vm_bind(p_vm, "nil", nil);
-	t = value_create_symbol(p_vm, "t");
-	vm_bind(p_vm, "t", t);
+	nil = value_create_symbol(p_vm, "NIL");
+	vm_bind(p_vm, "NIL", nil);
+	t = value_create_symbol(p_vm, "T");
+	vm_bind(p_vm, "T", t);
 
 	voidobj = value_create(p_vm, VT_VOID, 0, true);
 }
