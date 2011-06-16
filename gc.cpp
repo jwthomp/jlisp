@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define GC_AGE 1
+#define GC_AGE 3
 
 void mark(vm_t *p_vm);
 void sweep(vm_t *p_vm, value_t **p_heap, value_t **p_tenured_heap);
