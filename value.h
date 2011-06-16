@@ -22,6 +22,8 @@ typedef struct value_s {
 	value_type_t  m_type;
 	unsigned long m_size;
 
+	int m_age;
+
 	bool m_in_use;
 	bool m_is_static;
 	struct value_s *m_heapptr;

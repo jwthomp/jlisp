@@ -5,6 +5,7 @@
 #include "err.h"
 #include "reader.h"
 #include "compile.h"
+#include "gc.h"
 
 #include "lib.h"
 
@@ -36,6 +37,7 @@ value_t *progn(vm_t *p_vm);
 value_t *let(vm_t *p_vm);
 value_t *read(vm_t *p_vm);
 value_t *eval_lib(vm_t *p_vm);
+value_t *gc_lib(vm_t *p_vm);
 
 
 static internal_func_def_t g_ifuncs[] = {
@@ -53,14 +55,45 @@ static internal_func_def_t g_ifuncs[] = {
 	{"LET", let, -1, true},
 	{"READ", read, 0, false},
 	{"EVAL", eval_lib, 1, false},
+	{"GC", gc_lib, 0, false},
 };
 
-#define NUM_IFUNCS 14
+#define NUM_IFUNCS 15
+
+value_t *gc_lib(vm_t *p_vm)
+{
+	gc(p_vm, 1);
+	return nil;
+}
 
 value_t *eval_lib(vm_t *p_vm)
 {
-printf("REVAL\n");
-	return eval(p_vm, p_vm->m_stack[p_vm->m_sp - 1]);
+	// Save VM
+	int vm_bp = p_vm->m_bp;
+	int vm_sp = p_vm->m_sp;
+	int vm_ev = p_vm->m_ev;
+	int vm_ip = p_vm->m_ip;
+	value_t *vm_current_env = p_vm->m_current_env[p_vm->m_ev - 1];
+
+	// Set up a trap
+    int i = setjmp(*push_handler_stack());
+	value_t *ret = nil;
+    if (i == 0) {
+		ret = eval(p_vm, p_vm->m_stack[p_vm->m_sp - 1]);
+	} else {
+		// Restore stack do to trapped error
+		p_vm->m_bp = vm_bp;
+		p_vm->m_sp = vm_sp;
+		p_vm->m_ev = vm_ev;
+		p_vm->m_ip = vm_ip;
+		p_vm->m_current_env[p_vm->m_ev - 1] = vm_current_env;
+
+		printf("\t%s\n", g_err);
+	}
+
+	pop_handler_stack();
+
+	return ret;
 }
 
 value_t *read(vm_t *p_vm)
@@ -162,9 +195,28 @@ value_t *status(vm_t *p_vm)
 	printf("sp: %lu\n", p_vm->m_sp);
 
 	// Display memory
-	value_t *heap = p_vm->m_heap;
+printf("\n-------g0 Heap--------\n");
+	value_t *heap = p_vm->m_heap_g0;
 	int count = 0;
 	unsigned long mem = 0;
+	while(heap) {
+		count++;
+		if (is_fixnum(heap)) {
+			mem += sizeof(heap);
+			printf("%d] %u ", count, sizeof(heap));
+		} else {
+		mem += sizeof(value_t) + heap->m_size;
+		printf("%d] %lu ", count, sizeof(value_t) + heap->m_size);
+		}
+		value_print(p_vm, heap);
+		printf("\n");
+		heap = heap->m_heapptr;
+	}
+
+printf("\n-------g1 Heap--------\n");
+	heap = p_vm->m_heap_g1;
+	count = 0;
+	mem = 0;
 	while(heap) {
 		count++;
 		if (is_fixnum(heap)) {

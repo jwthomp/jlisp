@@ -69,20 +69,16 @@ value_print(p_vm, res); printf("\n");
 
 	verify(p_vm->m_sp == vm_sp &&  p_vm->m_bp == vm_bp, "internal error");
 
-	gc(p_vm);
+	gc(p_vm, 1);
 }
 
 
 int main(int argc, char *arg[])
 {
 	vm_t *vm = vm_create(1024);
-
-	value_t *num = make_fixnum(1);
-	printf("%d\n", is_fixnum(num));
-	printf("%ld\n", to_fixnum(num));
-
 	lib_init(vm);
 
+#if 1
 	char input[256];
 	memset(input, 0, 256);
 
@@ -96,8 +92,12 @@ int main(int argc, char *arg[])
 		printf("> ");
 	}
 
+#else
+	load_string(vm, "(loop (print (eval (read))))");
+#endif
+
 	vm->m_sp = 0;
 	vm->m_ev = 0;
-	gc(vm);
+	gc(vm, 1);
 	vm_destroy(vm);
 }

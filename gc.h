@@ -8,9 +8,7 @@
 
 value_t *gc_alloc(vm_t *p_vm, size_t p_size, bool p_is_static);
 
-void gc(vm_t *p_vm);
-void mark(vm_t *p_vm);
-void sweep(vm_t *p_vm);
+void gc(vm_t *p_vm, int p_age);
 
 void gc_shutdown(vm_t *p_vm);
 

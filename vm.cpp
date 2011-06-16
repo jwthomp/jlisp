@@ -47,7 +47,8 @@ bool g_debug_display = false;
 vm_t *vm_create(unsigned long p_stack_size)
 {
 	vm_t *vm = (vm_t *)malloc(sizeof(vm_t));
-	vm->m_heap = NULL;
+	vm->m_heap_g0 = NULL;
+	vm->m_heap_g1 = NULL;
 	vm->m_static_heap = NULL;
 	vm->m_free_heap = NULL;
 	vm->m_sp = 0;
@@ -69,7 +70,8 @@ vm_t *vm_create(unsigned long p_stack_size)
 void vm_destroy(vm_t *p_vm)
 {
 
-	p_vm->m_heap = NULL;
+	p_vm->m_heap_g0 = NULL;
+	p_vm->m_heap_g1 = NULL;
 	p_vm->m_current_env[0] = NULL;
 	p_vm->m_ev = 1;
 	gc_shutdown(p_vm);
@@ -248,7 +250,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 		value_t *p_pool = l->m_pool;
 
 		if (g_debug_display == true) {
-			printf("ip: %d] sp: %ld] ep: %ld] %s\n", p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, g_opcode_print[bc->m_opcode]);
+			printf("ip: %d] sp: %ld] ep: %ld] %s %ld\n", p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, g_opcode_print[bc->m_opcode], bc->m_value);
 		}
 
 		switch (bc->m_opcode) {
@@ -400,6 +402,9 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 				p_vm->m_stack[p_vm->m_sp++] = ret;
 				p_vm->m_bp = old_bp;
 				p_vm->m_ip++;
+
+				// Do a quick gc
+				gc(p_vm, 0);
 				break;
 			}
 			case OP_LAMBDA:

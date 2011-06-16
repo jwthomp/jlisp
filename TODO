@@ -22,6 +22,10 @@
 [ ] Support for examining closure
 [ ] Make a master VM which handles things like temporary strings, and static binds
 
+[ ] Need to make read not block
+[ ] Need to have main just launch this code for the vm
+
+
 [/] fix &rest so 'a sets args to ('a)
 
 

@@ -8,13 +8,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define GC_AGE 1
+
+void mark(vm_t *p_vm);
+void sweep(vm_t *p_vm, value_t **p_heap, value_t **p_tenured_heap);
+
 value_t *gc_alloc(vm_t *p_vm, size_t p_size, bool p_is_static)
 {
 	value_t * val = (value_t *)malloc(p_size);
 
 	if (p_is_static == false) {
-		val->m_heapptr = p_vm->m_heap;
-		p_vm->m_heap = val;
+		val->m_heapptr = p_vm->m_heap_g0;
+		p_vm->m_heap_g0 = val;
 	} else {
 		val->m_heapptr = p_vm->m_static_heap;
 		p_vm->m_static_heap = val;
@@ -25,7 +30,7 @@ value_t *gc_alloc(vm_t *p_vm, size_t p_size, bool p_is_static)
 
 void gc_shutdown(vm_t *p_vm)
 {
-	gc(p_vm);
+	gc(p_vm, 0);
 
 	value_t* p = p_vm->m_static_heap;
 	value_t* safe = NULL;
@@ -37,10 +42,15 @@ void gc_shutdown(vm_t *p_vm)
 	}
 }
 
-void gc(vm_t *p_vm)
+void gc(vm_t *p_vm, int p_age)
 {
 	mark(p_vm);
-	sweep(p_vm);
+
+	if (p_age == 0) {
+		sweep(p_vm, &p_vm->m_heap_g0, NULL);
+	} else {
+		sweep(p_vm, &p_vm->m_heap_g0, &p_vm->m_heap_g1);
+	}
 }
 
 void retain(value_t *p_value)
@@ -110,25 +120,33 @@ void mark(vm_t *p_vm)
 	}
 }
 
-void sweep(vm_t *p_vm)
+
+void sweep(vm_t *p_vm, value_t **p_heap, value_t **p_tenured_heap)
 {
-  value_t* p = p_vm->m_heap;
-  value_t* safe = NULL;
+	value_t* p = *p_heap;
+	value_t* safe = NULL;
 
-  // reset heap
-  p_vm->m_heap = NULL;
+	// reset heap
+	*p_heap = NULL;
 
-  // traverse old heap
-  for(;p;p = safe) {
-    safe = p->m_heapptr;
+	// traverse old heap
+	for(;p;p = safe) {
+	safe = p->m_heapptr;
 
 assert(p->m_is_static == false);
 
-    // keep on heap or free
-    if (p->m_in_use || p->m_is_static) {
-      p->m_in_use = false;
-      p->m_heapptr = p_vm->m_heap;
-      p_vm->m_heap = p;
+	// keep on heap or free
+	if (p->m_in_use) {
+		p->m_in_use = false;
+
+		if (++p->m_age >= GC_AGE && p_tenured_heap != NULL) {
+			p->m_heapptr = *p_tenured_heap;
+			*p_tenured_heap = p;
+		} else {
+			p->m_heapptr = *p_heap;
+			*p_heap = p;
+		}
+
     } else {
 #if 1
 		p->m_heapptr = NULL;

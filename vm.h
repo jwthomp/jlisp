@@ -44,7 +44,8 @@ typedef struct vm_s {
 	value_t **m_stack;
 
 	value_t *m_static_heap;
-	value_t *m_heap;
+	value_t *m_heap_g0;
+	value_t *m_heap_g1;
 	value_t *m_free_heap;
 
 	unsigned long m_sp;

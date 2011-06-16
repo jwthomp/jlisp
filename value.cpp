@@ -38,6 +38,7 @@ value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bo
 	v->m_size = p_size;
 	v->m_in_use = false;
 	v->m_is_static = false;
+	v->m_age = 0;
 	memset(v->m_data, 0, p_size);
 	return v;
 }
@@ -336,6 +337,7 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		{
 			snprintf(ret->m_data, 1024, "BINDING <%s>", 
 				value_sprint(p_vm, ((binding_t *)p_value->m_data)->m_key)->m_data); 
+			break;
 		}
 		default:
 			printf("no printer for value type: %d\n", p_value->m_type);
