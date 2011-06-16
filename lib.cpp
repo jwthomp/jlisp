@@ -3,6 +3,8 @@
 #include "vm.h"
 #include "assert.h"
 #include "err.h"
+#include "reader.h"
+#include "compile.h"
 
 #include "lib.h"
 
@@ -32,6 +34,8 @@ value_t *progn(vm_t *p_vm);
 value_t *debug(vm_t *p_vm);
 value_t *progn(vm_t *p_vm);
 value_t *let(vm_t *p_vm);
+value_t *read(vm_t *p_vm);
+value_t *eval_lib(vm_t *p_vm);
 
 
 static internal_func_def_t g_ifuncs[] = {
@@ -47,9 +51,29 @@ static internal_func_def_t g_ifuncs[] = {
 	{"DEBUG", debug, 1, false},
 	{"PROGN", progn, -1, true},
 	{"LET", let, -1, true},
+	{"READ", read, 0, false},
+	{"EVAL", eval_lib, 1, false},
 };
 
-#define NUM_IFUNCS 12
+#define NUM_IFUNCS 14
+
+value_t *eval_lib(vm_t *p_vm)
+{
+printf("REVAL\n");
+	return eval(p_vm, p_vm->m_stack[p_vm->m_sp - 1]);
+}
+
+value_t *read(vm_t *p_vm)
+{
+    char input[256];
+    printf("R> ");
+    gets(input);
+    stream_t *strm = stream_create(input);
+    int args = reader(p_vm, strm, false);
+    value_t *rd = p_vm->m_stack[p_vm->m_sp - 1];
+    return rd;
+}
+
 
 value_t *let(vm_t *p_vm)
 {

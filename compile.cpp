@@ -5,6 +5,7 @@
 #include "gc.h"
 #include "lambda.h"
 #include "err.h"
+#include "reader.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,11 +92,13 @@ void macro_expand(vm_t *p_vm, value_t **p_value)
 void push_opcode(opcode_e p_opcode, int p_arg, bytecode_t *p_bytecode, int *p_bytecode_index)
 {
 	if (g_debug_display == true) {
-		printf("push opcode(%d): %s %u\n", *p_bytecode_index, g_opcode_print[p_opcode], p_arg);
+		printf("push opcode(%d): %s %d\n", *p_bytecode_index, g_opcode_print[p_opcode], p_arg);
 	}
 	(p_bytecode)[*p_bytecode_index].m_opcode = p_opcode;
 	(p_bytecode)[*p_bytecode_index].m_value = p_arg;
 	(*p_bytecode_index)++;
+
+
 }
 
 int push_pool(vm_t *p_vm, value_t *p_value, value_t **p_pool, int *p_pool_index)
@@ -131,19 +134,13 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			push_opcode(p_opcode, index, p_bytecode, p_bytecode_index);
 			break;
 		}
+		case OP_POP:
+		case OP_JMP:
 		case OP_IFNILJMP:
-		{
-			push_opcode(OP_IFNILJMP, (int)p_arg, p_bytecode, p_bytecode_index);
-			break;
-		}
 		case OP_CATCH:
-		{
-			push_opcode(OP_CATCH, (int)p_arg, p_bytecode, p_bytecode_index);
-			break;
-		}
 		case OP_RET:
 		{
-			push_opcode(OP_RET, (int)p_arg, p_bytecode, p_bytecode_index);
+			push_opcode(p_opcode, (int)p_arg, p_bytecode, p_bytecode_index);
 			break;
 		}
 		case OP_DUP:
@@ -178,7 +175,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-	//printf("Compile function: "); value_print(p_form); printf("\n");
+	printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
 
 	assert(p_form && is_cons(p_form));
 	value_t *func = p_form->m_cons[0];
@@ -230,6 +227,11 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 		assemble(OP_RET, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
+	} else if (is_symbol(func) && is_symbol_name("LOOP", func)) {
+		int old_index = *p_bytecode_index;
+		compile_form(car(args), p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+		assemble(OP_POP, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+		assemble(OP_JMP, (int *)(old_index - *p_bytecode_index), p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 	} else if (is_symbol(func) && is_symbol_name("COND", func)) {
 		while(args != nil) {
 assert(is_cons(args->m_cons[0]));
@@ -332,7 +334,7 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-//	printf("Compile form: "); value_print(p_form); printf("\n");
+	printf("Compile form: "); value_print(p_vm, p_form); printf("\n");
 
 	// If it's a cons, do a macroexpand in case this is a macro
 	if (is_cons(p_form)) {

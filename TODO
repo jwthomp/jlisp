@@ -25,6 +25,10 @@
 [/] fix &rest so 'a sets args to ('a)
 
 
+[x] Implement eval
+[x] Implement read
+[x] Implement (loop (print (eval (read))))
+[X] Implement Loop
 [X] Move special form macro's out of compile and into lib
 [X] Fix (progn 'a 'b)
 [X] macro's do not have their arguments expanded. Fix this

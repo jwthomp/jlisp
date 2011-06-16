@@ -36,6 +36,8 @@ char const *g_opcode_print[] =  {
 	"OP_UPDATE",
 	"OP_BINDD",
 	"OP_BINDDF",
+	"OP_JMP",
+	"OP_POP",
 };
 
 bool g_debug_display = false;
@@ -246,7 +248,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 		value_t *p_pool = l->m_pool;
 
 		if (g_debug_display == true) {
-			printf("ip: %d] %s\n", p_vm->m_ip, g_valuetype_print[bc->m_opcode]);
+			printf("ip: %d] sp: %ld] ep: %ld] %s\n", p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, g_opcode_print[bc->m_opcode]);
 		}
 
 		switch (bc->m_opcode) {
@@ -428,6 +430,13 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 				p_vm->m_ip++;
 				break;
 			}
+			case OP_POP:
+				p_vm->m_sp--;
+				p_vm->m_ip++;
+				break;
+			case OP_JMP:
+				p_vm->m_ip += (int)p_arg;
+				break;
 			case OP_IFNILJMP:
 			{
 				value_t *top = p_vm->m_stack[p_vm->m_sp - 1];

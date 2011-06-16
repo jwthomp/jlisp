@@ -32,20 +32,20 @@ void load_string(vm_t *p_vm, char const *p_code)
 	if (i == 0) {
 		int args = reader(p_vm, strm, false);
 
-//printf("reader found %d forms\n", args);
+printf("reader found %d forms\n", args);
 
 		int count_down = args;
 		while(count_down > 0) {
 			// get value off stack
 			value_t *rd = p_vm->m_stack[p_vm->m_sp - count_down];
-//printf("read form: "); value_print(rd); printf("\n");
+printf("read form: "); value_print(p_vm, rd); printf("\n");
 
 			// Evaluate it
 			value_t *res = eval(p_vm, rd);
 
 			// Print a result
-//printf("res: "); value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
-//value_print(p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
+printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
+value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
 value_print(p_vm, res); printf("\n");
 			p_vm->m_sp--;
 

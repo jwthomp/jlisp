@@ -6,7 +6,7 @@
 
 typedef struct bytecode_s {
     unsigned long m_opcode :5;
-    unsigned long m_value :27;
+    long m_value :27;
 } bytecode_t;
 
 
@@ -27,6 +27,8 @@ typedef enum opcode_s {
 	OP_UPDATE,		// 13
 	OP_BINDD,		// 14
 	OP_BINDDF,		// 15
+	OP_JMP,			// 16
+	OP_POP,			// 17
 } opcode_e;
 
 extern char const *g_opcode_print[];
