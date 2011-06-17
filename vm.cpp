@@ -40,7 +40,7 @@ char const *g_opcode_print[] =  {
 	"OP_POP",
 };
 
-bool g_debug_display = false;
+bool g_debug_display = true;
 
 
 
@@ -49,11 +49,11 @@ vm_t *vm_create(unsigned long p_stack_size)
 	vm_t *vm = (vm_t *)malloc(sizeof(vm_t));
 	vm->m_heap_g0 = NULL;
 	vm->m_heap_g1 = NULL;
+	vm->m_pool_g0 = pool_alloc(0);
 	vm->m_static_heap = NULL;
 	vm->m_free_heap = NULL;
 	vm->m_sp = 0;
 	vm->m_bp = 0;
-	vm->m_ev = 1;
 	vm->m_ip = 0;
 	vm->m_stack = (value_t **)malloc(sizeof(value_t *) * p_stack_size);
 
@@ -63,6 +63,7 @@ vm_t *vm_create(unsigned long p_stack_size)
 	vm->m_user_env = value_create_environment(vm, vm->m_kernel_env);
 	vm->m_current_env = (value_t **)malloc(sizeof(value_t *) * p_stack_size);
 	vm->m_current_env[0] = vm->m_user_env;
+	vm->m_ev = 1;
 
 	return vm;
 }
@@ -74,6 +75,7 @@ void vm_destroy(vm_t *p_vm)
 	p_vm->m_heap_g1 = NULL;
 	p_vm->m_current_env[0] = NULL;
 	p_vm->m_ev = 1;
+	pool_free(p_vm->m_pool_g0);
 	gc_shutdown(p_vm);
 	free(p_vm->m_stack);
 	free(p_vm->m_current_env);
@@ -245,6 +247,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 //printf("active pool: %p\n", l->m_pool);
 
 	while(p_vm->m_ip != -1) {
+		printf("ip: %d bc: 0x%p\n", p_vm->m_ip, l->m_bytecode);
 		bytecode_t *bc = &((bytecode_t *)l->m_bytecode->m_data)[p_vm->m_ip];
 		unsigned long p_arg = bc->m_value;
 		value_t *p_pool = l->m_pool;
@@ -403,9 +406,6 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 				p_vm->m_bp = old_bp;
 				p_vm->m_ip++;
 
-				// Do a quick gc
-				gc(p_vm, 0);
-				break;
 			}
 			case OP_LAMBDA:
 			{
@@ -460,6 +460,9 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 			case OP_RET:
 			{
 				p_vm->m_ip = -1;
+
+				// Do a quick gc
+				//gc(p_vm, 0);
 				break;
 			}
 			case OP_UPDATE:

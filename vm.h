@@ -3,6 +3,7 @@
 
 #include "env.h"
 #include "value.h"
+#include "pool.h"
 
 typedef struct bytecode_s {
     unsigned long m_opcode :5;
@@ -45,6 +46,7 @@ typedef struct vm_s {
 
 	value_t *m_static_heap;
 	value_t *m_heap_g0;
+	pool_t *m_pool_g0;
 	value_t *m_heap_g1;
 	value_t *m_free_heap;
 

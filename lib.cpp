@@ -382,6 +382,10 @@ value_t *print(vm_t *p_vm)
 void lib_init(vm_t *p_vm)
 {
 	int i;
+
+	// Must create this before symbols
+	voidobj = value_create(p_vm, VT_VOID, 0, true);
+
 	for (i = 0; i < NUM_IFUNCS; i++) {
 		vm_bindf(p_vm, g_ifuncs[i].m_name, g_ifuncs[i].m_func, g_ifuncs[i].m_arg_count, g_ifuncs[i].m_is_macro);
 	}
@@ -391,5 +395,4 @@ void lib_init(vm_t *p_vm)
 	t = value_create_symbol(p_vm, "T");
 	vm_bind(p_vm, "T", t);
 
-	voidobj = value_create(p_vm, VT_VOID, 0, true);
 }
