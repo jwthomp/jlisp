@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define C_STACK_SIZE 1024
+
 typedef struct bytecode_jump {
 	bytecode_t m_bytecode;
 	void (*m_func)(vm_t *, unsigned long, value_t *);
@@ -40,7 +42,7 @@ char const *g_opcode_print[] =  {
 	"OP_POP",
 };
 
-bool g_debug_display = true;
+bool g_debug_display = false;
 
 
 
@@ -53,9 +55,11 @@ vm_t *vm_create(unsigned long p_stack_size)
 	vm->m_static_heap = NULL;
 	vm->m_free_heap = NULL;
 	vm->m_sp = 0;
+	vm->m_csp = 0;
 	vm->m_bp = 0;
 	vm->m_ip = 0;
 	vm->m_stack = (value_t **)malloc(sizeof(value_t *) * p_stack_size);
+	vm->m_c_stack = (value_t **)malloc(sizeof(value_t *) * C_STACK_SIZE);
 
 	// CANNOT create any value_t's until the above is initialized
 
@@ -71,12 +75,12 @@ vm_t *vm_create(unsigned long p_stack_size)
 void vm_destroy(vm_t *p_vm)
 {
 
+	gc_shutdown(p_vm);
 	p_vm->m_heap_g0 = NULL;
 	p_vm->m_heap_g1 = NULL;
 	p_vm->m_current_env[0] = NULL;
-	p_vm->m_ev = 1;
+	p_vm->m_ev = 0;
 	pool_free(p_vm->m_pool_g0);
-	gc_shutdown(p_vm);
 	free(p_vm->m_stack);
 	free(p_vm->m_current_env);
 	free(p_vm);
@@ -155,6 +159,13 @@ void vm_list(vm_t *p_vm, int p_args)
 
 }
 
+value_t **vm_c_push(vm_t *p_vm, value_t *p_value)
+{
+	assert(p_vm->m_csp < C_STACK_SIZE);
+	p_vm->m_c_stack[p_vm->m_csp++] = p_value;
+	return &p_vm->m_c_stack[p_vm->m_csp - 1];
+}
+
 void vm_push(vm_t *p_vm, value_t *p_value)
 {
 	p_vm->m_stack[p_vm->m_sp++] = p_value;
@@ -170,13 +181,13 @@ void vm_pop_env(vm_t *p_vm)
 	p_vm->m_ev--;
 }
 
-void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
+void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 {
 
-	if (is_ifunc(p_closure)) {
-		vm_func_t func = *(vm_func_t *)p_closure->m_data;
+	if (is_ifunc(*p_closure)) {
+		vm_func_t func = *(vm_func_t *)(*p_closure)->m_data;
 
-		int func_arg_count = p_closure->m_data[sizeof(vm_func_t)];
+		int func_arg_count = (*p_closure)->m_data[sizeof(vm_func_t)];
 		// Condense remaining args into a list
 		if (func_arg_count < 0) {
 			func_arg_count = -func_arg_count;
@@ -207,18 +218,18 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 //printf("obp: %d nbp: %lu sp: %lu nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p_nargs);
 
 
-    assert(p_closure && is_closure(p_closure) && p_closure->m_cons[1]);
-    lambda_t *l = (lambda_t *)(p_closure->m_cons[1]->m_data);
+    assert(*p_closure && is_closure(*p_closure) && (*p_closure)->m_cons[1]);
+    lambda_t *l = (lambda_t *)((*p_closure)->m_cons[1]->m_data);
 
-	value_t *env = value_create_environment(p_vm, p_closure->m_cons[0]);
+	value_t *env = value_create_environment(p_vm, (*p_closure)->m_cons[0]);
 	vm_push_env(p_vm, env);
 
-	vm_push(p_vm, p_closure);
+	vm_push(p_vm, (*p_closure));
 
 	// Bind parameters
 	value_t *p = l->m_parameters;
 
-	int func_arg_count = (int)p_closure->m_cons[2];
+	int func_arg_count = (int)(*p_closure)->m_cons[2];
 	// Condense remaining args into a list
 	if (func_arg_count < 0) {
 		func_arg_count = -func_arg_count;
@@ -247,7 +258,10 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 //printf("active pool: %p\n", l->m_pool);
 
 	while(p_vm->m_ip != -1) {
-		printf("ip: %d bc: 0x%p\n", p_vm->m_ip, l->m_bytecode);
+		// Grab lambda again as p_closure could have been copied due to a gc
+    	l = (lambda_t *)((*p_closure)->m_cons[1]->m_data);
+
+//		printf("ip: %d bc: 0x%p\n", p_vm->m_ip, l->m_bytecode);
 		bytecode_t *bc = &((bytecode_t *)l->m_bytecode->m_data)[p_vm->m_ip];
 		unsigned long p_arg = bc->m_value;
 		value_t *p_pool = l->m_pool;
@@ -391,10 +405,10 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 
 				value_t *ret = 0;
 				if (is_ifunc(func_val)) {
-					vm_exec(p_vm, func_val, p_arg);
+					vm_exec(p_vm, &p_vm->m_stack[p_vm->m_bp], p_arg);
 					ret = p_vm->m_stack[p_vm->m_sp - 1];
 				} else if (is_closure(func_val)) {
-					vm_exec(p_vm, func_val, p_arg);
+					vm_exec(p_vm, &p_vm->m_stack[p_vm->m_bp], p_arg);
 					ret = p_vm->m_stack[p_vm->m_sp - 1];
 				}  else {
 					verify(false, "ERROR: UNKNOWN FUNCTION TYPE: %d\n", func_val->m_type);
@@ -405,6 +419,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 				p_vm->m_stack[p_vm->m_sp++] = ret;
 				p_vm->m_bp = old_bp;
 				p_vm->m_ip++;
+				break;
 
 			}
 			case OP_LAMBDA:
@@ -462,7 +477,7 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 				p_vm->m_ip = -1;
 
 				// Do a quick gc
-				//gc(p_vm, 0);
+				gc(p_vm, 0);
 				break;
 			}
 			case OP_UPDATE:
@@ -495,6 +510,4 @@ void vm_exec(vm_t *p_vm, value_t *p_closure, int p_nargs)
 	vm_pop_env(p_vm);
 
 }
-
-
 

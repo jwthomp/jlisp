@@ -43,6 +43,7 @@ typedef struct vm_s {
 
     value_t **m_current_env;
 	value_t **m_stack;
+	value_t **m_c_stack;
 
 	value_t *m_static_heap;
 	value_t *m_heap_g0;
@@ -53,25 +54,24 @@ typedef struct vm_s {
 	unsigned long m_sp;
 	unsigned long m_bp;
 	unsigned long m_ev;
+	unsigned long m_csp;
 	int m_ip;
 
-	value_t *m_symbols;
-	
 } vm_t;
 
 typedef value_t *(*vm_func_t)(vm_t *p_vm);
 
 vm_t *vm_create(unsigned long p_stack_size);
 void vm_destroy(vm_t *);
-void vm_exec(vm_t *p_vm, value_t *p_closure, int p_arg_count );
+void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_arg_count );
 void vm_bind(vm_t *p_vm, char const *p_symbol, value_t *p_value);
 void vm_bindf(vm_t *p_vm, char const *p_symbol, vm_func_t p_func, unsigned long p_param_count, bool p_is_macro);
 void vm_bindf(vm_t *p_vm, char const *p_symbol, value_t *p_func);
 void vm_cons(vm_t *p_vm);
 void vm_list(vm_t *p_vm, int p_list_size);
 void vm_push(vm_t *p_vm, value_t *p_value);
+value_t ** vm_c_push(vm_t *p_vm, value_t *p_value);
 void vm_push_env(vm_t *p_vm, value_t *p_env);
 void vm_pop_env(vm_t *p_vm);
-
 
 #endif /* __VM_H_ */

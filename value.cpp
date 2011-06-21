@@ -30,16 +30,20 @@ value_t *t;
 value_t *nil;
 value_t *voidobj;
 
+char g_string[4096];
+
 
 value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static)
 {
+
 	value_t *v = gc_alloc(p_vm, sizeof(value_t) + p_size, p_is_static);
 	v->m_type = p_type;
 	v->m_size = p_size;
-	v->m_in_use = false;
-	v->m_is_static = false;
+	v->m_is_static = p_is_static;
 	v->m_age = 0;
 	memset(v->m_data, 0, p_size);
+
+//printf("value_create: %p %s\n", v, valuetype_print(p_type));
 	return v;
 }
 
@@ -49,6 +53,7 @@ void value_destroy(value_t *p_value)
 
 value_t * value_create_number(vm_t *p_vm, int p_number)
 {
+	assert(!"YOU SHOULDNT BE HERE");
 	value_t *ret =  value_create(p_vm, VT_NUMBER, 4, false);
 	*(int *)ret->m_data = p_number;
 	return ret;
@@ -497,3 +502,37 @@ bool is_symbol_name(char const *p_name, value_t *p_symbol)
 	return !strcmp(p_name, p_symbol->m_cons[0]->m_data);
 }
 
+
+char const *valuetype_print(int p_val)
+{
+	switch (p_val) {
+		case VT_NUMBER:
+			return g_valuetype_print[0];
+		case VT_POOL:
+			return g_valuetype_print[1];
+		case VT_SYMBOL:
+			return g_valuetype_print[2];
+		case VT_INTERNAL_FUNCTION:
+			return g_valuetype_print[3];
+		case VT_CONS:
+			return g_valuetype_print[4];
+		case VT_BYTECODE:
+			return g_valuetype_print[5];
+		case VT_LAMBDA:
+			return g_valuetype_print[6];
+		case VT_CLOSURE:
+			return g_valuetype_print[7];
+		case VT_ENVIRONMENT:
+			return g_valuetype_print[8];
+		case VT_STRING:
+			return g_valuetype_print[9];
+		case VT_BINDING:
+			return g_valuetype_print[10];
+		case VT_MACRO:
+			return g_valuetype_print[11];
+		case VT_VOID:
+			return g_valuetype_print[12];
+		default:
+			return "Unknown value type";
+	}
+}
