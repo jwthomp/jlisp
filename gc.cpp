@@ -11,7 +11,7 @@
 #include <string.h>
 
 
-#define GC_AGE 3
+#define GC_AGE 1
 
 static int g_count = 0;
 static int g_alloc_count = 0;
