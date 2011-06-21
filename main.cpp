@@ -6,6 +6,7 @@
 #include "gc.h"
 #include "err.h"
 #include "lib.h"
+#include "unit-test.h"
 
 //#define _GNU_SOURCE
 
@@ -90,7 +91,9 @@ int main(int argc, char *arg[])
 	vm_t *vm = vm_create(1024);
 	lib_init(vm);
 
-#if 0
+#if 1
+	unit_test();
+#elif 0
 	// Test gc
 printf("-------------------- 1\n");
 	gc(vm, 0);
