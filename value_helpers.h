@@ -36,5 +36,6 @@ value_t * value_create_binding(vm_t *p_vm, value_t *p_key, value_t *p_binding);
 
 value_t * list(vm_t *p_vm, value_t *p_value);
 
+char const *valuetype_print(int p_val);
 
 #endif /* __VALUE_HELPERS_H_ */
