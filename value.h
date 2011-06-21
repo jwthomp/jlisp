@@ -3,19 +3,19 @@
 
 
 typedef enum {
-	VT_NUMBER = 0,						// 0
-	VT_POOL = 1 << 1, 					// 2
-	VT_SYMBOL = 1 << 2,					// 4
-	VT_INTERNAL_FUNCTION = 1 << 3,		// 8
-	VT_CONS = 1 << 4,					// 16
-	VT_BYTECODE = 1 << 5,				// 32
-	VT_LAMBDA = 1 << 6,
-	VT_CLOSURE = 1 << 7,
-	VT_ENVIRONMENT = 1 << 8,
-	VT_STRING = 1 << 9,
-	VT_BINDING = 1 << 10,
-	VT_MACRO =  1 << 11,
-	VT_VOID = 1 << 12,
+	VT_NUMBER = 0,	
+	VT_POOL = 1,
+	VT_SYMBOL = 2,
+	VT_INTERNAL_FUNCTION = 3,
+	VT_CONS = 4,
+	VT_BYTECODE = 5,
+	VT_LAMBDA = 6,
+	VT_CLOSURE = 7,
+	VT_ENVIRONMENT = 8,
+	VT_STRING = 9,
+	VT_BINDING = 10,
+	VT_MACRO = 11,
+	VT_VOID = 12,
 } value_type_t;
 
 typedef struct value_s {
@@ -24,6 +24,7 @@ typedef struct value_s {
 
 	int m_age;
 
+	bool m_in_use;
 	bool m_is_static;
 	struct value_s *m_heapptr;
 

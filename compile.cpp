@@ -175,7 +175,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-//	printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
+	printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
 
 	assert(p_form && is_cons(p_form));
 	value_t *func = p_form->m_cons[0];
@@ -334,7 +334,7 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-//	printf("Compile form: "); value_print(p_vm, p_form); printf("\n");
+	printf("Compile form: "); value_print(p_vm, p_form); printf("\n");
 
 	// If it's a cons, do a macroexpand in case this is a macro
 	if (is_cons(p_form)) {
@@ -415,17 +415,9 @@ value_t *execute(vm_t *p_vm, value_t *p_closure)
 
 value_t * eval(vm_t *p_vm, value_t * p_form)
 {
-	int old_csp = p_vm->m_csp;
-
 	value_t *lambda = compile(p_vm, nil, list(p_vm, p_form));
-	vm_c_push(p_vm, lambda);
 	value_t *closure =  make_closure(p_vm, lambda);
-	value_t **closure_ref = vm_c_push(p_vm, closure);
+	vm_exec(p_vm, closure, 0);
 
-	vm_exec(p_vm, closure_ref, 0);
-	p_vm->m_stack[p_vm->m_sp - 2] = p_vm->m_stack[p_vm->m_sp - 1];
-	p_vm->m_sp--;
-
-	p_vm->m_csp = old_csp;
 	return p_vm->m_stack[p_vm->m_sp - 1];
 }
