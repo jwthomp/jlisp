@@ -13,6 +13,13 @@
 [ ] implement deconstruct-bind
 [ ] Support packages
 [ ] Add FFI support
+[ ] How to do shared dev?
+
+[ ] Add in a binary heap where all binary objects (strings, etc) that don't need to be
+    moved but are mark/swept instead
+[ ] Make pass on all functions that call value_create() to wrap in csp checks and vm_c_push()
+[ ] Get unit test suite in here
+[ ] Write unit tests for stable functionality
 
 [ ] Support `,
 [ ] Support ,@
@@ -23,12 +30,20 @@
 [ ] Make a master VM which handles things like temporary strings, and static binds
 
 [ ] Need to make read not block
-[ ] Need to have main just launch this code for the vm
+read ->
+	VM -> Call read ifunc
+	C -> do we have a character
+	C -> Should we return, if yes return the value read in
+	C -> If not, return some kind of continue value
+	VM -> If read in value, return
+	VM -> If continue, jump to call (since jmp is an instruction a test should
+			take place to see if another process should run
 
 
 [/] fix &rest so 'a sets args to ('a)
 
 
+[X] Need to have main just launch this code for the vm
 [x] Implement eval
 [x] Implement read
 [x] Implement (loop (print (eval (read))))
