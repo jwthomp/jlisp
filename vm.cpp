@@ -58,13 +58,17 @@ vm_t *vm_create(unsigned long p_stack_size)
 	vm->m_csp = 0;
 	vm->m_bp = 0;
 	vm->m_ip = 0;
+	vm->m_ev = 0;
 	vm->m_stack = (value_t **)malloc(sizeof(value_t *) * p_stack_size);
 	vm->m_c_stack = (value_t **)malloc(sizeof(value_t *) * C_STACK_SIZE);
 
 	// CANNOT create any value_t's until the above is initialized
 
-	vm->m_kernel_env = value_create_environment(vm, NULL);
-	vm->m_user_env = value_create_environment(vm, vm->m_kernel_env);
+	value_t **k_env = vm_c_push(vm, value_create_environment(vm, NULL));
+	value_t **u_env = vm_c_push(vm, value_create_environment(vm, *k_env));
+
+	vm->m_kernel_env = *k_env;
+	vm->m_user_env = *u_env;
 	vm->m_current_env = (value_t **)malloc(sizeof(value_t *) * p_stack_size);
 	vm->m_current_env[0] = vm->m_user_env;
 	vm->m_ev = 1;

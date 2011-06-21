@@ -20,6 +20,7 @@ static int g_retain_level = 0;
 static pool_t *g_pool;
 
 static value_t *retain(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new);
+static pool_t * do_gc(vm_t *p_vm, int p_age, unsigned long p_pool_size);
 
 static value_t *alloc_from_pool(pool_t *p_pool, size_t p_size)
 {
@@ -27,7 +28,6 @@ static value_t *alloc_from_pool(pool_t *p_pool, size_t p_size)
 	value_t *val = (value_t *)&(p_pool->m_bytes[p_pool->m_pos]);
 	if (p_size + p_pool->m_pos > p_pool->m_size)
 	{
-		assert(!"Ran out of memory, not really a bug in temp");
 		return NULL;
 	} 
 
@@ -43,7 +43,12 @@ value_t *gc_alloc(vm_t *p_vm, size_t p_size, bool p_is_static)
 	} else {
 		val = alloc_from_pool(p_vm->m_pool_g0, p_size);
 		if (val == NULL) {
-			gc(p_vm, 0);
+			unsigned long size = gc(p_vm, 0);
+			while(size < p_size) {
+				pool_t *pool_new = do_gc(p_vm, 0, p_vm->m_pool_g0->m_size * 2);
+				size = pool_new->m_size - pool_new->m_pos;
+			}
+
 			val = alloc_from_pool(p_vm->m_pool_g0, p_size);
 			assert(val != NULL);
 		}
@@ -200,14 +205,15 @@ g_retain_level--;
 	
 }
 
-void gc(vm_t *p_vm, int p_age)
+
+static pool_t * do_gc(vm_t *p_vm, int p_age, unsigned long p_pool_size)
 {
 	pool_t *pool_cur = p_vm->m_pool_g0;
-	pool_t *pool_new = pool_alloc(pool_cur->m_size);
+	pool_t *pool_new = pool_alloc(p_pool_size);
 
 g_count = 0;
 
-//printf("GC FIRED: sp: %lu csp: %lu ev: %ld gc: %d\n", p_vm->m_sp, p_vm->m_csp, p_vm->m_ev, g_count);
+printf("GC FIRED: sp: %lu csp: %lu ev: %ld gc: %d\n", p_vm->m_sp, p_vm->m_csp, p_vm->m_ev, g_count);
 
 //printf("IN ev: %p\n",  p_vm->m_current_env[p_vm->m_ev - 1]);
 	
@@ -241,6 +247,15 @@ assert(ret != NULL);
 	memset((void *)p_vm->m_pool_g0->m_bytes, 0xFF, p_vm->m_pool_g0->m_size);
 	pool_free(p_vm->m_pool_g0);
 	p_vm->m_pool_g0 = pool_new;
+
+	return pool_new;
+}
+
+unsigned long gc(vm_t *p_vm, int p_age)
+{
+	pool_t *pool_new = do_gc(p_vm, p_age, p_vm->m_pool_g0->m_size);
+
+	return pool_new->m_size - pool_new->m_pos;
 
 //printf("OUT ev: %p\n",  p_vm->m_current_env[p_vm->m_ev - 1]);
 }

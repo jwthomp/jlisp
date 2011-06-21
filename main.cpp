@@ -91,7 +91,7 @@ int main(int argc, char *arg[])
 	vm_t *vm = vm_create(1024);
 	lib_init(vm);
 
-#if 1
+#if 0
 	unit_test();
 #elif 0
 	// Test gc
