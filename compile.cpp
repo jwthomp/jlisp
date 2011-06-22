@@ -175,7 +175,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-//	printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
+	//printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
 
 	assert(p_form && is_cons(p_form));
 	value_t *func = p_form->m_cons[0];
@@ -310,7 +310,7 @@ assert(is_cons(args->m_cons[0]));
 		value_t *closure = args->m_cons[0];
 		compile_form(closure, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, true);
 		assemble(OP_CALL, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if (is_symbol(func) == VT_SYMBOL && is_symbol_name("LAMBDA", func)) {
+	} else if (is_symbol(func) && is_symbol_name("LAMBDA", func)) {
 		value_t *largs = args->m_cons[0];
 		value_t *body_list = args->m_cons[1];
 		value_t *lambda = compile(p_vm, largs, body_list);

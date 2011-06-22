@@ -379,12 +379,11 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 			}
 			case OP_LOADF:
 			{
-	//printf("loadf: "); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("\n");
-	//printf("ev: %lu\n", p_vm->m_ev);
+	printf("loadf: "); value_print(p_vm, ((value_t **)p_pool->m_data)[p_arg]); printf("\n");
+	printf("ev: %lu\n", p_vm->m_ev);
 
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
 
-//printf("sym: %s\n", (char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 				verify(b != NULL, "The variable %s is unbound.\n", 
 					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 

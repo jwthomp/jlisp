@@ -32,7 +32,7 @@ static char const *test_gc_basic()
 {
 	vm_t *vm = vm_create(1024);
 	lib_init(vm);
-	stream_t *strm = stream_create("(+ 1 2)");
+	stream_t *strm = stream_create("(lambda () (+ 1 2))");
 	reader(vm, strm, false);
 	value_t *rd = vm->m_stack[vm->m_sp - 1];
 	eval(vm, rd);
@@ -52,6 +52,8 @@ static char const * all_tests()
 
 void unit_test()
 {
+	g_debug_display = true;
+
 	char const *result = all_tests();
 	if (result != 0) {
 		printf("%s\n", result);
