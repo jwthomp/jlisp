@@ -15,11 +15,19 @@
 [ ] Add FFI support
 [ ] How to do shared dev?
 
+->> [ ] Move gc to one safe spot, then add in the ability to have multiple pools. Bring
+        them together during "safe merges"
+[ ] Write unit tests for stable functionality
+[ ] Multiple vm's
+[ ] send/receive between vm's
+[ ] Tuples
+[ ] Matching
+
+
+
+
 [ ] Add in a binary heap where all binary objects (strings, etc) that don't need to be
     moved but are mark/swept instead
-[ ] Make pass on all functions that call value_create() to wrap in csp checks and vm_c_push()
-[ ] Get unit test suite in here
-[ ] Write unit tests for stable functionality
 
 [ ] Support `,
 [ ] Support ,@
@@ -43,6 +51,7 @@ read ->
 [/] fix &rest so 'a sets args to ('a)
 
 
+[X] Get unit test suite in here
 [X] Need to have main just launch this code for the vm
 [x] Implement eval
 [x] Implement read
