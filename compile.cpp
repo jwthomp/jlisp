@@ -415,17 +415,12 @@ value_t *execute(vm_t *p_vm, value_t *p_closure)
 
 value_t * eval(vm_t *p_vm, value_t * p_form)
 {
-	int old_csp = p_vm->m_csp;
-
 	value_t *lambda = compile(p_vm, nil, list(p_vm, p_form));
-	vm_c_push(p_vm, lambda);
 	value_t *closure =  make_closure(p_vm, lambda);
-	value_t **closure_ref = vm_c_push(p_vm, closure);
 
-	vm_exec(p_vm, closure_ref, 0);
+	vm_exec(p_vm, &closure, 0);
 	p_vm->m_stack[p_vm->m_sp - 2] = p_vm->m_stack[p_vm->m_sp - 1];
 	p_vm->m_sp--;
 
-	p_vm->m_csp = old_csp;
 	return p_vm->m_stack[p_vm->m_sp - 1];
 }

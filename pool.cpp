@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define POOL_SIZE 64
+#define POOL_SIZE 4096
 
 pool_t *pool_alloc(unsigned long p_size)
 {

@@ -1,5 +1,9 @@
 #include "vm.h"
 #include "minunit.h"
+#include "reader.h"
+#include "compile.h"
+#include "value_helpers.h"
+#include "lib.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +31,12 @@ static char const * test_vm_start()
 static char const *test_gc_basic()
 {
 	vm_t *vm = vm_create(1024);
+	lib_init(vm);
+	stream_t *strm = stream_create("(+ 1 2)");
+	reader(vm, strm, false);
+	value_t *rd = vm->m_stack[vm->m_sp - 1];
+	eval(vm, rd);
+	printf("res: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
 	return 0;
 }
 

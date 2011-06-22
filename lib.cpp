@@ -45,14 +45,14 @@ static internal_func_def_t g_ifuncs[] = {
 	{"CONS", cons, 2, false},
 	{"CAR", car, 1, false},
 	{"CDR", cdr, 1, false},
-	{"CALL", call, 2, false},
+	{"CALL", call, 2, false}, 				// ?
 	{"+", plus, 2, false},
 	{"STATUS", status, 0, false},
 	{"EQ", eq, 2, false},
 	{"LOAD", load, 1, false},
 	{"DEBUG", debug, 1, false},
-	{"PROGN", progn, -1, true},
-	{"LET", let, -1, true},
+	{"PROGN", progn, -1, true},				// Broken (progn 'a 'b)
+	{"LET", let, -1, true},					// Broken
 	{"READ", read, 0, false},
 	{"EVAL", eval_lib, 1, false},
 	{"GC", gc_lib, 0, false},
