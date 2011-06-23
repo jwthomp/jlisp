@@ -2,6 +2,7 @@
 #define __VALUE_H_
 
 
+
 typedef enum {
 	VT_NUMBER = 0,						// 0
 	VT_POOL = 1 << 1, 					// 2
@@ -18,14 +19,23 @@ typedef enum {
 	VT_VOID = 1 << 12,
 } value_type_t;
 
+typedef enum {
+    COPY_COMPACT,
+    STATIC,
+    MALLOC_MARK_SWEEP
+} alloc_type;
+
+
 typedef struct value_s {
 	value_type_t  m_type;
 	unsigned long m_size;
 
+	alloc_type m_alloc_type;
+
 	int m_age;
 
-	bool m_is_static;
 	struct value_s *m_heapptr;
+	bool m_in_use;
 
 	union {
 		char m_data[0];

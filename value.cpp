@@ -38,12 +38,27 @@ char g_string[4096];
 value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static)
 {
 //printf("vc: %s -> %lu\n", valuetype_print(p_type), p_size);
+	alloc_type ac;
+	if (p_is_static == true) {
+		ac = STATIC;
+	} else {
+		switch (p_type) {
+			case VT_NUMBER:
+			case VT_STRING:
+				ac = MALLOC_MARK_SWEEP;
+				break;
+			default:
+				ac = COPY_COMPACT;
+				break;
+		}
+	}
 
-	value_t *v = gc_alloc(p_vm, sizeof(value_t) + p_size, p_is_static);
+	value_t *v = gc_alloc(p_vm, sizeof(value_t) + p_size, ac);
 	v->m_type = p_type;
 	v->m_size = p_size;
-	v->m_is_static = p_is_static;
 	v->m_age = 0;
+	v->m_alloc_type = ac;
+	v->m_in_use = false;
 	memset(v->m_data, 0, p_size);
 
 //printf("value_create: %p %s\n", v, valuetype_print(p_type));
