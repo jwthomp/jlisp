@@ -184,6 +184,13 @@ void vm_pop_env(vm_t *p_vm)
 	p_vm->m_ev--;
 }
 
+void vm_print_stack(vm_t *p_vm)
+{
+	for (unsigned long i = 0; i < p_vm->m_sp; i++) {
+		printf("S %lu] ", i); value_print(p_vm, p_vm->m_stack[i]); printf("\n");
+	}
+}
+
 void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 {
 
@@ -271,6 +278,7 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 
 		if (g_debug_display == true) {
 			printf("ip: %d] sp: %ld] ep: %ld] %s %ld\n", p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, g_opcode_print[bc->m_opcode], bc->m_value);
+vm_print_stack(p_vm);
 		}
 
 		switch (bc->m_opcode) {
@@ -379,8 +387,8 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 			}
 			case OP_LOADF:
 			{
-	printf("loadf: "); value_print(p_vm, ((value_t **)p_pool->m_data)[p_arg]); printf("\n");
-	printf("ev: %lu\n", p_vm->m_ev);
+//	printf("loadf: "); value_print(p_vm, ((value_t **)p_pool->m_data)[p_arg]); printf("\n");
+//	printf("ev: %lu\n", p_vm->m_ev);
 
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
 

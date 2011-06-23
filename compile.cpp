@@ -22,7 +22,7 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 
 value_t * eval(vm_t *p_vm, value_t * p_form);
 
-bool is_macro(vm_t *p_vm, value_t *p_value)
+bool is_form_macro(vm_t *p_vm, value_t *p_value)
 {
 	value_t *v_car = p_value->m_cons[0];
 	
@@ -31,7 +31,7 @@ bool is_macro(vm_t *p_vm, value_t *p_value)
 	}
 
 	value_t *v_env = p_vm->m_current_env[p_vm->m_ev -1];
-	verify(v_env && is_environment(v_env), "is_macro: env is null or not an environment\n");
+	verify(v_env && is_environment(v_env), "is_form_macro: env is null or not an environment\n");
 	environment_t *env = (environment_t *)v_env->m_data;
 
 	value_t *v_fbindings = env->m_function_bindings;
@@ -39,20 +39,20 @@ bool is_macro(vm_t *p_vm, value_t *p_value)
 		return false;
 	}
 
-	verify(v_fbindings && is_binding(v_fbindings), "is_macro: fbindings are null or not a binding\n");
+	verify(v_fbindings && is_binding(v_fbindings), "is_form_macro: fbindings are null or not a binding\n");
 
 	value_t *v_bind = binding_find(v_fbindings, v_car);
 	if (v_bind == NULL) {
 		return false;
 	}
 
-	verify(is_binding(v_bind), "is_macro: found binding is not a binding\n");
+	verify(is_binding(v_bind), "is_form_macro: found binding is not a binding\n");
 
 	binding_t *bind = (binding_t *)v_bind->m_data;
 
 	if (bind && bind->m_value && is_closure(bind->m_value)) {
 		value_t *v_lambda = bind->m_value->m_cons[1];
-		verify(v_lambda && is_lambda(v_lambda), "is_macro: found binding value is not a lambda\n");
+		verify(v_lambda && is_lambda(v_lambda), "is_form_macro: found binding value is not a lambda\n");
 		lambda_t *l = (lambda_t *)v_lambda->m_data;
 		if (l->m_is_macro) {
 			return true;
@@ -70,13 +70,11 @@ bool is_macro(vm_t *p_vm, value_t *p_value)
 
 int macro_expand_1(vm_t *p_vm, value_t **p_value)
 {
-	if (is_cons(*p_value) && is_macro(p_vm, *p_value)) {
+	if (is_cons(*p_value) && is_form_macro(p_vm, *p_value)) {
+//printf("Found macro, compiling\n");
 		(*p_value)->m_cons[0]->m_type = VT_MACRO;
 		*p_value = eval(p_vm, *p_value);
 
-		// Have the value, but it is also on the stack and we need to remove it.
-		p_vm->m_sp--;
-		
 		return 1;
 	} else {
 		return 0;
@@ -181,7 +179,8 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 	value_t *func = p_form->m_cons[0];
 	value_t *args = p_form->m_cons[1];
 
-//printf("cf: args: "); value_print(args); printf("\n");
+//printf("cf: func: "); value_print(p_vm, func); printf("\n");
+//printf("cf: args: "); value_print(p_vm, args); printf("\n");
 
 	if (is_symbol(func) && is_symbol_name("QUOTE", func)) {
 		
@@ -318,10 +317,12 @@ assert(is_cons(args->m_cons[0]));
 	} else {
 		// Must do test on whether this is a macro prior to calling compile_form as that will
 		// switch a symbol from type VT_MACRO to type VT_SYMBOL
+		bool macro = is_macro(func);
+
 		compile_form(func, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, true);
 		value_t * final_args = args;
 		int argc = 1;
-		if (is_macro(func)) {
+		if (macro) {
 			assemble(OP_PUSH, (int *)final_args, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 		} else {
 			argc = compile_args(final_args, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
@@ -334,14 +335,14 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-//	printf("Compile form: "); value_print(p_vm, p_form); printf("\n");
+	//printf("Compile form: "); value_print(p_vm, p_form); printf("\n");
 
 	// If it's a cons, do a macroexpand in case this is a macro
 	if (is_cons(p_form)) {
 		macro_expand(p_vm, &p_form);
 	}
 
-//	printf("Compile post macro form: "); value_print(p_form); printf("\n");
+	//printf("Compile post macro form: "); value_print(p_vm, p_form); printf("\n");
 
 	// If this was a macro, we need to do checks again here since the form may have changed
 	if (is_cons(p_form)) {

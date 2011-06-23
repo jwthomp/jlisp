@@ -19,24 +19,95 @@ int tests_run = 0;
 ///////////////////////// VM ////////////////////////////////////
 static char const * test_vm_start()
 {
+	printf("///////////////////////// VM ////////////////////////////////////\n");
 	vm_t *vm = vm_create(1024);
 
 	mu_assert("vm is NULL", vm != NULL);
+	vm_destroy(vm);
 	return 0;
 }
 
 
 
-//////////////////////// GC /////////////////////////////////
-static char const *test_gc_basic()
+//////////////////////// LAMBDA /////////////////////////////////
+static char const *test_lambda_basic()
 {
+	printf("//////////////////////// LAMBDA /////////////////////////////////\n");
 	vm_t *vm = vm_create(1024);
 	lib_init(vm);
 	stream_t *strm = stream_create("(lambda () (+ 1 2))");
 	reader(vm, strm, false);
 	value_t *rd = vm->m_stack[vm->m_sp - 1];
 	eval(vm, rd);
-	printf("res: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
+	mu_assert("(lambda () (+ 1 2)) -> Did not have a vm->m_sp of 1\n", vm->m_sp == 1);
+	mu_assert("(lambda () (+ 1 2)) -> Did not return a closure\n", is_closure(vm->m_stack[vm->m_sp - 1]));
+	vm_destroy(vm);
+	return 0;
+}
+
+//////////////////////// FUNCALL /////////////////////////////////
+static char const *test_funcall_basic()
+{
+	printf("//////////////////////// FUNCALL /////////////////////////////////\n");
+	vm_t *vm = vm_create(1024);
+	lib_init(vm);
+	stream_t *strm = stream_create("(funcall (lambda () (+ 1 3)))");
+	reader(vm, strm, false);
+	value_t *rd = vm->m_stack[vm->m_sp - 1];
+	eval(vm, rd);
+	mu_assert("(funcall (lambda () (+ 1 3))) -> Did not have a vm->m_sp of 1\n", vm->m_sp == 1);
+	mu_assert("(funcall (lambda () (+ 1 3))) -> Did not return a fixnum\n", is_fixnum(vm->m_stack[vm->m_sp - 1]));
+	mu_assert("(funcall (lambda () (+ 1 3))) -> Did not return 4\n", to_fixnum(vm->m_stack[vm->m_sp - 1]) == 4);
+	vm->m_sp = 0;
+	
+	strm = stream_create("(funcall (lambda () (+ 1 3) (+ 1 1)))");
+	reader(vm, strm, false);
+	rd = vm->m_stack[vm->m_sp - 1];
+	eval(vm, rd);
+	mu_assert("(funcall (lambda () (+ 1 3) (+ 1 1))) -> Did not have a vm->m_sp of 1\n", vm->m_sp == 1);
+	mu_assert("(funcall (lambda () (+ 1 3) (+ 1 1))) -> Did not return a fixnum\n", is_fixnum(vm->m_stack[vm->m_sp - 1]));
+	mu_assert("(funcall (lambda () (+ 1 3) (+ 1 1))) -> Did not return 2\n", to_fixnum(vm->m_stack[vm->m_sp - 1]) == 2);
+	vm->m_sp = 0;
+	vm_destroy(vm);
+	return 0;
+}
+	
+//////////////////////// PROGN /////////////////////////////////
+static char const *test_progn_basic()
+{
+	printf("//////////////////////// PROGN /////////////////////////////////\n");
+	vm_t *vm = vm_create(1024);
+	lib_init(vm);
+	stream_t *strm = stream_create("(progn (+ 1 3))");
+	reader(vm, strm, false);
+	value_t *rd = vm->m_stack[vm->m_sp - 1];
+	eval(vm, rd);
+printf("sp: %lu\n", vm->m_sp);
+	mu_assert("(progn (+ 1 3)) -> Did not have a vm->m_sp of 1\n", vm->m_sp == 1);
+	mu_assert("(progn (+ 1 3)) -> Did not return a fixnum\n", is_fixnum(vm->m_stack[vm->m_sp - 1]));
+	mu_assert("(progn (+ 1 3)) -> Did not return 4\n", to_fixnum(vm->m_stack[vm->m_sp - 1]) == 4);
+	vm->m_sp = 0;
+	
+	strm = stream_create("(progn (+ 1 3) (+ 1 1))");
+	reader(vm, strm, false);
+	rd = vm->m_stack[vm->m_sp - 1];
+	eval(vm, rd);
+	mu_assert("(progn (+ 1 3) (+ 1 1)) -> Did not have a vm->m_sp of 1\n", vm->m_sp == 1);
+	mu_assert("(progn (+ 1 3) (+ 1 1)) -> Did not return a fixnum\n", is_fixnum(vm->m_stack[vm->m_sp - 1]));
+	mu_assert("(progn (+ 1 3) (+ 1 1)) -> Did not return 2\n", to_fixnum(vm->m_stack[vm->m_sp - 1]) == 2);
+	vm->m_sp = 0;
+	
+	strm = stream_create("(progn (progn (progn (+ 1 3)) (+ 1 2)))");
+	reader(vm, strm, false);
+	rd = vm->m_stack[vm->m_sp - 1];
+	eval(vm, rd);
+	mu_assert("(progn (progn (progn (+ 1 3)) (+ 1 2))) -> Did not have a vm->m_sp of 1\n", vm->m_sp == 1);
+	mu_assert("(progn (progn (progn (+ 1 3)) (+ 1 2))) -> Did not return a fixnum\n", is_fixnum(vm->m_stack[vm->m_sp - 1]));
+	mu_assert("(progn (progn (progn (+ 1 3)) (+ 1 2))) -> Did not return 3\n", to_fixnum(vm->m_stack[vm->m_sp - 1]) == 3);
+	vm->m_sp = 0;
+	
+
+	vm_destroy(vm);
 	return 0;
 }
 
@@ -46,7 +117,9 @@ static char const *test_gc_basic()
 static char const * all_tests()
 {
 	mu_run_test(test_vm_start);
-	mu_run_test(test_gc_basic);
+	mu_run_test(test_lambda_basic);
+	mu_run_test(test_funcall_basic);
+	mu_run_test(test_progn_basic);
 	return 0;
 }
 
