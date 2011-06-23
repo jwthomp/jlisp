@@ -16,16 +16,11 @@ TEST
 [ ] Add FFI support
 [ ] How to do shared dev?
 
-->> [ ] Move gc to one safe spot, then add in the ability to have multiple pools. Bring
-        them together during "safe merges"
 [ ] Tuples
 [ ] Matching
 
 
 
-
-[ ] Add in a binary heap where all binary objects (strings, etc) that don't need to be
-    moved but are mark/swept instead
 
 [ ] Add in support for multiple internal allocators based on type of allocation
 [ ] Add in a binary heap where all binary objects (strings, etc) that don't need to be
