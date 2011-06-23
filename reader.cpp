@@ -114,7 +114,7 @@ void process_next(vm_t *p_vm, stream_t *p_stream)
 		// args in the list, this will also let me handle the list of size
 		// 0, otherwise known as nil
 		if (args == 0) {
-			vm_push(p_vm, nil);
+			vm_push(p_vm, p_vm->nil);
 		} else {
 			vm_list(p_vm, args);
 		}

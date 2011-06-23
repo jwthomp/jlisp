@@ -10,7 +10,7 @@ typedef struct binding_s {
 } binding_t;
 
 
-value_t * binding_find(value_t * p_bindings, value_t *p_key);
+value_t * binding_find(vm_t *p_vm, value_t * p_bindings, value_t *p_key);
 
 
 #endif /* __BINDING_H_ */

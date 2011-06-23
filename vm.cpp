@@ -152,7 +152,7 @@ void vm_cons(vm_t *p_vm)
 
 void vm_list(vm_t *p_vm, int p_args)
 {
-	vm_push(p_vm, nil);
+	vm_push(p_vm, p_vm->nil);
 
 	for(int i = p_args; i > 0; i--) {
 		vm_cons(p_vm);
@@ -194,14 +194,14 @@ void vm_print_stack(vm_t *p_vm)
 void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 {
 
-	if (is_ifunc(*p_closure)) {
+	if (is_ifunc(p_vm, *p_closure)) {
 		vm_func_t func = *(vm_func_t *)(*p_closure)->m_data;
 
 		int func_arg_count = (*p_closure)->m_data[sizeof(vm_func_t)];
 		// Condense remaining args into a list
 		if (func_arg_count < 0) {
 			func_arg_count = -func_arg_count;
-			vm_push(p_vm, nil);
+			vm_push(p_vm, p_vm->nil);
 			for( ; p_nargs >= func_arg_count; p_nargs--) {
 				vm_cons(p_vm);
 			}
@@ -228,7 +228,7 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 //printf("obp: %d nbp: %lu sp: %lu nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p_nargs);
 
 
-    assert(*p_closure && is_closure(*p_closure) && (*p_closure)->m_cons[1]);
+    assert(*p_closure && is_closure(p_vm, *p_closure) && (*p_closure)->m_cons[1]);
     lambda_t *l = (lambda_t *)((*p_closure)->m_cons[1]->m_data);
 
 	value_t *env = value_create_environment(p_vm, (*p_closure)->m_cons[0]);
@@ -250,7 +250,7 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 	}
 
 	int bp_offset = 0;
-	while(p && p != nil && p->m_cons[0]) {
+	while(p && p != p_vm->nil && p->m_cons[0]) {
 		if (strcmp(p->m_cons[0]->m_data, "&rest")) {
 			value_t *stack_val = p_vm->m_stack[p_vm->m_bp + bp_offset];
 
@@ -372,7 +372,7 @@ vm_print_stack(p_vm);
 			{
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], false);
 
-				verify(b && is_binding(b), "The variable %s is unbound.\n", 
+				verify(b && is_binding(p_vm, b), "The variable %s is unbound.\n", 
 					(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
 
 //	printf("op_load: key: %d '", ((value_t **)p_pool->m_data)[p_arg]->m_type); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("'\n");
@@ -414,10 +414,10 @@ vm_print_stack(p_vm);
 
 
 				value_t *ret = 0;
-				if (is_ifunc(func_val)) {
+				if (is_ifunc(p_vm, func_val)) {
 					vm_exec(p_vm, &p_vm->m_stack[p_vm->m_bp], p_arg);
 					ret = p_vm->m_stack[p_vm->m_sp - 1];
-				} else if (is_closure(func_val)) {
+				} else if (is_closure(p_vm, func_val)) {
 					vm_exec(p_vm, &p_vm->m_stack[p_vm->m_bp], p_arg);
 					ret = p_vm->m_stack[p_vm->m_sp - 1];
 				}  else {
@@ -473,7 +473,7 @@ vm_print_stack(p_vm);
 
 //printf("ifniljmp: "); value_print(top); printf("\n");
 
-				if (top == nil) {
+				if (top == p_vm->nil) {
 					//printf("op_ifniljmp: %d\n", (int)p_arg);
 					p_vm->m_ip += (int)p_arg;
 				}  else { 
@@ -493,7 +493,7 @@ vm_print_stack(p_vm);
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
 				value_t *b = environment_binding_find(p_vm, sym, false);
 
-				verify(b && is_binding(b), "op_load: Binding lookup failed: %s\n", 
+				verify(b && is_binding(p_vm, b), "op_load: Binding lookup failed: %s\n", 
 					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 
 				// Change value

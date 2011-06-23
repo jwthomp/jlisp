@@ -73,9 +73,8 @@ printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); prin
 	stream_destroy(strm);
 
 
-	printf("B Free memory: %lu\n", p_vm->m_pool_g0->m_size - p_vm->m_pool_g0->m_pos);
 	unsigned long mem = gc(p_vm, 1);
-	printf("A Free memory: %lu\n", mem);
+	printf("Memory: Free: %lu Allocated: %lu\n", mem_free(p_vm), mem_allocated(p_vm, true));
 }
 
 
@@ -84,22 +83,33 @@ int main(int argc, char *arg[])
 	vm_t *vm = vm_create(1024);
 	lib_init(vm);
 
+	vm_t *vm1 = vm_create(1024);
+	lib_init(vm1);
+
 #if 0
 	unit_test();
 
 
 #elif 1
+	int flip = 0;
 	char input[256];
 	memset(input, 0, 256);
 
 	printf("\nawesome-lang 0.0.1, copyright (c) 2011 by jeffrey thompson\n");
-	printf("> ");
+	printf("%d> ", flip);
 	while(gets(input) != NULL && strcmp(input, "quit")) {
-		load_string(vm, input);
+		if (flip) {
+			load_string(vm, input);
+			flip = 0;
+		} else {
+			load_string(vm1, input);
+			flip = 1;
+		}
+
 
 		input[0] = 0;
 
-		printf("> ");
+		printf("%d> ", flip);
 	}
 
 #else

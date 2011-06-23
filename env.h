@@ -13,6 +13,6 @@ typedef struct environment_s {
 } environment_t;
 
 value_t *environment_binding_find(vm_t *p_vm, value_t * p_symbol, bool p_func);
-value_t *environment_binding_find(value_t * p_env, value_t * p_symbol, bool p_func);
+value_t *environment_binding_find(vm_t *p_vm, value_t * p_env, value_t * p_symbol, bool p_func);
 
 #endif /* __ENV_H_ */

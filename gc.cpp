@@ -222,7 +222,7 @@ static pool_t * do_gc(vm_t *p_vm, int p_age, unsigned long p_pool_size)
 
 g_count = 0;
 
-printf("GC FIRED: sp: %lu csp: %lu ev: %ld gc: %d\n", p_vm->m_sp, p_vm->m_csp, p_vm->m_ev, g_count);
+//printf("GC FIRED: sp: %lu csp: %lu ev: %ld gc: %d\n", p_vm->m_sp, p_vm->m_csp, p_vm->m_ev, g_count);
 
 //printf("IN ev: %p\n",  p_vm->m_current_env[p_vm->m_ev - 1]);
 	
@@ -298,7 +298,6 @@ void sweep(vm_t *p_vm, value_t **p_heap, value_t **p_tenured_heap)
 				p->m_data[0] = 0;
 			}
 
-printf("free!\n");
 			free(p);
 #else
 			value_t *test = p_vm->m_free_heap;
@@ -314,29 +313,45 @@ printf("free!\n");
 	}
 }
 
-
-unsigned long mem_allocated(vm_t *p_vm)
+unsigned long mem_free(vm_t *p_vm)
 {
 	unsigned long size = 0;
 
 	// Count up compacting memory
 	pool_t *p = p_vm->m_pool_g0;
 	while(p) {
-		size += p->m_size;
+		size += p->m_size - p->m_pos;
 		p = p->m_next;
 	}
 
-	// Count up mark/sweep memory
-	value_t *h = p_vm->m_heap_g0;
-	while(h) {
-		size += sizeof(value_t) + h->m_size;
-		h = h->m_heapptr;
+	return size;
+}
+
+
+unsigned long mem_allocated(vm_t *p_vm, bool p_count_mark_sweep)
+{
+	unsigned long size = 0;
+
+	// Count up compacting memory
+	pool_t *p = p_vm->m_pool_g0;
+	while(p) {
+		size += p->m_pos;
+		p = p->m_next;
 	}
 
-	h = p_vm->m_heap_g1;
-	while(h) {
-		size += sizeof(value_t) + h->m_size;
-		h = h->m_heapptr;
+	if (p_count_mark_sweep == true) {
+		// Count up mark/sweep memory
+		value_t *h = p_vm->m_heap_g0;
+		while(h) {
+			size += sizeof(value_t) + h->m_size;
+			h = h->m_heapptr;
+		}
+
+		h = p_vm->m_heap_g1;
+		while(h) {
+			size += sizeof(value_t) + h->m_size;
+			h = h->m_heapptr;
+		}
 	}
 
 	return size;
@@ -346,7 +361,7 @@ unsigned long gc(vm_t *p_vm, int p_age)
 {
 
 
-	pool_t *pool_new = do_gc(p_vm, p_age, mem_allocated(p_vm));
+	pool_t *pool_new = do_gc(p_vm, p_age, mem_allocated(p_vm, false));
 
 	if (p_age == 0) {
 		sweep(p_vm, &p_vm->m_heap_g0, NULL);
@@ -355,7 +370,7 @@ unsigned long gc(vm_t *p_vm, int p_age)
 	}
 
 
-	return pool_new->m_size - pool_new->m_pos;
+	return mem_allocated(p_vm, true);
 
 //printf("OUT ev: %p\n",  p_vm->m_current_env[p_vm->m_ev - 1]);
 }

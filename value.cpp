@@ -28,11 +28,6 @@ char const *g_valuetype_print[] = {
 
 
 
-value_t *t;
-value_t *nil;
-value_t *voidobj;
-
-char g_string[4096];
 
 
 value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static)
@@ -96,7 +91,7 @@ value_t * value_create_symbol(vm_t *p_vm, char const * const p_symbol)
 	value_t *string = value_create_static_string(p_vm, p_symbol);
 	value_t *sym =  value_create(p_vm, VT_SYMBOL, sizeof(value_t *) * 2, true);
 	sym->m_cons[0] = string;
-	sym->m_cons[1] = voidobj;
+	sym->m_cons[1] = p_vm->voidobj;
 
 	return sym;
 }
@@ -134,9 +129,9 @@ value_t * value_create_pool(vm_t *p_vm, value_t *p_literals[], int p_literal_cou
 
 value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_bytecode, value_t *p_pool)
 {
-	assert((p_parameters == nil) || is_cons(p_parameters));
-	assert(p_bytecode && is_bytecode(p_bytecode));
-	assert((p_pool != NULL) && is_pool(p_pool));
+	assert((p_parameters == p_vm->nil) || is_cons(p_vm, p_parameters));
+	assert(p_bytecode && is_bytecode(p_vm, p_bytecode));
+	assert((p_pool != NULL) && is_pool(p_vm, p_pool));
 
 	value_t *ret = value_create(p_vm, VT_LAMBDA, sizeof(lambda_t), false);
 	lambda_t *l = (lambda_t *)ret->m_data;
@@ -147,20 +142,20 @@ value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_byte
 	return ret;
 }
 
-int count_lambda_args(value_t *p_lambda)
+int count_lambda_args(vm_t *p_vm, value_t *p_lambda)
 {
-	assert(p_lambda && is_lambda(p_lambda));
+	assert(p_lambda && is_lambda(p_vm, p_lambda));
 
 	lambda_t *l = (lambda_t *)p_lambda->m_data;
 	value_t *p = l->m_parameters;
 	int nargs = 0;
 	bool has_rest = false;
-	while (p != nil && p->m_cons[0] != nil) {
+	while (p != p_vm->nil && p->m_cons[0] != p_vm->nil) {
 		nargs++;
 
 // value_print(p->m_cons[0]); printf("\n");
 
-		if (is_symbol(p->m_cons[0]) && is_symbol_name("&rest", p)) {
+		if (is_symbol(p_vm, p->m_cons[0]) && is_symbol_name("&rest", p)) {
 // printf("HAS REST\n"); 
 			has_rest = true;
 			nargs--;
@@ -184,7 +179,7 @@ value_t * value_create_closure(vm_t *p_vm, value_t *p_env, value_t *p_lambda)
 	value_t *ret = value_create(p_vm, VT_CLOSURE, sizeof(value_t *) * 3, false);
 	ret->m_cons[0] = p_env;
 	ret->m_cons[1] = p_lambda;
-	ret->m_cons[2] = (value_t *)count_lambda_args(p_lambda);
+	ret->m_cons[2] = (value_t *)count_lambda_args(p_vm, p_lambda);
 	return ret;
 }
 
@@ -210,7 +205,7 @@ value_t * value_create_environment(vm_t *p_vm, value_t *p_env)
 	env->m_function_bindings = NULL;
 	env->m_parent = p_env;
 
-	assert((p_env == NULL) || is_environment(p_env));
+	assert((p_env == NULL) || is_environment(p_vm, p_env));
 
 	return ret;
 }
@@ -375,31 +370,31 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 	return ret;
 }
 
-bool is_null(value_t *p_val)
+bool is_null(vm_t *p_vm, value_t *p_val)
 {
-	return p_val ==  nil ? true : false;
+	return p_val ==  p_vm->nil ? true : false;
 }
 
 
-bool is_symbol(value_t *p_val)
+bool is_symbol(vm_t *p_vm, value_t *p_val)
 {
-	if(is_fixnum(p_val) || is_null(p_val)) {
+	if(is_fixnum(p_val) || is_null(p_vm, p_val)) {
 		return false;
 	}
 
 	return p_val->m_type == VT_SYMBOL;
 }
 
-bool is_number(value_t *p_val)
+bool is_number(vm_t *p_vm, value_t *p_val)
 {
-	if(is_null(p_val)) {
+	if(is_null(p_vm, p_val)) {
 		return false;
 	}
 
 	return is_fixnum(p_val);
 }
 
-bool is_closure(value_t *p_val) {
+bool is_closure(vm_t *p_vm, value_t *p_val) {
 	if (is_fixnum(p_val)) {
 		return false;
 	}
@@ -407,7 +402,7 @@ bool is_closure(value_t *p_val) {
 	return (p_val->m_type == VT_CLOSURE);
 }
 	
-bool is_binding(value_t *p_val) {
+bool is_binding(vm_t *p_vm, value_t *p_val) {
 	if (is_fixnum(p_val)) {
 		return false;
 	}
@@ -415,7 +410,7 @@ bool is_binding(value_t *p_val) {
 	return (p_val->m_type == VT_BINDING);
 }
 	
-bool is_environment(value_t *p_val) {
+bool is_environment(vm_t *p_vm, value_t *p_val) {
 	if (is_fixnum(p_val)) {
 		return false;
 	}
@@ -423,7 +418,7 @@ bool is_environment(value_t *p_val) {
 	return (p_val->m_type == VT_ENVIRONMENT);
 }
 	
-bool is_string(value_t *p_val) {
+bool is_string(vm_t *p_vm, value_t *p_val) {
 	if (is_fixnum(p_val)) {
 		return false;
 	}
@@ -431,7 +426,7 @@ bool is_string(value_t *p_val) {
 	return (p_val->m_type == VT_STRING);
 }
 	
-bool is_ifunc(value_t *p_val) {
+bool is_ifunc(vm_t *p_vm, value_t *p_val) {
 	if (is_fixnum(p_val)) {
 		return false;
 	}
@@ -440,43 +435,43 @@ bool is_ifunc(value_t *p_val) {
 }
 	
 
-bool is_cons(value_t *p_val)
+bool is_cons(vm_t *p_vm, value_t *p_val)
 {
-	if(is_fixnum(p_val) || is_null(p_val)) {
+	if(is_fixnum(p_val) || is_null(p_vm, p_val)) {
 		return false;
 	}
 
 	return (p_val->m_type == VT_CONS);
 }
 
-bool is_bytecode(value_t *p_val)
+bool is_bytecode(vm_t *p_vm, value_t *p_val)
 {
-	if(is_fixnum(p_val) || is_null(p_val)) {
+	if(is_fixnum(p_val) || is_null(p_vm, p_val)) {
 		return false;
 	}
 
 	return p_val->m_type == VT_BYTECODE;
 }
 
-bool is_pool(value_t *p_val)
+bool is_pool(vm_t *p_vm, value_t *p_val)
 {
-	if(is_fixnum(p_val) || is_null(p_val)) {
+	if(is_fixnum(p_val) || is_null(p_vm, p_val)) {
 		return false;
 	}
 
 	return p_val->m_type == VT_POOL;
 }
 
-bool is_lambda(value_t *p_val)
+bool is_lambda(vm_t *p_vm, value_t *p_val)
 {
-	if(is_fixnum(p_val) || is_null(p_val)) {
+	if(is_fixnum(p_val) || is_null(p_vm, p_val)) {
 		return false;
 	}
 
 	return p_val->m_type == VT_LAMBDA;
 }
 
-bool is_macro(value_t *p_val)
+bool is_macro(vm_t *p_vm, value_t *p_val)
 {
 	if(is_fixnum(p_val)) {
 		return false;
@@ -487,36 +482,36 @@ bool is_macro(value_t *p_val)
 
 value_t * list(vm_t *p_vm, value_t *p_value)
 {
-	return value_create_cons(p_vm, p_value, nil);
+	return value_create_cons(p_vm, p_value, p_vm->nil);
 }
 
-value_t *car(value_t *p_value)
+value_t *car(vm_t *p_vm, value_t *p_value)
 {
-	if (p_value == nil) {
-		return nil;
+	if (p_value == p_vm->nil) {
+		return p_vm->nil;
 	}
-	assert(p_value && is_cons(p_value));
+	assert(p_value && is_cons(p_vm, p_value));
 	return p_value->m_cons[0];
 }
 
-value_t *cdr(value_t *p_value)
+value_t *cdr(vm_t *p_vm, value_t *p_value)
 {
-	if (p_value == nil) {
-		return nil;
+	if (p_value == p_vm->nil) {
+		return p_vm->nil;
 	}
 
-	assert(p_value && is_cons(p_value));
+	assert(p_value && is_cons(p_vm, p_value));
 	return p_value->m_cons[1];
 }
 
-value_t *cadr(value_t *p_value)
+value_t *cadr(vm_t *p_vm, value_t *p_value)
 {
-	if (p_value == nil) {
-		return nil;
+	if (p_value == p_vm->nil) {
+		return p_vm->nil;
 	}
 
-	assert(p_value && is_cons(p_value));
-	assert(p_value->m_cons[1] && is_cons(p_value->m_cons[1]));
+	assert(p_value && is_cons(p_vm, p_value));
+	assert(p_value->m_cons[1] && is_cons(p_vm, p_value->m_cons[1]));
 	return p_value->m_cons[1]->m_cons[0];
 }
 

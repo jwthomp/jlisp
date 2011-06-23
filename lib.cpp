@@ -63,7 +63,7 @@ static internal_func_def_t g_ifuncs[] = {
 value_t *gc_lib(vm_t *p_vm)
 {
 	gc(p_vm, 1);
-	return nil;
+	return p_vm->nil;
 }
 
 value_t *eval_lib(vm_t *p_vm)
@@ -77,7 +77,7 @@ value_t *eval_lib(vm_t *p_vm)
 
 	// Set up a trap
     int i = setjmp(*push_handler_stack());
-	value_t *ret = nil;
+	value_t *ret = p_vm->nil;
     if (i == 0) {
 		ret = eval(p_vm, p_vm->m_stack[p_vm->m_sp - 1]);
 	} else {
@@ -113,24 +113,24 @@ value_t *let(vm_t *p_vm)
 	// Transform from (let ((var val) (var val)) body) to
 	// ((lambda (var var) body) val val)
 
-	value_t *largs = car(car(p_vm->m_stack[p_vm->m_bp + 1]));
-	value_t *body = cdr(car(p_vm->m_stack[p_vm->m_bp + 1]));
+	value_t *largs = car(p_vm, car(p_vm, p_vm->m_stack[p_vm->m_bp + 1]));
+	value_t *body = cdr(p_vm, car(p_vm, p_vm->m_stack[p_vm->m_bp + 1]));
 
 printf("let: args "); value_print(p_vm, largs); printf("\n");
 printf("let: body "); value_print(p_vm, largs); printf("\n");
 
 	// Break ((var val) (var val)) down into a list of args and vals
-	value_t *arg_list = nil;
-	value_t *val_list = nil;
+	value_t *arg_list = p_vm->nil;
+	value_t *val_list = p_vm->nil;
 
-	while(car(largs) != nil) {
-		value_t *arg = car(car(largs));
-		value_t *val = car(cdr(car(largs)));
+	while(car(p_vm, largs) != p_vm->nil) {
+		value_t *arg = car(p_vm, car(p_vm, largs));
+		value_t *val = car(p_vm, cdr(p_vm, car(p_vm, largs)));
 
 		arg_list = value_create_cons(p_vm, arg, arg_list);
 		val_list = value_create_cons(p_vm, val, val_list);
 
-		largs = cdr(largs);
+		largs = cdr(p_vm, largs);
 	}
 		
 	vm_push(p_vm, value_create_symbol(p_vm, "LAMBDA"));
@@ -151,8 +151,8 @@ value_t *progn(vm_t *p_vm)
 //printf("prognC: "); value_print(car(p_vm->m_stack[p_vm->m_bp + 1])); printf("\n");
 	vm_push(p_vm, value_create_symbol(p_vm, "FUNCALL"));
 	vm_push(p_vm, value_create_symbol(p_vm, "LAMBDA"));
-	vm_push(p_vm, nil);
-	vm_push(p_vm, car(p_vm->m_stack[p_vm->m_bp + 1]));
+	vm_push(p_vm, p_vm->nil);
+	vm_push(p_vm, car(p_vm, p_vm->m_stack[p_vm->m_bp + 1]));
 	vm_cons(p_vm);
 	vm_cons(p_vm);
 	vm_list(p_vm, 1);
@@ -167,12 +167,12 @@ value_t *debug(vm_t *p_vm)
 
 	value_print(p_vm, p_vm->m_stack[p_vm->m_bp + 1]);
 
-	if (args != nil) {
+	if (args != p_vm->nil) {
 		g_debug_display = true;
-		return t;
+		return p_vm->t;
 	} else {
 		g_debug_display = false;
-		return nil;
+		return p_vm->nil;
 	}
 }
 
@@ -182,8 +182,8 @@ value_t *debug(vm_t *p_vm)
 value_t *atom(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
-	if (first && is_cons(first)) {
-		return nil;
+	if (first && is_cons(p_vm, first)) {
+		return p_vm->nil;
 	}
 
 	return value_create_symbol(p_vm, "T");
@@ -247,18 +247,18 @@ printf("\n-------g1 Heap--------\n");
 	printf("Live Objects: %d\n", count);
 	printf("Memory used: %lu\n", mem);
 	
-	return nil;
+	return p_vm->nil;
 }
 
 
 value_t *load(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
-	assert(is_string(first));
+	assert(is_string(p_vm, first));
 
 	struct stat st;
 	if (stat(first->m_data, &st) != 0) {
-		return nil;
+		return p_vm->nil;
 	}
 
 	FILE *fp = fopen(first->m_data, "r");
@@ -274,7 +274,7 @@ value_t *load(vm_t *p_vm)
 	free(input);
 	fclose(fp);
 
-	return nil;
+	return p_vm->nil;
 }
 
 
@@ -305,14 +305,14 @@ value_t *cons(vm_t *p_vm)
 value_t *car(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
-	assert(is_cons(first));
+	assert(is_cons(p_vm, first));
 	return first->m_cons[0];
 }
 
 value_t *cdr(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
-	assert(is_cons(first));
+	assert(is_cons(p_vm, first));
 	return first->m_cons[1];
 }
 
@@ -325,16 +325,16 @@ value_t *eq(vm_t *p_vm)
 	bool second_num = is_fixnum(second);
 
 	if (first_num != second_num) {
-		return nil;
+		return p_vm->nil;
 	}
 
 	if (first_num == true && second_num == true) {
-		return to_fixnum(first) == to_fixnum(second) ? t : nil;
+		return to_fixnum(first) == to_fixnum(second) ? p_vm->t : p_vm->nil;
 	}
 
 
 	if (first->m_type != second->m_type) {
-		return nil;
+		return p_vm->nil;
 	}
 
 	verify(first->m_type == second->m_type, "eq: Types are not the same %d != %d\n",
@@ -345,9 +345,9 @@ value_t *eq(vm_t *p_vm)
 		case VT_SYMBOL:
 		case VT_STRING:
 			if (value_equal(first, second) == true) {
-				return t;
+				return p_vm->t;
 			} else {
-				return nil;
+				return p_vm->nil;
 			}
 
 		default:
@@ -355,7 +355,7 @@ value_t *eq(vm_t *p_vm)
 			break;
 	}
 
-	return nil;
+	return p_vm->nil;
 }
 
 value_t *plus(vm_t *p_vm)
@@ -384,15 +384,15 @@ void lib_init(vm_t *p_vm)
 	int i;
 
 	// Must create this before symbols
-	voidobj = value_create(p_vm, VT_VOID, 0, true);
+	p_vm->voidobj = value_create(p_vm, VT_VOID, 0, true);
 
 	for (i = 0; i < NUM_IFUNCS; i++) {
 		vm_bindf(p_vm, g_ifuncs[i].m_name, g_ifuncs[i].m_func, g_ifuncs[i].m_arg_count, g_ifuncs[i].m_is_macro);
 	}
 
-	nil = value_create_symbol(p_vm, "NIL");
-	vm_bind(p_vm, "NIL", nil);
-	t = value_create_symbol(p_vm, "T");
-	vm_bind(p_vm, "T", t);
+	p_vm->nil = value_create_symbol(p_vm, "NIL");
+	vm_bind(p_vm, "NIL", p_vm->nil);
+	p_vm->t = value_create_symbol(p_vm, "T");
+	vm_bind(p_vm, "T", p_vm->t);
 
 }

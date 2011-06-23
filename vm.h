@@ -51,6 +51,10 @@ typedef struct vm_s {
 	value_t *m_heap_g1;
 	value_t *m_free_heap;
 
+	value_t *t;
+	value_t *nil;
+	value_t *voidobj;
+
 	unsigned long m_sp;
 	unsigned long m_bp;
 	unsigned long m_ev;

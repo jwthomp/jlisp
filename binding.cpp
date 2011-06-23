@@ -8,27 +8,27 @@
 #include <string.h>
 
 
-value_t * binding_find(value_t * p_bindings, value_t *p_key)
+value_t * binding_find(vm_t *p_vm, value_t * p_bindings, value_t *p_key)
 {
 	if (p_bindings == NULL) {
 		return NULL;
 	}
 
-	if (is_binding(p_bindings) == false) {
+	if (is_binding(p_vm, p_bindings) == false) {
 		return NULL;
 	}
 
-	if (is_symbol(p_key) == false) {
+	if (is_symbol(p_vm, p_key) == false) {
 		return NULL;
 	}
 
 	binding_t *bind = (binding_t *)p_bindings->m_data;
 
-	if (is_symbol(bind->m_key)) {
+	if (is_symbol(p_vm, bind->m_key)) {
 		if (value_equal(bind->m_key, p_key)) {
 			return p_bindings;
 		}
 	}
 
-	return binding_find(bind->m_next, p_key);
+	return binding_find(p_vm, bind->m_next, p_key);
 }
