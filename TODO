@@ -1,9 +1,10 @@
+TEST
+
 [ ] atom
 [ ] Tuple support
 [ ] Bit format support
 [ ] Function pattern matching
 [ ] receive pattern matching
-[ ] Process spawning
 [ ] Implement let* (sequential)
 [ ] Fix so that value_t's can be compared against eachother
 [ ] Add support for floats
@@ -17,9 +18,6 @@
 
 ->> [ ] Move gc to one safe spot, then add in the ability to have multiple pools. Bring
         them together during "safe merges"
-[ ] Write unit tests for stable functionality
-[ ] Multiple vm's
-[ ] send/receive between vm's
 [ ] Tuples
 [ ] Matching
 
@@ -29,10 +27,21 @@
 [ ] Add in a binary heap where all binary objects (strings, etc) that don't need to be
     moved but are mark/swept instead
 
+[ ] Add in support for multiple internal allocators based on type of allocation
+[ ] Add in a binary heap where all binary objects (strings, etc) that don't need to be
+    moved but are mark/swept instead
+[ ] Write unit tests for stable functionality
+
+[ ] Process spawning
+[ ] Send/Receive for processes
+
+[ ] Implement dynamic and lexical scoped symbols as totally different namespaces
+
+
+
 [ ] Support `,
 [ ] Support ,@
 [ ] Improve verify messages
-[ ] Implement dynamic and lexical scoped symbols as totally different namespaces
 [ ] Support for examining stack
 [ ] Support for examining closure
 [ ] Make a master VM which handles things like temporary strings, and static binds
@@ -51,6 +60,7 @@ read ->
 [/] fix &rest so 'a sets args to ('a)
 
 
+[X] Add in support for multiple pools between garbage collections
 [X] Get unit test suite in here
 [X] Need to have main just launch this code for the vm
 [x] Implement eval
