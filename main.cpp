@@ -73,8 +73,9 @@ printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); prin
 	stream_destroy(strm);
 
 
-//	unsigned long mem = gc(p_vm, 1);
-//	printf("Free memory: %lu\n", mem);
+	printf("B Free memory: %lu\n", p_vm->m_pool_g0->m_size - p_vm->m_pool_g0->m_pos);
+	unsigned long mem = gc(p_vm, 1);
+	printf("A Free memory: %lu\n", mem);
 }
 
 

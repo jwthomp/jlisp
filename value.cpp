@@ -37,6 +37,8 @@ char g_string[4096];
 
 value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static)
 {
+//printf("vc: %s -> %lu\n", valuetype_print(p_type), p_size);
+
 	value_t *v = gc_alloc(p_vm, sizeof(value_t) + p_size, p_is_static);
 	v->m_type = p_type;
 	v->m_size = p_size;
