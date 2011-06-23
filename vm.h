@@ -70,7 +70,7 @@ void vm_bindf(vm_t *p_vm, char const *p_symbol, value_t *p_func);
 void vm_cons(vm_t *p_vm);
 void vm_list(vm_t *p_vm, int p_list_size);
 void vm_push(vm_t *p_vm, value_t *p_value);
-value_t ** vm_c_push(vm_t *p_vm, value_t *p_value);
+//value_t ** vm_c_push(vm_t *p_vm, value_t *p_value);
 void vm_push_env(vm_t *p_vm, value_t *p_env);
 void vm_pop_env(vm_t *p_vm);
 

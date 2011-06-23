@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define POOL_SIZE 64
+#define POOL_SIZE 512
 
 pool_t *pool_alloc(unsigned long p_size)
 {
@@ -16,6 +16,7 @@ pool_t *pool_alloc(unsigned long p_size)
 	ret->m_bytes = (char *)malloc(p_size);
 	ret->m_size = p_size;
 	ret->m_pos = 0;
+	ret->m_next = NULL;
 
 	return ret;
 }

@@ -5,6 +5,7 @@ typedef struct pool_s{
 	char *m_bytes;
 	unsigned long m_size;
 	unsigned long m_pos;
+	struct pool_s *m_next;
 } pool_t;
 
 // p_size of 0 allocates default amount

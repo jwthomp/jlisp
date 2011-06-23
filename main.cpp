@@ -23,7 +23,6 @@ void load_string(vm_t *p_vm, char const *p_code)
 {
 	int vm_bp = p_vm->m_bp;
 	int vm_sp = p_vm->m_sp;
-	int vm_csp = p_vm->m_csp;
 	int vm_ev = p_vm->m_ev;
 	int vm_ip = p_vm->m_ip;
 	value_t *vm_current_env = p_vm->m_current_env[p_vm->m_ev - 1];
@@ -39,41 +38,33 @@ void load_string(vm_t *p_vm, char const *p_code)
 		int count_down = args;
 		while(count_down > 0) {
 //printf("SAVE CSP: %lu\n", p_vm->m_csp);
-			int old_csp = p_vm->m_csp;
 
 			// get value off stack
 			value_t *rd = p_vm->m_stack[p_vm->m_sp - count_down];
 //printf("read form: "); value_print(p_vm, rd); printf("\n");
 
-			vm_c_push(p_vm, rd);
-
 			// Evaluate it
 			value_t *res = eval(p_vm, rd);
-
-			vm_c_push(p_vm, res);
 
 			// Print a result
 printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
 			p_vm->m_sp--;
 
 //printf("RESTORE CSP: %lu sp: %ld ev: %lu\n", p_vm->m_csp, p_vm->m_sp, p_vm->m_ev);
-			p_vm->m_csp = old_csp;
 
 			count_down--;
 		}
 	} else {
 		p_vm->m_bp = vm_bp;
 		p_vm->m_sp = vm_sp;
-		p_vm->m_csp = vm_csp;
 		p_vm->m_ev = vm_ev;
 		p_vm->m_ip = vm_ip;
 		p_vm->m_current_env[p_vm->m_ev - 1] = vm_current_env;
 
 		printf("\t%s\n", g_err);
-//printf("BAD BAD BAD-----------------------------------------------");
 	}
 
-	//verify(p_vm->m_sp == vm_sp &&  p_vm->m_bp == vm_bp, "internal error");
+	verify(p_vm->m_sp == vm_sp &&  p_vm->m_bp == vm_bp, "internal error");
 
 //	printf("env: %p\n", p_vm->m_current_env[p_vm->m_ev - 1]);
 
@@ -82,7 +73,9 @@ printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); prin
 	stream_destroy(strm);
 
 
-	gc(p_vm, 1);
+	printf("B Free memory: %lu\n", p_vm->m_pool_g0->m_size - p_vm->m_pool_g0->m_pos);
+	unsigned long mem = gc(p_vm, 1);
+	printf("A Free memory: %lu\n", mem);
 }
 
 
@@ -93,27 +86,6 @@ int main(int argc, char *arg[])
 
 #if 0
 	unit_test();
-#elif 0
-	// Test gc
-printf("-------------------- 1\n");
-	gc(vm, 0);
-printf("-------------------- 2\n");
-	gc(vm, 0);
-printf("-------------------- 3\n");
-	int old_csp = vm->m_csp;
-	value_t **val = vm_c_push(vm, value_create_string(vm, (char const *)"hello world"));
-printf("BLAH: %p\n", *val);
-	gc(vm, 0);
-printf("-------------------- 4\n");
-	vm->m_csp = old_csp;
-printf("BLAH: %p\n", *val);
-	vm_push(vm, *val);
-	gc(vm, 0);
-printf("-------------------- 5\n");
-	gc(vm, 0);
-printf("-------------------- 6\n");
-	gc(vm, 0);
-printf("-------------------- 7\n");
 
 
 #elif 1

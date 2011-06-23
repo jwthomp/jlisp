@@ -64,11 +64,8 @@ vm_t *vm_create(unsigned long p_stack_size)
 
 	// CANNOT create any value_t's until the above is initialized
 
-	value_t **k_env = vm_c_push(vm, value_create_environment(vm, NULL));
-	value_t **u_env = vm_c_push(vm, value_create_environment(vm, *k_env));
-
-	vm->m_kernel_env = *k_env;
-	vm->m_user_env = *u_env;
+	vm->m_kernel_env = value_create_environment(vm, NULL);
+	vm->m_user_env = value_create_environment(vm, vm->m_kernel_env);
 	vm->m_current_env = (value_t **)malloc(sizeof(value_t *) * p_stack_size);
 	vm->m_current_env[0] = vm->m_user_env;
 	vm->m_ev = 1;
@@ -105,7 +102,7 @@ void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func,
 
 	environment_t *env = NULL;
 	if (p_top) {
-		env = (environment_t *)p_vm->m_user_env->m_data;
+		env = (environment_t *)p_vm->m_current_env[0]->m_data;
 	} else {
 		env = (environment_t *)(p_vm->m_current_env[p_vm->m_ev - 1])->m_data;
 	}
@@ -163,12 +160,14 @@ void vm_list(vm_t *p_vm, int p_args)
 
 }
 
+/*
 value_t **vm_c_push(vm_t *p_vm, value_t *p_value)
 {
 	assert(p_vm->m_csp < C_STACK_SIZE);
 	p_vm->m_c_stack[p_vm->m_csp++] = p_value;
 	return &p_vm->m_c_stack[p_vm->m_csp - 1];
 }
+*/
 
 void vm_push(vm_t *p_vm, value_t *p_value)
 {
@@ -183,6 +182,13 @@ void vm_push_env(vm_t *p_vm, value_t *p_env)
 void vm_pop_env(vm_t *p_vm)
 {
 	p_vm->m_ev--;
+}
+
+void vm_print_stack(vm_t *p_vm)
+{
+	for (unsigned long i = 0; i < p_vm->m_sp; i++) {
+		printf("S %lu] ", i); value_print(p_vm, p_vm->m_stack[i]); printf("\n");
+	}
 }
 
 void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
@@ -272,6 +278,7 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 
 		if (g_debug_display == true) {
 			printf("ip: %d] sp: %ld] ep: %ld] %s %ld\n", p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, g_opcode_print[bc->m_opcode], bc->m_value);
+vm_print_stack(p_vm);
 		}
 
 		switch (bc->m_opcode) {
@@ -380,12 +387,11 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 			}
 			case OP_LOADF:
 			{
-	//printf("loadf: "); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("\n");
-	//printf("ev: %lu\n", p_vm->m_ev);
+//	printf("loadf: "); value_print(p_vm, ((value_t **)p_pool->m_data)[p_arg]); printf("\n");
+//	printf("ev: %lu\n", p_vm->m_ev);
 
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
 
-//printf("sym: %s\n", (char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 				verify(b != NULL, "The variable %s is unbound.\n", 
 					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 
@@ -480,8 +486,6 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 			{
 				p_vm->m_ip = -1;
 
-				// Do a quick gc
-				gc(p_vm, 0);
 				break;
 			}
 			case OP_UPDATE:

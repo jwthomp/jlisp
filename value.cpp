@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define STRING_SIZE 128
+
 char const *g_valuetype_print[] = {
 	"VT_NUMBER",
 	"VT_POOL",
@@ -35,6 +37,8 @@ char g_string[4096];
 
 value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static)
 {
+//printf("vc: %s -> %lu\n", valuetype_print(p_type), p_size);
+
 	value_t *v = gc_alloc(p_vm, sizeof(value_t) + p_size, p_is_static);
 	v->m_type = p_type;
 	v->m_size = p_size;
@@ -93,15 +97,9 @@ value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func, int p_nargs, 
 
 value_t * value_create_cons(vm_t *p_vm, value_t *p_car, value_t *p_cdr)
 {
-	unsigned long old_csp = p_vm->m_csp;
-	value_t **p_car_save = vm_c_push(p_vm, p_car);
-	value_t **p_cdr_save = vm_c_push(p_vm, p_cdr);
-
 	value_t *ret =  value_create(p_vm, VT_CONS, sizeof(value_t *) * 2, false);
-	ret->m_cons[0] = *p_car_save;
-	ret->m_cons[1] = *p_cdr_save;
-
-	p_vm->m_csp = old_csp;
+	ret->m_cons[0] = p_car;
+	ret->m_cons[1] = p_cdr;
 	return ret;
 }
 
@@ -190,17 +188,14 @@ value_t * value_create_binding(vm_t *p_vm, value_t *p_key, value_t *p_value)
 value_t * value_create_environment(vm_t *p_vm, value_t *p_env)
 {
 	unsigned long old_csp = p_vm->m_csp;
-	value_t **p_env_save = vm_c_push(p_vm, p_env);
 
 	value_t *ret = value_create(p_vm, VT_ENVIRONMENT, sizeof(environment_t), false);
 	environment_t *env = (environment_t *)ret->m_data;
 	env->m_bindings = NULL;
 	env->m_function_bindings = NULL;
-	env->m_parent = *p_env_save;
+	env->m_parent = p_env;
 
-	assert((p_env == NULL) || is_environment(*p_env_save));
-
-	p_vm->m_csp = old_csp;
+	assert((p_env == NULL) || is_environment(p_env));
 
 	return ret;
 }
@@ -258,36 +253,32 @@ void value_print(vm_t *p_vm, value_t *p_value) {
 
 value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 {
-	unsigned long old_csp = p_vm->m_csp;
-	value_t **p_value_save = vm_c_push(p_vm, p_value);
 
-	value_t **ret = vm_c_push(p_vm, value_create(p_vm, VT_STRING, 1024, false));
+	value_t *ret = value_create(p_vm, VT_STRING, STRING_SIZE, false);
 
 	
 
 	assert(p_value != NULL);
 	if(p_value == NULL) {
-		snprintf((*ret)->m_data, 1024, "()");
-		p_vm->m_csp = old_csp;
-		return *ret;
+		snprintf(ret->m_data, STRING_SIZE, "()");
+		return ret;
 	}
 
 	if (is_fixnum(p_value)) {
-		snprintf((*ret)->m_data, 1024, "%ld", to_fixnum(p_value));
-		p_vm->m_csp = old_csp;
-		return *ret;
+		snprintf(ret->m_data, STRING_SIZE, "%ld", to_fixnum(p_value));
+		return ret;
 	}
 
 	switch(p_value->m_type) {
 		case VT_CLOSURE:
-			snprintf((*ret)->m_data, 1024, "closure");
+			snprintf(ret->m_data, STRING_SIZE, "closure");
 			break;
 		case VT_ENVIRONMENT:
-			snprintf((*ret)->m_data, 1024, "environment");
+			snprintf(ret->m_data, STRING_SIZE, "environment");
 			break;
 		case VT_BYTECODE:
 		{
-			snprintf((*ret)->m_data, 1024, "bytecode");
+			snprintf(ret->m_data, STRING_SIZE, "bytecode");
 			//printf("bytecode: \n");
 			//bytecode_t *bc = (bytecode_t *)p_value->m_data;
 			//for (unsigned long i = 0; i < (p_value->m_size / sizeof(bytecode_t)); i++) {
@@ -297,7 +288,7 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		}
 		case VT_LAMBDA:
 		{
-			snprintf((*ret)->m_data, 1024, "lambda <0x%p>", *p_value_save);
+			snprintf(ret->m_data, STRING_SIZE, "lambda <0x%p>", p_value);
 #if 0
 			lambda_t *l = (lambda_t *)p_value->m_data;
 			printf("lambda: args: ");
@@ -315,7 +306,7 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		}
 		case VT_POOL:
 		{
-			snprintf((*ret)->m_data, 1024, "pool <0x%p>", *p_value_save);
+			snprintf(ret->m_data, STRING_SIZE, "pool <0x%p>", p_value);
 #if 0
 			int pool_size = p_value->m_size / sizeof(value_t *);
 			printf("pool: ");
@@ -327,38 +318,38 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		}
 		case VT_NUMBER:
 		{
-			int number = *((int *)(*p_value_save)->m_data);
-			snprintf((*ret)->m_data, 1024, "%d", number);
+			int number = *((int *)p_value->m_data);
+			snprintf(ret->m_data, STRING_SIZE, "%d", number);
 			break;
 		}
 		case VT_INTERNAL_FUNCTION:
 		{
-			snprintf((*ret)->m_data, 1024, "INTERNAL FUNCTION: <0x%p>", *p_value_save);
+			snprintf(ret->m_data, STRING_SIZE, "INTERNAL FUNCTION: <0x%p>", p_value);
 			break;
 		}
 		case VT_STRING:
 		{
-			snprintf((*ret)->m_data, 1024, "\"%s\"", (*p_value_save)->m_data);
+			snprintf(ret->m_data, STRING_SIZE, "\"%s\"", p_value->m_data);
 			break;
 		}
 		case VT_MACRO:
 		case VT_SYMBOL:
 		{
-			value_t *dt = (*p_value_save)->m_cons[0];
-			snprintf((*ret)->m_data, 1024, "%s", dt->m_data);
+			value_t *dt = p_value->m_cons[0];
+			snprintf(ret->m_data, STRING_SIZE, "%s", dt->m_data);
 			break;
 		}
 		case VT_CONS:
 		{
-			snprintf((*ret)->m_data, 1024, "(%s %s)", 
-				value_sprint(p_vm, (*p_value_save)->m_cons[0])->m_data,
-				value_sprint(p_vm, (*p_value_save)->m_cons[1])->m_data);
+			snprintf(ret->m_data, STRING_SIZE, "(%s %s)", 
+				value_sprint(p_vm, p_value->m_cons[0])->m_data,
+				value_sprint(p_vm, p_value->m_cons[1])->m_data);
 			break;
 		}
 		case VT_BINDING:
 		{
-			snprintf((*ret)->m_data, 1024, "BINDING <%s>", 
-				value_sprint(p_vm, ((binding_t *)(*p_value_save)->m_data)->m_key)->m_data); 
+			snprintf(ret->m_data, STRING_SIZE, "BINDING <%s>", 
+				value_sprint(p_vm, ((binding_t *)p_value->m_data)->m_key)->m_data); 
 			break;
 		}
 		default:
@@ -366,8 +357,7 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 			break;
 	};
 
-	p_vm->m_csp = old_csp;
-	return *ret;
+	return ret;
 }
 
 bool is_null(value_t *p_val)

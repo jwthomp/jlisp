@@ -5,6 +5,7 @@
 #include "value.h"
 #include "value_helpers.h"
 #include "assert.h"
+#include "err.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,18 +42,18 @@ value_t *gc_alloc(vm_t *p_vm, size_t p_size, bool p_is_static)
 	if (p_is_static) {
 		val = (value_t *)malloc(p_size);
 	} else {
+//printf("alloc %lu bytes\n", p_size);
 		val = alloc_from_pool(p_vm->m_pool_g0, p_size);
 		if (val == NULL) {
-			unsigned long size = gc(p_vm, 0);
-			while(size < p_size) {
-				pool_t *pool_new = do_gc(p_vm, 0, p_vm->m_pool_g0->m_size * 2);
-				size = pool_new->m_size - pool_new->m_pos;
-			}
-
+			// Allocate a new pool and continue on
+			pool_t *p = pool_alloc(0);
+			p->m_next = p_vm->m_pool_g0;
+			p_vm->m_pool_g0 = p;
 			val = alloc_from_pool(p_vm->m_pool_g0, p_size);
-			assert(val != NULL);
 		}
-//		printf("alloc %d: %p\n", g_alloc_count++, val);
+
+		verify(val != NULL, "Couldn't allocate any more memory\n");
+		//printf("alloc %d: %p\n", g_alloc_count++, val);
 	}
 
 	if (p_is_static == false) {
@@ -244,16 +245,36 @@ assert(ret != NULL);
 
 //printf("GC DONE: sp: %lu csp: %lu ev: %lu gc: %d\n", p_vm->m_sp, p_vm->m_csp, p_vm->m_ev, g_count);
 
-	memset((void *)p_vm->m_pool_g0->m_bytes, 0xFF, p_vm->m_pool_g0->m_size);
-	pool_free(p_vm->m_pool_g0);
+	pool_t *p = p_vm->m_pool_g0;
+	while(p) {
+		pool_t *np = p->m_next;
+		memset((void *)p->m_bytes, 0xFF, p->m_size);
+		pool_free(p);
+		p = np;
+	}
+
 	p_vm->m_pool_g0 = pool_new;
 
 	return pool_new;
 }
 
+unsigned long mem_allocated(vm_t *p_vm)
+{
+	pool_t *p = p_vm->m_pool_g0;
+	unsigned long size = 0;
+	while(p) {
+		size += p->m_size;
+		p = p->m_next;
+	}
+
+	return size;
+}
+
 unsigned long gc(vm_t *p_vm, int p_age)
 {
-	pool_t *pool_new = do_gc(p_vm, p_age, p_vm->m_pool_g0->m_size);
+
+
+	pool_t *pool_new = do_gc(p_vm, p_age, mem_allocated(p_vm));
 
 	return pool_new->m_size - pool_new->m_pos;
 
