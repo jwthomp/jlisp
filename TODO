@@ -22,6 +22,10 @@ TEST
 [ ] Write unit tests for stable functionality
 
 [ ] Process spawning
+	[ ] Create VT_PID
+	[ ] Write Spawn
+
+
 [ ] Send/Receive for processes
 
 [ ] Implement dynamic and lexical scoped symbols as totally different namespaces

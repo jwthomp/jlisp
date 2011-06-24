@@ -17,6 +17,7 @@ typedef enum {
 	VT_BINDING = 1 << 10,
 	VT_MACRO =  1 << 11,
 	VT_VOID = 1 << 12,
+	VT_PID = 1 << 13,
 } value_type_t;
 
 typedef enum {

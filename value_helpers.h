@@ -21,6 +21,7 @@ bool is_bytecode(vm_t *p_vm, value_t *);
 bool is_pool(vm_t *p_vm, value_t *);
 bool is_lambda(vm_t *p_vm, value_t *);
 bool is_null(vm_t *p_vm, value_t *);
+bool is_pid(vm_t *p_vm, value_t *);
 
 value_t * value_create_number(vm_t *p_vm, int p_number);
 value_t * value_create_string(vm_t *p_vm, char const * const p_symbol);

@@ -38,6 +38,7 @@ value_t *let(vm_t *p_vm);
 value_t *read(vm_t *p_vm);
 value_t *eval_lib(vm_t *p_vm);
 value_t *gc_lib(vm_t *p_vm);
+value_t *spawn(vm_t *p_vm);
 
 
 static internal_func_def_t g_ifuncs[] = {
@@ -56,14 +57,22 @@ static internal_func_def_t g_ifuncs[] = {
 	{"READ", read, 0, false},
 	{"EVAL", eval_lib, 1, false},
 	{"GC", gc_lib, 0, false},
+	{"SPAWN", spawn_lib, 0, false},
 };
 
-#define NUM_IFUNCS 15
+#define NUM_IFUNCS 16
 
 value_t *gc_lib(vm_t *p_vm)
 {
 	gc(p_vm, 1);
 	return p_vm->nil;
+}
+
+value_t *spawn_lib(vm_t *p_vm)
+{
+	// To spawn a process, we have to create a new vm
+	// Then copy the closure over to it and call it
+	// Return a pid
 }
 
 value_t *eval_lib(vm_t *p_vm)

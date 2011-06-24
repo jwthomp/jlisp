@@ -24,6 +24,7 @@ char const *g_valuetype_print[] = {
 	"VT_BINDING",
 	"VT_MACRO",
 	"VT_VOID",
+	"VT_PID",
 };
 
 
@@ -432,6 +433,14 @@ bool is_ifunc(vm_t *p_vm, value_t *p_val) {
 	}
 
 	return (p_val->m_type == VT_INTERNAL_FUNCTION);
+}
+	
+bool is_pid(vm_t *p_vm, value_t *p_val) {
+	if (is_fixnum(p_val)) {
+		return false;
+	}
+
+	return (p_val->m_type == VT_PID);
 }
 	
 
