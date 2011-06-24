@@ -141,6 +141,8 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			push_opcode(p_opcode, (int)p_arg, p_bytecode, p_bytecode_index);
 			break;
 		}
+		case OP_BINDD:
+		case OP_BINDDF:
 		case OP_DUP:
 			verify(false, "op_dup are not supported. Write the code");
 			break;

@@ -3,6 +3,7 @@
 #include "lambda.h"
 #include "assert.h"
 #include "gc.h"
+#include "err.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,24 +11,30 @@
 
 #define STRING_SIZE 128
 
-char const *g_valuetype_print[] = {
-	"VT_NUMBER",
-	"VT_POOL",
-	"VT_SYMBOL",
-	"VT_INTERNAL_FUNCTION",
-	"VT_CONS",
-	"VT_BYTECODE",
-	"VT_LAMBDA",
-	"VT_CLOSURE",
-	"VT_ENVIRONMENT",
-	"VT_STRING",
-	"VT_BINDING",
-	"VT_MACRO",
-	"VT_VOID",
-	"VT_PID",
+typedef struct {
+	char const *m_string;
+	alloc_type m_alloc_type;
+} valuetype_config_data_t;
+
+valuetype_config_data_t g_valuetype_cfg[] = {
+	{"VT_NUMBER", MALLOC_MARK_SWEEP},
+	{"VT_POOL", MALLOC_MARK_SWEEP},
+	{"VT_SYMBOL", MALLOC_MARK_SWEEP},
+	{"VT_INTERNAL_FUNCTION", MALLOC_MARK_SWEEP},
+	{"VT_CONS", MALLOC_MARK_SWEEP},
+	{"VT_BYTECODE", MALLOC_MARK_SWEEP},
+	{"VT_LAMBDA", MALLOC_MARK_SWEEP},
+	{"VT_CLOSURE", MALLOC_MARK_SWEEP},
+	{"VT_ENVIRONMENT", MALLOC_MARK_SWEEP},
+	{"VT_STRING", MALLOC_MARK_SWEEP},
+	{"VT_BINDING", MALLOC_MARK_SWEEP},
+	{"VT_MACRO", MALLOC_MARK_SWEEP},
+	{"VT_VOID", MALLOC_MARK_SWEEP},
+	{"VT_PID", MALLOC_MARK_SWEEP},
 };
 
 
+alloc_type valuetype_alloc_type(int p_val);
 
 
 
@@ -38,15 +45,7 @@ value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bo
 	if (p_is_static == true) {
 		ac = STATIC;
 	} else {
-		switch (p_type) {
-			case VT_NUMBER:
-			case VT_STRING:
-				ac = MALLOC_MARK_SWEEP;
-				break;
-			default:
-				ac = COPY_COMPACT;
-				break;
-		}
+		ac = valuetype_alloc_type(p_type);
 	}
 
 	value_t *v = gc_alloc(p_vm, sizeof(value_t) + p_size, ac);
@@ -198,8 +197,6 @@ value_t * value_create_binding(vm_t *p_vm, value_t *p_key, value_t *p_value)
 
 value_t * value_create_environment(vm_t *p_vm, value_t *p_env)
 {
-	unsigned long old_csp = p_vm->m_csp;
-
 	value_t *ret = value_create(p_vm, VT_ENVIRONMENT, sizeof(environment_t), false);
 	environment_t *env = (environment_t *)ret->m_data;
 	env->m_bindings = NULL;
@@ -530,36 +527,50 @@ bool is_symbol_name(char const *p_name, value_t *p_symbol)
 }
 
 
-char const *valuetype_print(int p_val)
+valuetype_config_data_t *valuetype_config_data_get(int p_val)
 {
 	switch (p_val) {
 		case VT_NUMBER:
-			return g_valuetype_print[0];
+			return &g_valuetype_cfg[0];
 		case VT_POOL:
-			return g_valuetype_print[1];
+			return &g_valuetype_cfg[1];
 		case VT_SYMBOL:
-			return g_valuetype_print[2];
+			return &g_valuetype_cfg[2];
 		case VT_INTERNAL_FUNCTION:
-			return g_valuetype_print[3];
+			return &g_valuetype_cfg[3];
 		case VT_CONS:
-			return g_valuetype_print[4];
+			return &g_valuetype_cfg[4];
 		case VT_BYTECODE:
-			return g_valuetype_print[5];
+			return &g_valuetype_cfg[5];
 		case VT_LAMBDA:
-			return g_valuetype_print[6];
+			return &g_valuetype_cfg[6];
 		case VT_CLOSURE:
-			return g_valuetype_print[7];
+			return &g_valuetype_cfg[7];
 		case VT_ENVIRONMENT:
-			return g_valuetype_print[8];
+			return &g_valuetype_cfg[8];
 		case VT_STRING:
-			return g_valuetype_print[9];
+			return &g_valuetype_cfg[9];
 		case VT_BINDING:
-			return g_valuetype_print[10];
+			return &g_valuetype_cfg[10];
 		case VT_MACRO:
-			return g_valuetype_print[11];
+			return &g_valuetype_cfg[11];
 		case VT_VOID:
-			return g_valuetype_print[12];
+			return &g_valuetype_cfg[12];
+		case VT_PID:
+			return &g_valuetype_cfg[13];
 		default:
-			return "Unknown value type";
+			verify(NULL, "Unknown value type\n");
+			return NULL;
 	}
+}
+char const *valuetype_print(int p_val)
+{
+	valuetype_config_data_t *cfg = valuetype_config_data_get(p_val);
+	return cfg->m_string;
+}
+
+alloc_type valuetype_alloc_type(int p_val)
+{
+	valuetype_config_data_t *cfg = valuetype_config_data_get(p_val);
+	return cfg->m_alloc_type;
 }

@@ -15,10 +15,6 @@
 #define GC_AGE 3
 
 static int g_count = 0;
-static int g_alloc_count = 0;
-static int g_retain_level = 0;
-
-static pool_t *g_pool;
 
 static value_t *retain(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new);
 static pool_t * do_gc(vm_t *p_vm, int p_age, unsigned long p_pool_size);
@@ -43,8 +39,8 @@ value_t *gc_alloc(vm_t *p_vm, size_t p_size, alloc_type p_alloc_type)
 		val = (value_t *)malloc(p_size);
 	} else if (p_alloc_type == MALLOC_MARK_SWEEP) {
 		val = (value_t *)malloc(p_size);
+
 	} else {
-//printf("alloc %lu bytes\n", p_size);
 		val = alloc_from_pool(p_vm->m_pool_g0, p_size);
 		if (val == NULL) {
 			// Allocate a new pool and continue on
@@ -82,26 +78,151 @@ void gc_shutdown(vm_t *p_vm)
 	}
 }
 
-
-static value_t *retain(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new)
+static value_t *retain_static(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new)
 {
-	g_retain_level++;
+	value_t *ret;
+	// Now follow this object down the rabbit hole
+	switch(p_value->m_type) {
+		case VT_NUMBER:
+		case VT_VOID:
+		case VT_INTERNAL_FUNCTION:
+		case VT_BYTECODE:
+		case VT_STRING:
+			break;
+		case VT_BINDING:
+			ret = retain(p_vm, ((binding_t *)p_value->m_data)->m_key, p_pool_new);
+			((binding_t *)p_value->m_data)->m_key = ret;
+			ret = retain(p_vm, ((binding_t *)p_value->m_data)->m_value, p_pool_new);
+			((binding_t *)p_value->m_data)->m_value = ret;
+			if (((binding_t *)p_value->m_data)->m_next != NULL) {
+				ret = retain(p_vm, ((binding_t *)p_value->m_data)->m_next, p_pool_new);
+				((binding_t *)p_value->m_data)->m_next = ret;
+			}
+			break;
 
+		case VT_POOL:
+			for (unsigned long i = 0; i < (p_value->m_size / sizeof(value_t *)); i++) {
+				ret = retain(p_vm, ((value_t **)p_value->m_data)[i], p_pool_new);
+				((value_t **)p_value->m_data)[i] = ret;
+			}
+			break;
 
-	// Don't do anything for fixnums or static objects
-	if (is_fixnum(p_value) || p_value->m_alloc_type == STATIC) {
-//is_fixnum(p_value) ? printf("%d retain %d: %p is_fixnum\n", g_retain_level, g_count++, p_value) : 
-//					printf("%d retain %d: %p is static\n", g_retain_level, g_count++, p_value);
-g_retain_level--;
-		return p_value;
+		case VT_LAMBDA:
+			ret = retain(p_vm, ((lambda_t *)p_value->m_data)->m_parameters, p_pool_new);
+			((lambda_t *)p_value->m_data)->m_parameters = ret;
+			ret = retain(p_vm, ((lambda_t *)p_value->m_data)->m_bytecode, p_pool_new);
+			((lambda_t *)p_value->m_data)->m_bytecode = ret;
+			ret = retain(p_vm, ((lambda_t *)p_value->m_data)->m_pool, p_pool_new);
+			((lambda_t *)p_value->m_data)->m_pool = ret;
+			break;
+
+		case VT_ENVIRONMENT:
+			if (((environment_t *)p_value->m_data)->m_bindings != NULL) {
+				ret = retain(p_vm, ((environment_t *)p_value->m_data)->m_bindings, p_pool_new);
+				((environment_t *)p_value->m_data)->m_bindings = ret;
+			}
+
+			if (((environment_t *)p_value->m_data)->m_function_bindings != NULL) {
+				ret = retain(p_vm, ((environment_t *)p_value->m_data)->m_function_bindings, p_pool_new);
+				((environment_t *)p_value->m_data)->m_function_bindings = ret;
+			}
+
+			if (((environment_t *)p_value->m_data)->m_parent != NULL) {
+				ret = retain(p_vm, ((environment_t *)p_value->m_data)->m_parent, p_pool_new);
+				((environment_t *)p_value->m_data)->m_parent = ret;
+			}
+			break;
+
+		case VT_CLOSURE:
+		case VT_SYMBOL:
+		case VT_CONS:
+			ret = retain(p_vm, p_value->m_cons[0], p_pool_new);
+			p_value->m_cons[0] = ret;
+			ret = retain(p_vm, p_value->m_cons[1], p_pool_new);
+			p_value->m_cons[1] = ret;
+			break;
+		default:
+			assert(!"SHOULD NEVER GET HERE");
+			break;
+	}
+	
+	return p_value;	
+}
+
+static value_t *retain_mark_sweep(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new)
+{
+	p_value->m_in_use = true;
+	value_t *ret;
+	// Now follow this object down the rabbit hole
+	switch(p_value->m_type) {
+		case VT_NUMBER:
+		case VT_VOID:
+		case VT_INTERNAL_FUNCTION:
+		case VT_BYTECODE:
+		case VT_STRING:
+			break;
+		case VT_BINDING:
+			ret = retain(p_vm, ((binding_t *)p_value->m_data)->m_key, p_pool_new);
+			((binding_t *)p_value->m_data)->m_key = ret;
+			ret = retain(p_vm, ((binding_t *)p_value->m_data)->m_value, p_pool_new);
+			((binding_t *)p_value->m_data)->m_value = ret;
+			if (((binding_t *)p_value->m_data)->m_next != NULL) {
+				ret = retain(p_vm, ((binding_t *)p_value->m_data)->m_next, p_pool_new);
+				((binding_t *)p_value->m_data)->m_next = ret;
+			}
+			break;
+
+		case VT_POOL:
+			for (unsigned long i = 0; i < (p_value->m_size / sizeof(value_t *)); i++) {
+				ret = retain(p_vm, ((value_t **)p_value->m_data)[i], p_pool_new);
+				((value_t **)p_value->m_data)[i] = ret;
+			}
+			break;
+
+		case VT_LAMBDA:
+			ret = retain(p_vm, ((lambda_t *)p_value->m_data)->m_parameters, p_pool_new);
+			((lambda_t *)p_value->m_data)->m_parameters = ret;
+			ret = retain(p_vm, ((lambda_t *)p_value->m_data)->m_bytecode, p_pool_new);
+			((lambda_t *)p_value->m_data)->m_bytecode = ret;
+			ret = retain(p_vm, ((lambda_t *)p_value->m_data)->m_pool, p_pool_new);
+			((lambda_t *)p_value->m_data)->m_pool = ret;
+			break;
+
+		case VT_ENVIRONMENT:
+			if (((environment_t *)p_value->m_data)->m_bindings != NULL) {
+				ret = retain(p_vm, ((environment_t *)p_value->m_data)->m_bindings, p_pool_new);
+				((environment_t *)p_value->m_data)->m_bindings = ret;
+			}
+
+			if (((environment_t *)p_value->m_data)->m_function_bindings != NULL) {
+				ret = retain(p_vm, ((environment_t *)p_value->m_data)->m_function_bindings, p_pool_new);
+				((environment_t *)p_value->m_data)->m_function_bindings = ret;
+			}
+
+			if (((environment_t *)p_value->m_data)->m_parent != NULL) {
+				ret = retain(p_vm, ((environment_t *)p_value->m_data)->m_parent, p_pool_new);
+				((environment_t *)p_value->m_data)->m_parent = ret;
+			}
+			break;
+
+		case VT_CLOSURE:
+		case VT_SYMBOL:
+		case VT_CONS:
+			ret = retain(p_vm, p_value->m_cons[0], p_pool_new);
+			p_value->m_cons[0] = ret;
+			ret = retain(p_vm, p_value->m_cons[1], p_pool_new);
+			p_value->m_cons[1] = ret;
+			break;
+		default:
+			assert(!"SHOULD NEVER GET HERE");
+			break;
 	}
 
-	// Handle binary objects with mark/sweep algorithm
-	if (p_value->m_alloc_type == MALLOC_MARK_SWEEP) {
-		p_value->m_in_use = true;
-		return p_value;
-	}
+	return p_value;	
+}
 
+static value_t *retain_copy_compact(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new)
+{
 	// Has this already been relocated? If so just return it
 
 	// 0x1 is a bit in pointer that signifies whether this pointer
@@ -111,13 +232,9 @@ g_retain_level--;
 	if ((*x) & 0x1) {
 		value_t *ret = (value_t *)(*x & ~1);
 
-//printf("%d p_value %d %p already redirected %p -> %s\n", g_retain_level, g_count++, p_value, ret, valuetype_print(ret->m_type));
-
-g_retain_level--;
 		return ret;
 	}
 
-g_count++;
 
 	// This object hasn't been relocated so let's relocate it
 	int size = sizeof(value_t) + p_value->m_size;
@@ -127,18 +244,8 @@ g_count++;
 	assert(new_value->m_type == p_value->m_type);
 
 
-unsigned int old_value_val = *(unsigned int *)p_value;
-
-//printf("%d retain %d: %p -> %p -- %s (%d)\n", g_retain_level, g_count, p_value, new_value, valuetype_print(p_value->m_type), p_value->m_type);
-
-
 	// Flag the old data that this was redirected
 	*((unsigned long *)p_value) = ((unsigned long)new_value) | 0x1;
-
-
-//printf("retain: oldptr: %p old val: %x new val: %x\nnew_ptr: %p new val: %x\n",
-//	p_value, old_value_val, *(unsigned int *)p_value,
-//	new_value, *(unsigned int *)new_value);
 
 	value_t *ret;
 	// Now follow this object down the rabbit hole
@@ -209,16 +316,39 @@ unsigned int old_value_val = *(unsigned int *)p_value;
 			break;
 	}
 	
-g_retain_level--;
 	return new_value;
-	
+}
+
+
+
+
+static value_t *retain(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new)
+{
+	if (is_fixnum(p_value)) {
+		return p_value;
+	}
+
+//printf("retain: %p %lu\n", p_value, p_value->m_alloc_type);
+
+	switch (p_value->m_alloc_type) {
+		case STATIC:
+			return retain_static(p_vm, p_value, p_pool_new);
+		case MALLOC_MARK_SWEEP:
+			return retain_mark_sweep(p_vm, p_value, p_pool_new);
+		case COPY_COMPACT:
+			return retain_copy_compact(p_vm, p_value, p_pool_new);
+		default:
+			verify(NULL, "Retaining unknown gc type\n");
+			return NULL;
+	}
 }
 
 
 static pool_t * do_gc(vm_t *p_vm, int p_age, unsigned long p_pool_size)
 {
-	pool_t *pool_cur = p_vm->m_pool_g0;
 	pool_t *pool_new = pool_alloc(p_pool_size);
+
+//printf("allocing pool of size: %lu\n", p_pool_size);
 
 g_count = 0;
 
@@ -293,6 +423,8 @@ void sweep(vm_t *p_vm, value_t **p_heap, value_t **p_tenured_heap)
 			}
 		} else {
 #if 1
+//printf("free: %p -> %s -> %s\n", p, valuetype_print(p->m_type), value_sprint(p_vm, p)->m_data);
+
 			p->m_heapptr = NULL;
 			if (p->m_size > 0) {
 				p->m_data[0] = 0;
@@ -359,9 +491,18 @@ unsigned long mem_allocated(vm_t *p_vm, bool p_count_mark_sweep)
 
 unsigned long gc(vm_t *p_vm, int p_age)
 {
+	unsigned long size = 0;
+
+	// Count up compacting memory
+	pool_t *p = p_vm->m_pool_g0;
+	while(p) {
+		size += p->m_size;
+		p = p->m_next;
+	}
 
 
-	pool_t *pool_new = do_gc(p_vm, p_age, mem_allocated(p_vm, false));
+
+	do_gc(p_vm, p_age, size);
 
 	if (p_age == 0) {
 		sweep(p_vm, &p_vm->m_heap_g0, NULL);

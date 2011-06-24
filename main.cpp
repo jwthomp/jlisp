@@ -21,9 +21,9 @@ void load_string(vm_t *p_vm, char const *p_code);
 
 void load_string(vm_t *p_vm, char const *p_code)
 {
-	int vm_bp = p_vm->m_bp;
-	int vm_sp = p_vm->m_sp;
-	int vm_ev = p_vm->m_ev;
+	unsigned long vm_bp = p_vm->m_bp;
+	unsigned long vm_sp = p_vm->m_sp;
+	unsigned long vm_ev = p_vm->m_ev;
 	int vm_ip = p_vm->m_ip;
 	value_t *vm_current_env = p_vm->m_current_env[p_vm->m_ev - 1];
 
@@ -44,7 +44,7 @@ void load_string(vm_t *p_vm, char const *p_code)
 //printf("read form: "); value_print(p_vm, rd); printf("\n");
 
 			// Evaluate it
-			value_t *res = eval(p_vm, rd);
+			eval(p_vm, rd);
 
 			// Print a result
 printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
@@ -73,7 +73,7 @@ printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); prin
 	stream_destroy(strm);
 
 
-	unsigned long mem = gc(p_vm, 1);
+	gc(p_vm, 1);
 	printf("Memory: Free: %lu Allocated: %lu\n", mem_free(p_vm), mem_allocated(p_vm, true));
 }
 
@@ -86,7 +86,7 @@ int main(int argc, char *arg[])
 	vm_t *vm1 = vm_create(1024);
 	lib_init(vm1);
 
-#if 0
+#if 1
 	unit_test();
 
 
@@ -98,13 +98,13 @@ int main(int argc, char *arg[])
 	printf("\nawesome-lang 0.0.1, copyright (c) 2011 by jeffrey thompson\n");
 	printf("%d> ", flip);
 	while(gets(input) != NULL && strcmp(input, "quit")) {
-		if (flip) {
+//		if (flip) {
 			load_string(vm, input);
-			flip = 0;
-		} else {
-			load_string(vm1, input);
-			flip = 1;
-		}
+//			flip = 0;
+//		} else {
+//			load_string(vm1, input);
+//			flip = 1;
+//		}
 
 
 		input[0] = 0;

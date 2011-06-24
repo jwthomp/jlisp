@@ -38,7 +38,7 @@ value_t *let(vm_t *p_vm);
 value_t *read(vm_t *p_vm);
 value_t *eval_lib(vm_t *p_vm);
 value_t *gc_lib(vm_t *p_vm);
-value_t *spawn(vm_t *p_vm);
+value_t *spawn_lib(vm_t *p_vm);
 
 
 static internal_func_def_t g_ifuncs[] = {
@@ -73,6 +73,7 @@ value_t *spawn_lib(vm_t *p_vm)
 	// To spawn a process, we have to create a new vm
 	// Then copy the closure over to it and call it
 	// Return a pid
+	return NULL;
 }
 
 value_t *eval_lib(vm_t *p_vm)
@@ -111,7 +112,7 @@ value_t *read(vm_t *p_vm)
     printf("R> ");
     gets(input);
     stream_t *strm = stream_create(input);
-    int args = reader(p_vm, strm, false);
+    reader(p_vm, strm, false);
     value_t *rd = p_vm->m_stack[p_vm->m_sp - 1];
     return rd;
 }

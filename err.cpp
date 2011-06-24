@@ -28,8 +28,6 @@ void pop_handler_stack()
 
 void verify(int cond, const char *format, ...)
 {
-	va_list argp;
-
 	if (cond == false) {
 		va_list argp;
 		va_start(argp, format);

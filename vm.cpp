@@ -326,7 +326,7 @@ vm_print_stack(p_vm);
 
 				int ip = (int)p_arg;
 
-				if (p_arg == -1) {
+				if (ip == -1) {
 //printf("pop'd handler\n");
 					pop_handler_stack();
 					p_vm->m_ip++;
