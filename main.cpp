@@ -86,11 +86,11 @@ int main(int argc, char *arg[])
 	vm_t *vm1 = vm_create(1024);
 	lib_init(vm1);
 
+	if (argc > 1) {
+		unit_test();
+	} else {
+
 #if 1
-	unit_test();
-
-
-#elif 1
 	int flip = 0;
 	char input[256];
 	memset(input, 0, 256);
@@ -115,6 +115,7 @@ int main(int argc, char *arg[])
 #else
 	load_string(vm, "(loop (print (eval (read))))");
 #endif
+}
 
 //printf("---------- END OF DAYS---------\n");
 	vm->m_sp = 0;
