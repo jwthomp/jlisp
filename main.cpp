@@ -29,7 +29,8 @@ void load_string(vm_t *p_vm, char const *p_code)
 
 	stream_t *strm = stream_create(p_code);
 
-	int i = setjmp(*push_handler_stack());
+//	int i = setjmp(*push_handler_stack());
+int i = 0;
 	if (i == 0) {
 		int args = reader(p_vm, strm, false);
 
@@ -68,7 +69,7 @@ printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); prin
 
 //	printf("env: %p\n", p_vm->m_current_env[p_vm->m_ev - 1]);
 
-	pop_handler_stack();
+//	pop_handler_stack();
 
 	stream_destroy(strm);
 
@@ -80,17 +81,21 @@ printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); prin
 
 int main(int argc, char *arg[])
 {
-	vm_t *vm = vm_create(1024);
+	vm_t *vm = vm_create(1024, NULL);
 	lib_init(vm);
 
-	vm_t *vm1 = vm_create(1024);
-	lib_init(vm1);
+	value_t *vm_val = value_create(vm, VT_PROCESS, sizeof(vm_t *), false);
+	*(vm_t **)vm_val->m_data = vm;
+	g_kernel_proc = vm_val;
+
 
 	if (argc > 1) {
 		unit_test();
 	} else {
 
 #if 1
+	value_t *vm1_val = value_create_process(vm, vm_val);
+	vm_t *vm1 = *(vm_t **)vm1_val->m_data;
 	int flip = 0;
 	char input[256];
 	memset(input, 0, 256);
@@ -98,17 +103,28 @@ int main(int argc, char *arg[])
 	printf("\nawesome-lang 0.0.1, copyright (c) 2011 by jeffrey thompson\n");
 	printf("%d> ", flip);
 	while(gets(input) != NULL && strcmp(input, "quit")) {
-//		if (flip) {
+		if (!flip) {
 			load_string(vm, input);
-//			flip = 0;
-//		} else {
-//			load_string(vm1, input);
-//			flip = 1;
-//		}
-
+			flip = 1;
+		} else {
+			load_string(vm1, input);
+			flip = 0;
+		}
 
 		input[0] = 0;
+		printf("%d> ", flip);
+	}
 
+#elif 1
+	int flip = 0;
+	char input[256];
+	memset(input, 0, 256);
+
+	printf("\nawesome-lang 0.0.1, copyright (c) 2011 by jeffrey thompson\n");
+	printf("%d> ", flip);
+	while(gets(input) != NULL && strcmp(input, "quit")) {
+		load_string(vm, input);
+		input[0] = 0;
 		printf("%d> ", flip);
 	}
 

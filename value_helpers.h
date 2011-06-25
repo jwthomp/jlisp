@@ -22,6 +22,7 @@ bool is_pool(vm_t *p_vm, value_t *);
 bool is_lambda(vm_t *p_vm, value_t *);
 bool is_null(vm_t *p_vm, value_t *);
 bool is_pid(vm_t *p_vm, value_t *);
+bool is_process(vm_t *p_vm, value_t *);
 
 value_t * value_create_number(vm_t *p_vm, int p_number);
 value_t * value_create_string(vm_t *p_vm, char const * const p_symbol);
@@ -34,6 +35,7 @@ value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_byte
 value_t * value_create_closure(vm_t *p_vm, value_t *p_env, value_t *p_lambda);
 value_t * value_create_environment(vm_t *p_vm, value_t *p_env);
 value_t * value_create_binding(vm_t *p_vm, value_t *p_key, value_t *p_binding);
+value_t * value_create_process(vm_t *p_vm, value_t *p_parent_vm);
 
 value_t * list(vm_t *p_vm, value_t *p_value);
 

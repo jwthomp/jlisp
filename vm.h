@@ -36,10 +36,15 @@ extern char const *g_opcode_print[];
 
 extern bool g_debug_display;
 
+extern value_t *g_kernel_proc;
 
 typedef struct vm_s {
 	value_t *m_kernel_env;
 	value_t *m_user_env;
+
+	value_t *t;
+	value_t *nil;
+	value_t *voidobj;
 
     value_t **m_current_env;
 	value_t **m_stack;
@@ -51,21 +56,19 @@ typedef struct vm_s {
 	value_t *m_heap_g1;
 	value_t *m_free_heap;
 
-	value_t *t;
-	value_t *nil;
-	value_t *voidobj;
-
 	unsigned long m_sp;
 	unsigned long m_bp;
 	unsigned long m_ev;
 	unsigned long m_csp;
 	int m_ip;
 
+	value_t *m_next;
 } vm_t;
+
 
 typedef value_t *(*vm_func_t)(vm_t *p_vm);
 
-vm_t *vm_create(unsigned long p_stack_size);
+vm_t *vm_create(unsigned long p_stack_size, value_t *p_vm_parent);
 void vm_destroy(vm_t *);
 void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_arg_count );
 void vm_bind(vm_t *p_vm, char const *p_symbol, value_t *p_value);

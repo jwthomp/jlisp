@@ -39,7 +39,6 @@ value_t *gc_alloc(vm_t *p_vm, size_t p_size, alloc_type p_alloc_type)
 		val = (value_t *)malloc(p_size);
 	} else if (p_alloc_type == MALLOC_MARK_SWEEP) {
 		val = (value_t *)malloc(p_size);
-
 	} else {
 		val = alloc_from_pool(p_vm->m_pool_g0, p_size);
 		if (val == NULL) {
@@ -80,6 +79,12 @@ void gc_shutdown(vm_t *p_vm)
 
 static value_t *retain_static(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new)
 {
+	if (p_value->m_in_use == true) {
+		return p_value;
+	}
+
+	p_value->m_in_use = true;
+
 	value_t *ret;
 	// Now follow this object down the rabbit hole
 	switch(p_value->m_type) {
@@ -151,7 +156,12 @@ static value_t *retain_static(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new)
 
 static value_t *retain_mark_sweep(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new)
 {
+	if (p_value->m_in_use == true) {
+		return p_value;
+	}
+
 	p_value->m_in_use = true;
+
 	value_t *ret;
 	// Now follow this object down the rabbit hole
 	switch(p_value->m_type) {
@@ -160,6 +170,8 @@ static value_t *retain_mark_sweep(vm_t *p_vm, value_t *p_value, pool_t *p_pool_n
 		case VT_INTERNAL_FUNCTION:
 		case VT_BYTECODE:
 		case VT_STRING:
+		case VT_PID:
+		case VT_PROCESS:
 			break;
 		case VT_BINDING:
 			ret = retain(p_vm, ((binding_t *)p_value->m_data)->m_key, p_pool_new);
@@ -423,13 +435,14 @@ void sweep(vm_t *p_vm, value_t **p_heap, value_t **p_tenured_heap)
 			}
 		} else {
 #if 1
-//printf("free: %p -> %s -> %s\n", p, valuetype_print(p->m_type), value_sprint(p_vm, p)->m_data);
+//printf("free: %p -> %s\n", p, valuetype_print(p->m_type));
 
 			p->m_heapptr = NULL;
 			if (p->m_size > 0) {
 				p->m_data[0] = 0;
 			}
 
+			memset(p, 0xFE, sizeof(value_t) + p->m_size);
 			free(p);
 #else
 			value_t *test = p_vm->m_free_heap;

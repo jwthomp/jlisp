@@ -17,6 +17,7 @@
 [ ] Tuples
 [ ] Matching
 
+[ ] Make stack data and env array data values so they get cleaned up when a vm dies
 
 [ ] Write unit tests for stable functionality
 

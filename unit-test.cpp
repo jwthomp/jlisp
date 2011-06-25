@@ -20,7 +20,7 @@ int tests_run = 0;
 static char const * test_vm_start()
 {
 	printf("///////////////////////// VM ////////////////////////////////////\n");
-	vm_t *vm = vm_create(1024);
+	vm_t *vm = vm_create(1024, NULL);
 
 	mu_assert("vm is NULL", vm != NULL);
 	vm_destroy(vm);
@@ -33,7 +33,7 @@ static char const * test_vm_start()
 static char const *test_lambda_basic()
 {
 	printf("//////////////////////// LAMBDA /////////////////////////////////\n");
-	vm_t *vm = vm_create(1024);
+	vm_t *vm = vm_create(1024, NULL);
 	lib_init(vm);
 	stream_t *strm = stream_create("(lambda () (+ 1 2))");
 	reader(vm, strm, false);
@@ -49,7 +49,7 @@ static char const *test_lambda_basic()
 static char const *test_funcall_basic()
 {
 	printf("//////////////////////// FUNCALL /////////////////////////////////\n");
-	vm_t *vm = vm_create(1024);
+	vm_t *vm = vm_create(1024, NULL);
 	lib_init(vm);
 	stream_t *strm = stream_create("(funcall (lambda () (+ 1 3)))");
 	reader(vm, strm, false);
@@ -76,7 +76,7 @@ static char const *test_funcall_basic()
 static char const *test_progn_basic()
 {
 	printf("//////////////////////// PROGN /////////////////////////////////\n");
-	vm_t *vm = vm_create(1024);
+	vm_t *vm = vm_create(1024, NULL);
 	lib_init(vm);
 	stream_t *strm = stream_create("(progn (+ 1 3))");
 	reader(vm, strm, false);

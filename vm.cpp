@@ -43,10 +43,11 @@ char const *g_opcode_print[] =  {
 };
 
 bool g_debug_display = false;
+value_t *g_kernel_proc = NULL;
 
 
 
-vm_t *vm_create(unsigned long p_stack_size)
+vm_t *vm_create(unsigned long p_stack_size, value_t *p_vm_parent)
 {
 	vm_t *vm = (vm_t *)malloc(sizeof(vm_t));
 	vm->m_heap_g0 = NULL;
@@ -64,10 +65,19 @@ vm_t *vm_create(unsigned long p_stack_size)
 
 	// CANNOT create any value_t's until the above is initialized
 
-	vm->m_kernel_env = value_create_environment(vm, NULL);
-	vm->m_user_env = value_create_environment(vm, vm->m_kernel_env);
 	vm->m_current_env = (value_t **)malloc(sizeof(value_t *) * p_stack_size);
-	vm->m_current_env[0] = vm->m_user_env;
+	if (p_vm_parent == NULL) {
+		vm->m_kernel_env = value_create_environment(vm, NULL);
+		vm->m_user_env = value_create_environment(vm, vm->m_kernel_env);
+		vm->m_current_env[0] = vm->m_user_env;
+	} else {
+		vm_t *pvm = *(vm_t **)p_vm_parent->m_data;
+
+		vm->m_kernel_env = pvm->m_kernel_env;
+		vm->m_user_env = pvm->m_user_env;
+		vm->m_current_env[0] = pvm->m_current_env[pvm->m_ev - 1];
+	}
+
 	vm->m_ev = 1;
 
 	return vm;
@@ -75,7 +85,6 @@ vm_t *vm_create(unsigned long p_stack_size)
 
 void vm_destroy(vm_t *p_vm)
 {
-
 	gc_shutdown(p_vm);
 	p_vm->m_heap_g0 = NULL;
 	p_vm->m_heap_g1 = NULL;
@@ -102,7 +111,8 @@ void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func,
 
 	environment_t *env = NULL;
 	if (p_top) {
-		env = (environment_t *)p_vm->m_current_env[0]->m_data;
+		env = (environment_t *)p_vm->m_user_env->m_data;
+		//env = (environment_t *)p_vm->m_current_env[0]->m_data;
 	} else {
 		env = (environment_t *)(p_vm->m_current_env[p_vm->m_ev - 1])->m_data;
 	}

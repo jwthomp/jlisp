@@ -19,8 +19,8 @@ typedef struct {
 valuetype_config_data_t g_valuetype_cfg[] = {
 	{"VT_NUMBER", MALLOC_MARK_SWEEP},
 	{"VT_POOL", MALLOC_MARK_SWEEP},
-	{"VT_SYMBOL", MALLOC_MARK_SWEEP},
-	{"VT_INTERNAL_FUNCTION", MALLOC_MARK_SWEEP},
+	{"VT_SYMBOL", STATIC},
+	{"VT_INTERNAL_FUNCTION", STATIC},
 	{"VT_CONS", MALLOC_MARK_SWEEP},
 	{"VT_BYTECODE", MALLOC_MARK_SWEEP},
 	{"VT_LAMBDA", MALLOC_MARK_SWEEP},
@@ -29,8 +29,9 @@ valuetype_config_data_t g_valuetype_cfg[] = {
 	{"VT_STRING", MALLOC_MARK_SWEEP},
 	{"VT_BINDING", MALLOC_MARK_SWEEP},
 	{"VT_MACRO", MALLOC_MARK_SWEEP},
-	{"VT_VOID", MALLOC_MARK_SWEEP},
+	{"VT_VOID", STATIC},
 	{"VT_PID", MALLOC_MARK_SWEEP},
+	{"VT_PROCESS", STATIC},
 };
 
 
@@ -40,7 +41,6 @@ alloc_type valuetype_alloc_type(int p_val);
 
 value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bool p_is_static)
 {
-//printf("vc: %s -> %lu\n", valuetype_print(p_type), p_size);
 	alloc_type ac;
 	if (p_is_static == true) {
 		ac = STATIC;
@@ -49,6 +49,7 @@ value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bo
 	}
 
 	value_t *v = gc_alloc(p_vm, sizeof(value_t) + p_size, ac);
+//printf("vc: %s -> %lu %p\n", valuetype_print(p_type), p_size, v);
 	v->m_type = p_type;
 	v->m_size = p_size;
 	v->m_age = 0;
@@ -63,6 +64,20 @@ value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bo
 void value_destroy(value_t *p_value)
 {
 }
+
+value_t * value_create_process(vm_t *p_vm, value_t *p_vm_parent)
+{
+	value_t *ret = value_create(p_vm, VT_PROCESS, sizeof(vm_t *), false);
+	vm_t *new_proc = vm_create(1024, p_vm_parent);
+	vm_t *old_proc = *(vm_t **)p_vm_parent->m_data;
+	new_proc->t = old_proc->t;
+	new_proc->nil = old_proc->nil;
+	new_proc->voidobj = old_proc->voidobj;
+
+	*(vm_t **)ret->m_data = new_proc;
+	return ret;
+}
+
 
 value_t * value_create_number(vm_t *p_vm, int p_number)
 {
@@ -440,6 +455,14 @@ bool is_pid(vm_t *p_vm, value_t *p_val) {
 	return (p_val->m_type == VT_PID);
 }
 	
+bool is_process(vm_t *p_vm, value_t *p_val) {
+	if (is_fixnum(p_val)) {
+		return false;
+	}
+
+	return (p_val->m_type == VT_PROCESS);
+}
+	
 
 bool is_cons(vm_t *p_vm, value_t *p_val)
 {
@@ -558,6 +581,8 @@ valuetype_config_data_t *valuetype_config_data_get(int p_val)
 			return &g_valuetype_cfg[12];
 		case VT_PID:
 			return &g_valuetype_cfg[13];
+		case VT_PROCESS:
+			return &g_valuetype_cfg[14];
 		default:
 			verify(NULL, "Unknown value type\n");
 			return NULL;
