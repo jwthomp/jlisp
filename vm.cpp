@@ -402,8 +402,8 @@ vm_print_stack(p_vm);
 
 				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
 
-				verify(b != NULL, "The variable %s is unbound.\n", 
-					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
+				verify(b != NULL, "The variable %s is not bound to a function.\n", 
+					(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
 
 				// Push it onto the stack
 				binding_t *bind = (binding_t *)b->m_data;
