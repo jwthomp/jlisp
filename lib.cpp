@@ -23,6 +23,7 @@ typedef struct {
 } internal_func_def_t;
 
 value_t *print(vm_t *p_vm);
+value_t *atom(vm_t *p_vm);
 value_t *cons(vm_t *p_vm);
 value_t *car(vm_t *p_vm);
 value_t *cdr(vm_t *p_vm);
@@ -43,6 +44,7 @@ value_t *spawn_lib(vm_t *p_vm);
 
 static internal_func_def_t g_ifuncs[] = {
 	{"PRINT", print, -1, false},
+	{"ATOM", atom, 1, false},
 	{"CONS", cons, 2, false},
 	{"CAR", car, 1, false},
 	{"CDR", cdr, 1, false},
@@ -171,6 +173,17 @@ value_t *progn(vm_t *p_vm)
 	return p_vm->m_stack[p_vm->m_sp - 1];
 }
 
+value_t *atom(vm_t *p_vm)
+{
+	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
+	if (is_cons(p_vm, arg) == true) {
+		return p_vm->nil;
+	} else {
+		return p_vm->t;
+	}
+}
+
+
 value_t *debug(vm_t *p_vm)
 {
 	value_t *args = p_vm->m_stack[p_vm->m_bp + 1];
@@ -188,16 +201,6 @@ value_t *debug(vm_t *p_vm)
 
 
 
-
-value_t *atom(vm_t *p_vm)
-{
-	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
-	if (first && is_cons(p_vm, first)) {
-		return p_vm->nil;
-	}
-
-	return value_create_symbol(p_vm, "T");
-}
 
 value_t *status(vm_t *p_vm)
 {
