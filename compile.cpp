@@ -30,18 +30,8 @@ bool is_form_macro(vm_t *p_vm, value_t *p_value)
 		return false;
 	}
 
-	value_t *v_env = p_vm->m_current_env[p_vm->m_ev -1];
-	verify(v_env && is_environment(p_vm, v_env), "is_form_macro: env is null or not an environment\n");
-	environment_t *env = (environment_t *)v_env->m_data;
+	value_t *v_bind = environment_binding_find(p_vm, v_car, true);
 
-	value_t *v_fbindings = env->m_function_bindings;
-	if (v_fbindings == NULL) {
-		return false;
-	}
-
-	verify(v_fbindings && is_binding(p_vm, v_fbindings), "is_form_macro: fbindings are null or not a binding\n");
-
-	value_t *v_bind = binding_find(p_vm, v_fbindings, v_car);
 	if (v_bind == NULL) {
 		return false;
 	}

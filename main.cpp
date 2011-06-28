@@ -7,6 +7,7 @@
 #include "err.h"
 #include "lib.h"
 #include "unit-test.h"
+#include "vm.h"
 
 //#define _GNU_SOURCE
 
@@ -27,6 +28,8 @@ void load_string(vm_t *p_vm, char const *p_code)
 	int vm_ip = p_vm->m_ip;
 	value_t *vm_current_env = p_vm->m_current_env[p_vm->m_ev - 1];
 
+//printf("Load string: %s\n", p_code);
+
 	stream_t *strm = stream_create(p_code);
 
 //	int i = setjmp(*push_handler_stack());
@@ -34,27 +37,32 @@ int i = 0;
 	if (i == 0) {
 		int args = reader(p_vm, strm, false);
 
-//printf("reader found %d forms\n", args);
+printf("reader found %d forms\n", args);
+		vm_push(p_vm, p_vm->nil);
 
 		int count_down = args;
 		while(count_down > 0) {
 //printf("SAVE CSP: %lu\n", p_vm->m_csp);
 
 			// get value off stack
-			value_t *rd = p_vm->m_stack[p_vm->m_sp - count_down];
-//printf("read form: "); value_print(p_vm, rd); printf("\n");
+			value_t *rd = p_vm->m_stack[p_vm->m_sp - count_down - 1];
+
+printf("read form: "); value_print(p_vm, rd); printf("\n");
+printf("cd: %d sp: %lu\n", count_down, p_vm->m_sp);
+vm_print_stack(p_vm);
 
 			// Evaluate it
 			eval(p_vm, rd);
 
 			// Print a result
 printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
-			p_vm->m_sp--;
 
 //printf("RESTORE CSP: %lu sp: %ld ev: %lu\n", p_vm->m_csp, p_vm->m_sp, p_vm->m_ev);
 
 			count_down--;
 		}
+
+		p_vm->m_sp -= args + 1;
 	} else {
 		p_vm->m_bp = vm_bp;
 		p_vm->m_sp = vm_sp;
@@ -93,7 +101,7 @@ int main(int argc, char *arg[])
 		unit_test();
 	} else {
 
-#if 1
+#if 0
 	value_t *vm1_val = value_create_process(vm, vm_val);
 	vm_t *vm1 = *(vm_t **)vm1_val->m_data;
 	int flip = 0;

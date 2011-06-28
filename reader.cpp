@@ -55,7 +55,7 @@ value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 	}
 
 	while(p_stream->index < p_stream->length) {
-		char val = p_stream->pop();
+		char val = p_stream->pop(is_string);
 		if (((is_string == false) && ((val == ' ') || (val == '\n') || (val == '\r') || (val == '(') || (val == ')'))) || ((is_string == true) && (val == '\"'))) {
 			atom[index] = 0;
 

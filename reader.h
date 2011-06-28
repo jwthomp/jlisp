@@ -12,9 +12,17 @@ typedef struct stream_s {
     unsigned long index;
 	unsigned long length;
 
-    char pop() {
+    char pop(bool p_is_string) {
 		assert(index < length);
-        return toupper(code[index++]);
+		if (p_is_string == false) {
+	        return toupper(code[index++]);
+		} else {
+	        return code[index++];
+		}
+    }
+
+    char pop() {
+		pop(false);
     }
 
     void restore() {

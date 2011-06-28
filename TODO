@@ -17,16 +17,20 @@
 [ ] Tuples
 [ ] Matching
 
+
+[ ] Move top level kern_env and usr_env to their own heap and anything put there should get stuck onto that heap
+[ ] Allow processes to be freed
+[ ] Process spawning and death
+	[ ] Create VT_PID
+	[ ] Write Spawn
+	[ ] Allow process to die
 [ ] Make stack data and env array data values so they get cleaned up when a vm dies
+[ ] Send/Receive for processes
 
 [ ] Write unit tests for stable functionality
 
-[ ] Process spawning
-	[ ] Create VT_PID
-	[ ] Write Spawn
 
 
-[ ] Send/Receive for processes
 
 [ ] Implement dynamic and lexical scoped symbols as totally different namespaces
 
@@ -53,6 +57,8 @@ read ->
 [/] fix &rest so 'a sets args to ('a)
 
 
+[X] Fix bug in reader where strings were being capitalized
+[X] Fix bug in lisp running repl where (let (())...) was not properly finding binding
 [X] Add in a binary heap where all binary objects (strings, etc) that don't need to be
     moved but are mark/swept instead
 [X] Add in support for multiple pools between garbage collections

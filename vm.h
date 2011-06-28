@@ -30,6 +30,7 @@ typedef enum opcode_s {
 	OP_BINDDF,		// 15
 	OP_JMP,			// 16
 	OP_POP,			// 17
+	OP_SET_PROC_STATUS,	// 18
 } opcode_e;
 
 extern char const *g_opcode_print[];
@@ -77,8 +78,9 @@ void vm_bindf(vm_t *p_vm, char const *p_symbol, value_t *p_func);
 void vm_cons(vm_t *p_vm);
 void vm_list(vm_t *p_vm, int p_list_size);
 void vm_push(vm_t *p_vm, value_t *p_value);
-//value_t ** vm_c_push(vm_t *p_vm, value_t *p_value);
 void vm_push_env(vm_t *p_vm, value_t *p_env);
 void vm_pop_env(vm_t *p_vm);
+
+void vm_print_stack(vm_t *p_vm);
 
 #endif /* __VM_H_ */
