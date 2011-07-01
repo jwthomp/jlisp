@@ -4,6 +4,8 @@
 #include "vm.h"
 #include "env.h"
 
+#include <stdlib.h>
+
 #define make_fixnum(n) ((value_t *)(((n) << 1)|1))
 #define is_fixnum(p) (((size_t)(p)) & 1)
 #define to_fixnum(p) (((long)(p)) >> 1)
@@ -15,7 +17,6 @@ bool is_ifunc(vm_t *p_vm, value_t *);
 bool is_string(vm_t *p_vm, value_t *);
 bool is_cons(vm_t *p_vm, value_t *);
 bool is_macro(vm_t *p_vm, value_t *);
-bool is_symbol(vm_t *p_vm, value_t *);
 bool is_number(vm_t *p_vm, value_t *);
 bool is_bytecode(vm_t *p_vm, value_t *);
 bool is_pool(vm_t *p_vm, value_t *);
@@ -23,6 +24,15 @@ bool is_lambda(vm_t *p_vm, value_t *);
 bool is_null(vm_t *p_vm, value_t *);
 bool is_pid(vm_t *p_vm, value_t *);
 bool is_process(vm_t *p_vm, value_t *);
+
+inline bool is_symbol(vm_t *p_vm, value_t *p_val)
+{
+    if(p_val == p_vm->nil || is_fixnum(p_val)) {
+        return false;
+    }
+
+    return p_val->m_type == VT_SYMBOL;
+}
 
 value_t * value_create_number(vm_t *p_vm, int p_number);
 value_t * value_create_string(vm_t *p_vm, char const * const p_symbol);

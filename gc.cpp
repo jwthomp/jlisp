@@ -435,13 +435,11 @@ void sweep(vm_t *p_vm, value_t **p_heap, value_t **p_tenured_heap)
 			}
 		} else {
 #if 1
-//printf("free: %p -> %s\n", p, valuetype_print(p->m_type));
+//if(p->m_type != VT_STRING) {
+//	printf("free: %p -> %s\n", p, valuetype_print(p->m_type));
+//}
 
 			p->m_heapptr = NULL;
-			if (p->m_size > 0) {
-				p->m_data[0] = 0;
-			}
-
 			memset(p, 0xFE, sizeof(value_t) + p->m_size);
 			free(p);
 #else
@@ -520,6 +518,7 @@ unsigned long gc(vm_t *p_vm, int p_age)
 	if (p_age == 0) {
 		sweep(p_vm, &p_vm->m_heap_g0, NULL);
 	} else {
+		sweep(p_vm, &p_vm->m_heap_g1, NULL);
 		sweep(p_vm, &p_vm->m_heap_g0, &p_vm->m_heap_g1);
 	}
 

@@ -22,7 +22,7 @@ typedef struct stream_s {
     }
 
     char pop() {
-		pop(false);
+		return pop(false);
     }
 
     void restore() {

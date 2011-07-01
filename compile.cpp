@@ -165,7 +165,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-	//printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
+//	printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
 
 	assert(p_form && is_cons(p_vm, p_form));
 	value_t *func = p_form->m_cons[0];
@@ -176,7 +176,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 
 	if (is_symbol(p_vm, func) && is_symbol_name("QUOTE", func)) {
 		
-//printf("quote: %d", args->m_cons[0]->m_type); value_print(args->m_cons[0]); printf("\n");
+//printf("quote: %s", valuetype_print(args->m_type)); value_print(p_vm, args); printf("\n");
 
 		// is of form (args . nil) so only push car
 		assemble(OP_PUSH, args->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
@@ -408,6 +408,10 @@ value_t *execute(vm_t *p_vm, value_t *p_closure)
 
 value_t * eval(vm_t *p_vm, value_t * p_form)
 {
+	if (g_debug_display == true) {
+		printf("eval: "); value_print(p_vm, p_form), printf("\n");
+	}
+
 	value_t *lambda = compile(p_vm, p_vm->nil, list(p_vm, p_form));
 	value_t *closure =  make_closure(p_vm, lambda);
 

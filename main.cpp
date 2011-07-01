@@ -81,15 +81,20 @@ vm_print_stack(p_vm);
 
 	stream_destroy(strm);
 
+//vm_print_env(p_vm);
+//vm_print_stack(p_vm);
+//printf("sp: %lu ev: %lu\n", p_vm->m_sp, p_vm->m_ev);
 
 	gc(p_vm, 1);
-	printf("Memory: Free: %lu Allocated: %lu\n", mem_free(p_vm), mem_allocated(p_vm, true));
+//printf("---------------- gc ---------------\n");
+//vm_print_env(p_vm);
+//	printf("Memory: Free: %lu Allocated: %lu\n", mem_free(p_vm), mem_allocated(p_vm, true));
 }
 
 
 int main(int argc, char *arg[])
 {
-	vm_t *vm = vm_create(1024, NULL);
+	vm_t *vm = vm_create(1000000, NULL);
 	lib_init(vm);
 
 	value_t *vm_val = value_create(vm, VT_PROCESS, sizeof(vm_t *), false);
@@ -102,6 +107,8 @@ int main(int argc, char *arg[])
 	} else {
 
 #if 0
+	load_string(vm, "(load \"qsort\") (pivot (seq 1000))");
+#elif 0
 	value_t *vm1_val = value_create_process(vm, vm_val);
 	vm_t *vm1 = *(vm_t **)vm1_val->m_data;
 	int flip = 0;

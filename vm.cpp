@@ -55,6 +55,7 @@ vm_t *vm_create(unsigned long p_stack_size, value_t *p_vm_parent)
 	vm->m_pool_g0 = pool_alloc(0);
 	vm->m_static_heap = NULL;
 	vm->m_free_heap = NULL;
+	vm->m_symbol_table = NULL;
 	vm->m_sp = 0;
 	vm->m_csp = 0;
 	vm->m_bp = 0;
@@ -194,10 +195,47 @@ void vm_pop_env(vm_t *p_vm)
 	p_vm->m_ev--;
 }
 
+static void vm_print_env_bindings(vm_t *p_vm, value_t *p_bindings)
+{
+	if (p_bindings == NULL) {
+		return;
+	}
+
+	printf("%p] ", p_bindings); 
+	value_print(p_vm, p_bindings); 
+	printf("\n");
+
+	vm_print_env_bindings(p_vm, binding_get_next(p_bindings));
+
+	
+}
+
+void vm_print_env(vm_t *p_vm)
+{
+	for (unsigned long i = 0; i < p_vm->m_ev; i++) {
+		printf("Env[%lu -- %p]\n", i, p_vm->m_current_env[i]);
+		printf("Bindings\n");
+		vm_print_env_bindings(p_vm, environment_get_bindings(p_vm->m_current_env[i]));
+		printf("FBindings\n");
+		vm_print_env_bindings(p_vm, environment_get_fbindings(p_vm->m_current_env[i]));
+		printf("Parent\n");
+		vm_print_env_bindings(p_vm, environment_get_parent(p_vm->m_current_env[i]));
+	}
+}
+
 void vm_print_stack(vm_t *p_vm)
 {
 	for (unsigned long i = 0; i < p_vm->m_sp; i++) {
 		printf("S %lu] ", i); value_print(p_vm, p_vm->m_stack[i]); printf("\n");
+	}
+}
+
+void vm_print_symbols(vm_t *p_vm)
+{
+	value_t *sym = p_vm->m_symbol_table;
+	while(sym) {
+		printf("Sym] "); value_print(p_vm, sym); printf("\n");
+		sym = sym->m_next_symbol;
 	}
 }
 

@@ -17,6 +17,11 @@
 [ ] Tuples
 [ ] Matching
 
+[ ] Funcall should support multiple arguments so params are passed
+[ ] Write basic eval
+[ ] Write eval with macro expand
+
+
 
 [ ] Move top level kern_env and usr_env to their own heap and anything put there should get stuck onto that heap
 [ ] Allow processes to be freed

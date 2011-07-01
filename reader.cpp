@@ -47,6 +47,8 @@ value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 	bool non_numeric = false;
 	bool is_string = false;
 
+	atom[0] = 0;
+
 	// Check if this is a string
 	if(p_stream->pop() == '\"') {
 		is_string = true;
@@ -62,9 +64,8 @@ value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 			value_t *ret = 0;
 			if (is_string == true) {
 				ret = value_create_string(p_vm, atom);
-			} else if (non_numeric == false) {
+			} else if (non_numeric == false && (index != 1 || atom[0] != '-')) {
 				int i = atoi(atom);
-//				ret = value_create_number(p_vm, i);
 				ret = make_fixnum(i);
 			} else {
 				ret = value_create_symbol(p_vm, atom);
@@ -93,10 +94,9 @@ value_t *read_atom(vm_t *p_vm, stream_t *p_stream)
 	value_t *ret = 0;
 	if (is_string == true) {
 		ret = value_create_string(p_vm, atom);
-	} else if (non_numeric == false) {
+	} else if (non_numeric == false && (index != 1 || atom[0] != '-')) {
 		int i = atoi(atom);
 		ret = make_fixnum(i);
-//		ret = value_create_number(p_vm, i);
 	} else {
 		ret = value_create_symbol(p_vm, atom);
 	}
@@ -139,8 +139,10 @@ int reader(vm_t *p_vm, stream_t *p_stream, bool p_in_list)
 		} else if (val == '\'') {
 			value_t *qt = value_create_symbol(p_vm, "QUOTE");
 			vm_push(p_vm, qt);
+
 			process_next(p_vm, p_stream);
 			vm_list(p_vm, 2);
+
 			list_size++;
 		} else if (val == ')') {
 			assert(p_in_list);

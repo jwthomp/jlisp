@@ -22,27 +22,40 @@ typedef struct {
 	bool m_is_macro;
 } internal_func_def_t;
 
+value_t *print_vm(vm_t *p_vm);
+value_t *print_env(vm_t *p_vm);
+value_t *print_stack(vm_t *p_vm);
+value_t *print_symbols(vm_t *p_vm);
 value_t *print(vm_t *p_vm);
 value_t *atom(vm_t *p_vm);
 value_t *cons(vm_t *p_vm);
 value_t *car(vm_t *p_vm);
 value_t *cdr(vm_t *p_vm);
 value_t *call(vm_t *p_vm);
+value_t *minus(vm_t *p_vm);
 value_t *plus(vm_t *p_vm);
+value_t *less_then(vm_t *p_vm);
 value_t *status(vm_t *p_vm);
 value_t *eq(vm_t *p_vm);
 value_t *load(vm_t *p_vm);
 value_t *progn(vm_t *p_vm);
+value_t *fboundp(vm_t *p_vm);
 value_t *debug(vm_t *p_vm);
-value_t *progn(vm_t *p_vm);
 value_t *let(vm_t *p_vm);
 value_t *read(vm_t *p_vm);
 value_t *eval_lib(vm_t *p_vm);
 value_t *gc_lib(vm_t *p_vm);
 value_t *spawn_lib(vm_t *p_vm);
+value_t *type_of(vm_t *p_vm);
+value_t *symbol_name(vm_t *p_vm);
+value_t *seq(vm_t *p_vm);
 
 
 static internal_func_def_t g_ifuncs[] = {
+	{"PRINT-VM", print_vm, -1, false},
+	{"PRINT-ENV", print_env, -1, false},
+	{"PRINT-SP", print_stack, -1, false},
+	{"PRINT-SYMBOLS", print_symbols, -1, false},
 	{"PRINT", print, -1, false},
 	{"ATOM", atom, 1, false},
 	{"CONS", cons, 2, false},
@@ -50,9 +63,12 @@ static internal_func_def_t g_ifuncs[] = {
 	{"CDR", cdr, 1, false},
 	{"CALL", call, 2, false}, 				// ?
 	{"+", plus, 2, false},
+	{"-", minus, 2, false},
+	{"<", less_then, 2, false},
 	{"STATUS", status, 0, false},
 	{"EQ", eq, 2, false},
 	{"LOAD", load, 1, false},
+	{"FBOUNDP", fboundp, 1, false},
 	{"DEBUG", debug, 1, false},
 	{"PROGN", progn, -1, true},				// Broken (progn 'a 'b)
 	{"LET", let, -1, true},					// Broken
@@ -60,9 +76,12 @@ static internal_func_def_t g_ifuncs[] = {
 	{"EVAL", eval_lib, 1, false},
 	{"GC", gc_lib, 0, false},
 	{"SPAWN", spawn_lib, 0, false},
+	{"TYPE-OF", type_of, 1, false},
+	{"SYMBOL-NAME", symbol_name, 1, false},
+	{"SEQ", seq, 1, false},
 };
 
-#define NUM_IFUNCS 16
+#define NUM_IFUNCS 27
 
 value_t *gc_lib(vm_t *p_vm)
 {
@@ -128,8 +147,8 @@ value_t *let(vm_t *p_vm)
 	value_t *largs = car(p_vm, car(p_vm, p_vm->m_stack[p_vm->m_bp + 1]));
 	value_t *body = cdr(p_vm, car(p_vm, p_vm->m_stack[p_vm->m_bp + 1]));
 
-printf("let: args "); value_print(p_vm, largs); printf("\n");
-printf("let: body "); value_print(p_vm, largs); printf("\n");
+//printf("let: args "); value_print(p_vm, largs); printf("\n");
+//printf("let: body "); value_print(p_vm, largs); printf("\n");
 
 	// Break ((var val) (var val)) down into a list of args and vals
 	value_t *arg_list = p_vm->nil;
@@ -153,7 +172,7 @@ printf("let: body "); value_print(p_vm, largs); printf("\n");
 	vm_push(p_vm, val_list);
 	vm_cons(p_vm);
 	
-printf("let end: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
+//printf("let end: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
 	return p_vm->m_stack[p_vm->m_sp - 1];
 }
 
@@ -171,6 +190,87 @@ value_t *progn(vm_t *p_vm)
 	vm_cons(p_vm);
 //printf("end prognC: "); value_print(p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
 	return p_vm->m_stack[p_vm->m_sp - 1];
+}
+
+value_t *symbol_name(vm_t *p_vm)
+{
+	return p_vm->nil;
+}
+
+value_t *type_of(vm_t *p_vm)
+{
+	return p_vm->nil;
+}
+
+value_t *seq(vm_t *p_vm)
+{
+	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
+	verify(is_fixnum(arg), "Argument not a fixnum");
+
+	int i = to_fixnum(arg);
+
+	value_t *ret = value_create_cons(p_vm, make_fixnum(i--), p_vm->nil);
+	value_t *ret2 = ret;
+	
+	while(i) {
+		ret2->m_cons[1] = value_create_cons(p_vm, make_fixnum(i--), p_vm->nil);
+		ret2 = ret2->m_cons[1];
+	}
+
+
+	return ret;
+}
+
+
+
+value_t *print_vm(vm_t *p_vm)
+{
+	printf("sp: %lu ev: %lu\n", p_vm->m_sp, p_vm->m_ev);
+	return p_vm->nil;
+}
+
+value_t *print_env(vm_t *p_vm)
+{
+	vm_print_env(p_vm);
+	return p_vm->nil;
+}
+
+value_t *print_stack(vm_t *p_vm)
+{
+	vm_print_stack(p_vm);
+	return p_vm->nil;
+}
+
+value_t *print_symbols(vm_t *p_vm)
+{
+	vm_print_symbols(p_vm);
+	return p_vm->nil;
+}
+
+value_t *symbol_value(vm_t *p_vm)
+{
+	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
+
+	// Find and return the value of this symbol
+	value_t * ret = environment_binding_find(p_vm, arg, false);
+	if (ret == p_vm->nil) {
+		return ret;
+	} else {
+		return binding_get_value(ret);
+	}
+}
+
+value_t *fboundp(vm_t *p_vm)
+{
+	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
+
+	// Find and return the value of this symbol
+	value_t *ret =  environment_binding_find(p_vm, arg, true);
+	if (ret == p_vm->nil) {
+		return ret;
+	} else {
+		return binding_get_value(ret);
+	}
 }
 
 value_t *atom(vm_t *p_vm)
@@ -208,8 +308,8 @@ value_t *status(vm_t *p_vm)
 	printf("sp: %lu\n", p_vm->m_sp);
 
 	// Display memory
-printf("\n-------g0 Heap--------\n");
-	value_t *heap = p_vm->m_heap_g0;
+printf("\n-------static Heap--------\n");
+	value_t *heap = p_vm->m_static_heap;
 	int count = 0;
 	unsigned long mem = 0;
 	while(heap) {
@@ -219,7 +319,30 @@ printf("\n-------g0 Heap--------\n");
 			printf("%d] %u ", count, sizeof(heap));
 		} else {
 		mem += sizeof(value_t) + heap->m_size;
-		printf("%d] %lu ", count, sizeof(value_t) + heap->m_size);
+		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);
+		}
+		value_print(p_vm, heap);
+		printf("\n");
+		heap = heap->m_heapptr;
+	}
+
+printf("\n-------g0 Heap--------\n");
+	heap = p_vm->m_heap_g0;
+	count = 0;
+	mem = 0;
+	while(heap) {
+		count++;
+		if (is_string(p_vm, heap)) {
+			heap = heap->m_heapptr;
+			continue;
+		}
+
+		if (is_fixnum(heap)) {
+			mem += sizeof(heap);
+			printf("%d] %u ", count, sizeof(heap));
+		} else {
+		mem += sizeof(value_t) + heap->m_size;
+		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);
 		}
 		value_print(p_vm, heap);
 		printf("\n");
@@ -237,7 +360,7 @@ printf("\n-------g1 Heap--------\n");
 			printf("%d] %u ", count, sizeof(heap));
 		} else {
 		mem += sizeof(value_t) + heap->m_size;
-		printf("%d] %lu ", count, sizeof(value_t) + heap->m_size);
+		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);
 		}
 		value_print(p_vm, heap);
 		printf("\n");
@@ -318,14 +441,25 @@ value_t *cons(vm_t *p_vm)
 value_t *car(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
-	assert(is_cons(p_vm, first));
+
+	if(is_null(p_vm, first)) {
+		return first;
+	}
+
+verify(is_cons(p_vm, first) == true, "car'ing something not a cons %d", first->m_type);
+
 	return first->m_cons[0];
 }
 
 value_t *cdr(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
+
+	if(is_null(p_vm, first)) {
+		return first;
+	}
 	assert(is_cons(p_vm, first));
+
 	return first->m_cons[1];
 }
 
@@ -371,6 +505,32 @@ value_t *eq(vm_t *p_vm)
 	return p_vm->nil;
 }
 
+value_t *less_then(vm_t *p_vm)
+{
+	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
+	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
+
+	verify(is_fixnum(first), "argument X is not a number: %s", value_sprint(p_vm, first));
+	verify(is_fixnum(second), "argument Y is not a number: %s", value_sprint(p_vm, second));
+
+	if (to_fixnum(first) < to_fixnum(second)) {
+		return p_vm->t;
+	} else {
+		return p_vm->nil;
+	}
+}
+
+value_t *minus(vm_t *p_vm)
+{
+	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
+	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
+
+	verify(is_fixnum(first), "argument X is not a number: %s", value_sprint(p_vm, first));
+	verify(is_fixnum(second), "argument Y is not a number: %s", value_sprint(p_vm, second));
+
+	return make_fixnum(to_fixnum(first) - to_fixnum(second));
+}
+
 value_t *plus(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
@@ -403,8 +563,10 @@ void lib_init(vm_t *p_vm)
 		vm_bindf(p_vm, g_ifuncs[i].m_name, g_ifuncs[i].m_func, g_ifuncs[i].m_arg_count, g_ifuncs[i].m_is_macro);
 	}
 
+
 	p_vm->nil = value_create_symbol(p_vm, "NIL");
-	vm_bind(p_vm, "NIL", p_vm->nil);
+	bind_internal(p_vm, p_vm->nil, p_vm->nil, false, false);
+//	vm_bind(p_vm, "NIL", p_vm->nil);
 	p_vm->t = value_create_symbol(p_vm, "T");
 	vm_bind(p_vm, "T", p_vm->t);
 

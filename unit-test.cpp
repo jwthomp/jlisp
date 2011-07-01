@@ -11,6 +11,8 @@
 int tests_run = 0;
 
 
+// (eq (< 2 1) 't)
+
 // Tests are of form static char *test_foo() ...
 // Run them with mu_run_test(func_name)
 // Use mu_assert(msg, bool) to do assert tests. Returns on error

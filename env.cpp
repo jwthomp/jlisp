@@ -14,8 +14,12 @@ value_t *environment_binding_find(vm_t *p_vm, value_t * p_symbol, bool p_func)
 
 value_t *environment_binding_find(vm_t *p_vm, value_t * p_env, value_t * p_symbol, bool p_func)
 {
-	assert(p_env && is_environment(p_vm, p_env));
-	assert(p_symbol && is_symbol(p_vm, p_symbol));
+	if (p_env == p_vm->nil || is_fixnum(p_env) || p_env == NULL || p_env->m_type != VT_ENVIRONMENT) {
+        return NULL;
+    }
+	if (p_symbol == p_vm->nil || is_fixnum(p_symbol) || p_symbol == NULL || p_symbol->m_type != VT_SYMBOL) {
+        return NULL;
+    }
 
 
 	while(p_env) {
@@ -38,5 +42,23 @@ value_t *environment_binding_find(vm_t *p_vm, value_t * p_env, value_t * p_symbo
 	}
 
 	return NULL;
+}
+
+value_t *environment_get_bindings(value_t *p_env)
+{
+	environment_t *env = (environment_t *)p_env->m_data;
+	return env->m_bindings;
+}
+
+value_t *environment_get_fbindings(value_t *p_env)
+{
+	environment_t *env = (environment_t *)p_env->m_data;
+	return env->m_function_bindings;
+}
+
+value_t *environment_get_parent(value_t *p_env)
+{
+	environment_t *env = (environment_t *)p_env->m_data;
+	return env->m_parent;
 }
 

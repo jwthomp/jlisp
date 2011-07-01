@@ -57,6 +57,8 @@ typedef struct vm_s {
 	value_t *m_heap_g1;
 	value_t *m_free_heap;
 
+	value_t *m_symbol_table;
+
 	unsigned long m_sp;
 	unsigned long m_bp;
 	unsigned long m_ev;
@@ -81,6 +83,10 @@ void vm_push(vm_t *p_vm, value_t *p_value);
 void vm_push_env(vm_t *p_vm, value_t *p_env);
 void vm_pop_env(vm_t *p_vm);
 
+void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func, bool p_top);
+
 void vm_print_stack(vm_t *p_vm);
+void vm_print_env(vm_t *p_vm);
+void vm_print_symbols(vm_t *p_vm);
 
 #endif /* __VM_H_ */

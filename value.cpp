@@ -19,7 +19,7 @@ typedef struct {
 valuetype_config_data_t g_valuetype_cfg[] = {
 	{"VT_NUMBER", MALLOC_MARK_SWEEP},
 	{"VT_POOL", MALLOC_MARK_SWEEP},
-	{"VT_SYMBOL", STATIC},
+	{"VT_SYMBOL", STATIC},		// Right now this needs to be static as it's in the symbol table
 	{"VT_INTERNAL_FUNCTION", STATIC},
 	{"VT_CONS", MALLOC_MARK_SWEEP},
 	{"VT_BYTECODE", MALLOC_MARK_SWEEP},
@@ -103,10 +103,23 @@ value_t * value_create_string(vm_t *p_vm, char const * const p_string)
 
 value_t * value_create_symbol(vm_t *p_vm, char const * const p_symbol)
 {
+
+	// See if it already exists..
+	value_t *sym = p_vm->m_symbol_table;
+	while(sym) {
+		if (is_symbol_name(p_symbol, sym) == true) {
+			return sym;
+		}
+		sym = sym->m_next_symbol;
+	}
+	
+
 	value_t *string = value_create_static_string(p_vm, p_symbol);
-	value_t *sym =  value_create(p_vm, VT_SYMBOL, sizeof(value_t *) * 2, true);
+	sym =  value_create(p_vm, VT_SYMBOL, sizeof(value_t *) * 2, true);
 	sym->m_cons[0] = string;
 	sym->m_cons[1] = p_vm->voidobj;
+	sym->m_next_symbol = p_vm->m_symbol_table;
+	p_vm->m_symbol_table = sym;
 
 	return sym;
 }
@@ -238,13 +251,14 @@ bool value_equal(value_t *p_value_1, value_t *p_value_2)
 		return to_fixnum(p_value_1) == to_fixnum(p_value_2);
 	}
 
+	if (p_value_1->m_type != p_value_2->m_type) {
+		return false;
+	}
+
 	if (p_value_1->m_size != p_value_2->m_size) {
 		return false;
 	}
 
-	if (p_value_1->m_type != p_value_2->m_type) {
-		return false;
-	}
 
 	switch(p_value_1->m_type) {
 		case VT_NUMBER:
@@ -259,9 +273,7 @@ bool value_equal(value_t *p_value_1, value_t *p_value_2)
 		}
 		case VT_SYMBOL:
 		{
-			value_t *str1 = p_value_1->m_cons[0];
-			value_t *str2 = p_value_2->m_cons[0];
-			return value_equal(str1, str2);
+			return p_value_1 == p_value_2;
 		}
 		default:
 			break;
@@ -375,9 +387,26 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 				value_sprint(p_vm, ((binding_t *)p_value->m_data)->m_key)->m_data); 
 			break;
 		}
-		default:
-			printf("no printer for value type: %d\n", p_value->m_type);
+		case VT_VOID:
+		{
+			snprintf(ret->m_data, STRING_SIZE, "PROCESS <%p>",  p_value);
 			break;
+		}
+		case VT_PROCESS:
+		{
+			snprintf(ret->m_data, STRING_SIZE, "PROCESS <%p>",  p_value);
+			break;
+		}
+		case VT_PID:
+		{
+			snprintf(ret->m_data, STRING_SIZE, "PROCESS <%p>",  p_value);
+			break;
+		}
+		default:
+		{
+			snprintf(ret->m_data, STRING_SIZE, "no printer for value type: %d\n", p_value->m_type);
+			break;
+		}
 	};
 
 	return ret;
@@ -389,14 +418,16 @@ bool is_null(vm_t *p_vm, value_t *p_val)
 }
 
 
+#if 0
 bool is_symbol(vm_t *p_vm, value_t *p_val)
 {
-	if(is_fixnum(p_val) || is_null(p_vm, p_val)) {
+	if(p_val == p_vm->nil || is_fixnum(p_val)) {
 		return false;
 	}
 
 	return p_val->m_type == VT_SYMBOL;
 }
+#endif
 
 bool is_number(vm_t *p_vm, value_t *p_val)
 {

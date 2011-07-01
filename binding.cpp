@@ -10,25 +10,45 @@
 
 value_t * binding_find(vm_t *p_vm, value_t * p_bindings, value_t *p_key)
 {
-	if (p_bindings == NULL) {
-		return NULL;
-	}
+//	if (p_key == p_vm->nil || is_fixnum(p_key) || p_key->m_type != VT_SYMBOL) {
+//		return NULL;
+//	}
 
-	if (is_binding(p_vm, p_bindings) == false) {
-		return NULL;
-	}
-
-	if (is_symbol(p_vm, p_key) == false) {
-		return NULL;
-	}
-
-	binding_t *bind = (binding_t *)p_bindings->m_data;
-
-	if (is_symbol(p_vm, bind->m_key)) {
-		if (value_equal(bind->m_key, p_key)) {
-			return p_bindings;
+	value_t *cur_bindings = p_bindings;
+	while(cur_bindings) {
+		if (cur_bindings == NULL || cur_bindings == p_vm->nil || is_fixnum(cur_bindings)) {
+			return NULL;
 		}
-	}
 
-	return binding_find(p_vm, bind->m_next, p_key);
+		if (cur_bindings->m_type != VT_BINDING) {
+			return NULL;
+		}
+
+		binding_t *bind = (binding_t *)cur_bindings->m_data;
+
+		if (bind->m_key == p_key) {
+			return cur_bindings;
+		}
+
+		cur_bindings = bind->m_next;
+	}
 }
+
+value_t *binding_get_value(value_t *p_binding)
+{
+	binding_t *bind = (binding_t *)p_binding->m_data;
+	return bind->m_value;
+}
+
+value_t *binding_get_key(value_t *p_binding)
+{
+	binding_t *bind = (binding_t *)p_binding->m_data;
+	return bind->m_key;
+}
+
+value_t *binding_get_next(value_t *p_binding)
+{
+	binding_t *bind = (binding_t *)p_binding->m_data;
+	return bind->m_next;
+}
+

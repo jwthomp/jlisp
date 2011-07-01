@@ -39,6 +39,8 @@ typedef struct value_s {
 	struct value_s *m_heapptr;
 	bool m_in_use;
 
+	struct value_s *m_next_symbol;
+
 	union {
 		char m_data[0];
 		struct value_s *m_cons[0];
