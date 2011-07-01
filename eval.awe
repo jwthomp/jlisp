@@ -1,0 +1,11 @@
+"Writing eval.."
+"First just eval something basic"
+
+(defun eval2 (e)
+    (cond
+        ((atom e) (symbol-name e))
+		((atom (car e))
+			(cond
+				(fboundp (funcall (fboundp e))
+    )))))
+
