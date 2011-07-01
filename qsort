@@ -1,0 +1,40 @@
+(defun cadr (a) (car (cdr a)))
+(defun null (x)
+  (eq x '()))
+
+
+(defun append (x y)
+  (cond ((null x) y)
+        ('t (cons (car x) (append (cdr x) y)))))
+
+(defun list (x y)
+    (cond
+        ((eq y 'nil) (cons x y))
+        ('t (cons x (cons y '())))))
+
+
+
+
+(defun looper (list elem left right)
+	(cond 
+		((eq list 'nil) (cons left right))
+		((< (car list) elem) (looper (cdr list) elem (cons (car list) left) right))
+		('t (looper (cdr list) elem left (cons (car list) right)))
+	))
+
+
+(defun partition (list elem) 
+	(looper list elem 'nil 'nil)
+)
+
+(defun make-safelist (elem)
+	(cond
+		((eq elem 'nil) elem)
+		('t (list elem 'nil))))
+
+(defun pivot (list) 
+	(cond 
+		(list (let ((result (partition (cdr list) (car list)))) 
+				(append (pivot (car result)) (append (make-safelist (car list)) (pivot (cdr result))))))
+		('t 'nil)))
+
