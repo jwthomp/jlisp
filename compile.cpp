@@ -144,6 +144,7 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			push_opcode(p_opcode, (int)(long)p_arg, p_bytecode, p_bytecode_index);
 			break;
 		}
+		case OP_SET_PROC_STATUS:
 		case OP_DUP:
 			verify(false, "op_dup are not supported. Write the code");
 			break;

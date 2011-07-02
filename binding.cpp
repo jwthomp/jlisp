@@ -32,6 +32,8 @@ value_t * binding_find(vm_t *p_vm, value_t * p_bindings, value_t *p_key)
 
 		cur_bindings = bind->m_next;
 	}
+
+	return NULL;
 }
 
 value_t *binding_get_value(value_t *p_binding)
