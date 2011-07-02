@@ -97,13 +97,30 @@ void vm_destroy(vm_t *p_vm)
 	free(p_vm);
 }
 
-void bind_dynamic(vm_t *p_vm, value_t *p_symbol, value_t *pvalue)
-{
-assert(!"BIND DYNAMIC NOT SUPPORTED YET");	
-}
 
-void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func, bool p_top)
+void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func, bool p_dynamic)
 {
+	if (p_dynamic == true) {
+		if (p_func == true) {
+			p_symbol->m_cons[2] = value_create_cons(p_vm, p_value, p_vm->voidobj);
+		} else {
+			p_symbol->m_cons[1] = value_create_cons(p_vm, p_value, p_vm->voidobj);
+		}
+		return;
+	}
+
+	if (p_func == true) {
+		if (p_symbol->m_cons[2] != p_vm->voidobj) {
+			p_symbol->m_cons[2] = value_create_cons(p_vm, p_value, p_symbol->m_cons[2]);
+			return;
+		}
+	} else {
+		if (p_symbol->m_cons[1] != p_vm->voidobj) {
+			p_symbol->m_cons[1] = value_create_cons(p_vm, p_value, p_symbol->m_cons[1]);
+			return;
+		}
+	}
+
 	value_t *binding = value_create_binding(p_vm, p_symbol, p_value);
 	binding_t *bind = (binding_t *)binding->m_data;
 
@@ -111,12 +128,7 @@ void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func,
 //value_print(bind->m_value); printf("\n");
 
 	environment_t *env = NULL;
-	if (p_top) {
-		env = (environment_t *)p_vm->m_user_env->m_data;
-		//env = (environment_t *)p_vm->m_current_env[0]->m_data;
-	} else {
-		env = (environment_t *)(p_vm->m_current_env[p_vm->m_ev - 1])->m_data;
-	}
+	env = (environment_t *)(p_vm->m_current_env[p_vm->m_ev - 1])->m_data;
 
 	if (p_func == true) {
 		bind->m_next = env->m_function_bindings;
@@ -129,25 +141,25 @@ void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func,
 
 
 // TODO - Bind calls should replace existing bindings
-void vm_bind(vm_t *p_vm, char const *p_symbol, value_t *p_value)
+void vm_bind(vm_t *p_vm, char const *p_symbol, value_t *p_value, bool p_dynamic)
 {
 	value_t *sym = value_create_symbol(p_vm, p_symbol);
-	bind_internal(p_vm, sym, p_value, false, false);
+	bind_internal(p_vm, sym, p_value, false, p_dynamic);
 }
 
 // TODO - Bind calls should replace existing bindings
-void vm_bindf(vm_t *p_vm, char const *p_symbol, vm_func_t p_func, unsigned long p_param_count, bool p_is_macro)
+void vm_bindf(vm_t *p_vm, char const *p_symbol, vm_func_t p_func, unsigned long p_param_count, bool p_is_macro, bool p_dynamic)
 {
 	value_t *int_func = value_create_internal_func(p_vm, p_func, p_param_count, p_is_macro);
 	value_t *sym = value_create_symbol(p_vm, p_symbol);
-	bind_internal(p_vm, sym, int_func, true, false);
+	bind_internal(p_vm, sym, int_func, true, p_dynamic);
 
 }
 
-void vm_bindf(vm_t *p_vm, char const *p_symbol, value_t *p_code)
+void vm_bindf(vm_t *p_vm, char const *p_symbol, value_t *p_code, bool p_dynamic)
 {
 	value_t *sym = value_create_symbol(p_vm, p_symbol);
-	bind_internal(p_vm, sym, p_code, true, false);
+	bind_internal(p_vm, sym, p_code, true, p_dynamic);
 }
 
 // Pull the top two elements off the stack and replace them with a cons value
@@ -234,7 +246,7 @@ void vm_print_symbols(vm_t *p_vm)
 {
 	value_t *sym = p_vm->m_symbol_table;
 	while(sym) {
-		printf("Sym] "); value_print(p_vm, sym); printf("\n");
+		printf("Sym] "); value_print(p_vm, sym); printf(" %p\n", sym);
 		sym = sym->m_next_symbol;
 	}
 }
@@ -297,14 +309,22 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 		p_nargs++;
 	}
 
+	// Save old dynamic values
+	value_t *dyn_store = p_vm->nil;
+
 	int bp_offset = 0;
 	while(p && p != p_vm->nil && p->m_cons[0]) {
-		if (strcmp(p->m_cons[0]->m_data, "&rest")) {
+		if (strcmp(p->m_cons[0]->m_data, "&REST")) {
 			value_t *stack_val = p_vm->m_stack[p_vm->m_bp + bp_offset];
+			value_t *sym = p->m_cons[0];
 
-//printf("binding: %d ", p->m_cons[0]->m_type); value_print(p->m_cons[0]); printf (" to: "); value_print(stack_val); printf("\n");
+printf("binding: %d ", p->m_cons[0]->m_type); value_print(p_vm, p->m_cons[0]); printf (" to: "); value_print(p_vm, stack_val); printf("\n");
 
-			vm_bind(p_vm, p->m_cons[0]->m_cons[0]->m_data, stack_val);
+			if (is_symbol_dynamic(p_vm, sym) == true) {
+				dyn_store = value_create_cons(p_vm, sym, dyn_store);
+			}
+
+			vm_bind(p_vm, sym->m_cons[0]->m_data, stack_val, false);
 
 			bp_offset++;
 		}
@@ -356,7 +376,7 @@ vm_print_stack(p_vm);
 			{
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
 				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
-				bind_dynamic(p_vm, sym, value);
+				bind_internal(p_vm, sym, value, false, true);
 				p_vm->m_ip++;
 				break;
 			}
@@ -364,7 +384,7 @@ vm_print_stack(p_vm);
 			{
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
 				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
-				bind_dynamic(p_vm, sym, value);
+				bind_internal(p_vm, sym, value, true, true);
 				p_vm->m_ip++;
 				break;
 			}
@@ -418,19 +438,25 @@ vm_print_stack(p_vm);
 			}
 			case OP_LOAD:
 			{
-				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], false);
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+				if (is_symbol_dynamic(p_vm, sym)) {
+					p_vm->m_stack[p_vm->m_sp++] = car(p_vm, sym->m_cons[1]);
+					p_vm->m_ip++;
+				} else {
+					value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], false);
 
-				verify(b && is_binding(p_vm, b), "The variable %s is unbound.\n", 
-					(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
+					verify(b && is_binding(p_vm, b), "The variable %s is unbound.\n", 
+						(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
 
 //	printf("op_load: key: %d '", ((value_t **)p_pool->m_data)[p_arg]->m_type); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("'\n");
 
 
-				// Push it onto the stack
-				binding_t *bind = (binding_t *)b->m_data;
+					// Push it onto the stack
+					binding_t *bind = (binding_t *)b->m_data;
 
-				p_vm->m_stack[p_vm->m_sp++] = bind->m_value;
-				p_vm->m_ip++;
+					p_vm->m_stack[p_vm->m_sp++] = bind->m_value;
+					p_vm->m_ip++;
+				}
 				break;
 			}
 			case OP_LOADF:
@@ -438,15 +464,23 @@ vm_print_stack(p_vm);
 //	printf("loadf: "); value_print(p_vm, ((value_t **)p_pool->m_data)[p_arg]); printf("\n");
 //	printf("ev: %lu\n", p_vm->m_ev);
 
-				value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
 
-				verify(b != NULL, "The variable %s is not bound to a function.\n", 
-					(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
+				if (is_symbol_function_dynamic(p_vm, sym)) {
+					p_vm->m_stack[p_vm->m_sp++] = car(p_vm, sym->m_cons[2]);
+					p_vm->m_ip++;
+				} else {
+					value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
 
-				// Push it onto the stack
-				binding_t *bind = (binding_t *)b->m_data;
-				p_vm->m_stack[p_vm->m_sp++] = bind->m_value;
-				p_vm->m_ip++;
+					verify(b != NULL, "The variable %s is not bound to a function.\n", 
+						(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
+
+					// Push it onto the stack
+					binding_t *bind = (binding_t *)b->m_data;
+					p_vm->m_stack[p_vm->m_sp++] = bind->m_value;
+					p_vm->m_ip++;
+				}
+
 				break;
 			}
 			case OP_CALL:
@@ -555,6 +589,14 @@ vm_print_stack(p_vm);
 	}
 
 //printf("left active pool\n");
+
+	// Restore any dynamic bindings
+	while(dyn_store != p_vm->nil) {
+		value_t *sym = car(p_vm, dyn_store);
+		sym->m_cons[1] = sym->m_cons[1]->m_cons[1];
+//		printf("dyn binding: "); value_print(p_vm, sym); printf("\n");
+		dyn_store = cdr(p_vm, dyn_store);
+	}
 
 
 	// Consume the stack back through the function name

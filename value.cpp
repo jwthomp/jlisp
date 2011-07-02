@@ -55,6 +55,7 @@ value_t * value_create(vm_t *p_vm, value_type_t p_type, unsigned long p_size, bo
 	v->m_age = 0;
 	v->m_alloc_type = ac;
 	v->m_in_use = false;
+	v->m_next_symbol = NULL;
 	memset(v->m_data, 0, p_size);
 
 //printf("value_create: %p %s\n", v, valuetype_print(p_type));
@@ -115,9 +116,10 @@ value_t * value_create_symbol(vm_t *p_vm, char const * const p_symbol)
 	
 
 	value_t *string = value_create_static_string(p_vm, p_symbol);
-	sym =  value_create(p_vm, VT_SYMBOL, sizeof(value_t *) * 2, true);
+	sym =  value_create(p_vm, VT_SYMBOL, sizeof(value_t *) * 3, true);
 	sym->m_cons[0] = string;
 	sym->m_cons[1] = p_vm->voidobj;
+	sym->m_cons[2] = p_vm->voidobj;
 	sym->m_next_symbol = p_vm->m_symbol_table;
 	p_vm->m_symbol_table = sym;
 
@@ -183,7 +185,7 @@ int count_lambda_args(vm_t *p_vm, value_t *p_lambda)
 
 // value_print(p->m_cons[0]); printf("\n");
 
-		if (is_symbol(p_vm, p->m_cons[0]) && is_symbol_name("&rest", p)) {
+		if (is_symbol(p_vm, p->m_cons[0]) && is_symbol_name("&REST", p)) {
 // printf("HAS REST\n"); 
 			has_rest = true;
 			nargs--;

@@ -139,12 +139,23 @@ static value_t *retain_static(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new)
 			break;
 
 		case VT_CLOSURE:
-		case VT_SYMBOL:
 		case VT_CONS:
 			ret = retain(p_vm, p_value->m_cons[0], p_pool_new);
 			p_value->m_cons[0] = ret;
 			ret = retain(p_vm, p_value->m_cons[1], p_pool_new);
 			p_value->m_cons[1] = ret;
+			break;
+		case VT_SYMBOL:
+			ret = retain(p_vm, p_value->m_cons[0], p_pool_new);
+			p_value->m_cons[0] = ret;
+			ret = retain(p_vm, p_value->m_cons[1], p_pool_new);
+			p_value->m_cons[1] = ret;
+			ret = retain(p_vm, p_value->m_cons[2], p_pool_new);
+			p_value->m_cons[2] = ret;
+			if (p_value->m_next_symbol != NULL) {
+				ret = retain(p_vm, p_value->m_next_symbol, p_pool_new);
+				p_value->m_next_symbol = ret;
+			}
 			break;
 		default:
 			assert(!"SHOULD NEVER GET HERE");
@@ -218,12 +229,23 @@ static value_t *retain_mark_sweep(vm_t *p_vm, value_t *p_value, pool_t *p_pool_n
 			break;
 
 		case VT_CLOSURE:
-		case VT_SYMBOL:
 		case VT_CONS:
 			ret = retain(p_vm, p_value->m_cons[0], p_pool_new);
 			p_value->m_cons[0] = ret;
 			ret = retain(p_vm, p_value->m_cons[1], p_pool_new);
 			p_value->m_cons[1] = ret;
+			break;
+		case VT_SYMBOL:
+			ret = retain(p_vm, p_value->m_cons[0], p_pool_new);
+			p_value->m_cons[0] = ret;
+			ret = retain(p_vm, p_value->m_cons[1], p_pool_new);
+			p_value->m_cons[1] = ret;
+			ret = retain(p_vm, p_value->m_cons[2], p_pool_new);
+			p_value->m_cons[2] = ret;
+			if (p_value->m_next_symbol != NULL) {
+				ret = retain(p_vm, p_value->m_next_symbol, p_pool_new);
+				p_value->m_next_symbol = ret;
+			}
 			break;
 		default:
 			assert(!"SHOULD NEVER GET HERE");
@@ -316,12 +338,23 @@ static value_t *retain_copy_compact(vm_t *p_vm, value_t *p_value, pool_t *p_pool
 			break;
 
 		case VT_CLOSURE:
-		case VT_SYMBOL:
 		case VT_CONS:
 			ret = retain(p_vm, p_value->m_cons[0], p_pool_new);
 			new_value->m_cons[0] = ret;
 			ret = retain(p_vm, p_value->m_cons[1], p_pool_new);
 			new_value->m_cons[1] = ret;
+			break;
+		case VT_SYMBOL:
+			ret = retain(p_vm, p_value->m_cons[0], p_pool_new);
+			p_value->m_cons[0] = ret;
+			ret = retain(p_vm, p_value->m_cons[1], p_pool_new);
+			p_value->m_cons[1] = ret;
+			ret = retain(p_vm, p_value->m_cons[2], p_pool_new);
+			p_value->m_cons[2] = ret;
+			if (p_value->m_next_symbol != NULL) {
+				ret = retain(p_vm, p_value->m_next_symbol, p_pool_new);
+				p_value->m_next_symbol = ret;
+			}
 			break;
 		default:
 			assert(!"SHOULD NEVER GET HERE");
@@ -340,7 +373,7 @@ static value_t *retain(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new)
 		return p_value;
 	}
 
-//printf("retain: %p %lu\n", p_value, p_value->m_alloc_type);
+//printf("retain: %p %d\n", p_value, p_value->m_alloc_type);
 
 	switch (p_value->m_alloc_type) {
 		case STATIC:
@@ -366,9 +399,13 @@ g_count = 0;
 
 //printf("GC FIRED: sp: %lu csp: %lu ev: %ld gc: %d\n", p_vm->m_sp, p_vm->m_csp, p_vm->m_ev, g_count);
 
-//printf("IN ev: %p\n",  p_vm->m_current_env[p_vm->m_ev - 1]);
 	
 	value_t *ret;
+	ret = retain(p_vm, p_vm->m_symbol_table, pool_new);
+	p_vm->m_symbol_table = ret;
+
+//printf("IN ev: %p\n",  p_vm->m_current_env[p_vm->m_ev - 1]);
+
 	for(unsigned long i = 0; i < p_vm->m_ev; i++) {
 		ret = retain(p_vm, p_vm->m_current_env[i], pool_new);
 		p_vm->m_current_env[i] = ret;
@@ -419,6 +456,7 @@ void sweep(vm_t *p_vm, value_t **p_heap, value_t **p_tenured_heap)
 	// traverse old heap
 	for(;p;p = safe) {
 		safe = p->m_heapptr;
+
 
 		assert(p->m_alloc_type != STATIC);
 
@@ -515,6 +553,8 @@ unsigned long gc(vm_t *p_vm, int p_age)
 
 	do_gc(p_vm, p_age, size);
 
+	
+
 	if (p_age == 0) {
 		sweep(p_vm, &p_vm->m_heap_g0, NULL);
 	} else {
@@ -522,6 +562,11 @@ unsigned long gc(vm_t *p_vm, int p_age)
 		sweep(p_vm, &p_vm->m_heap_g0, &p_vm->m_heap_g1);
 	}
 
+	value_t *hp = p_vm->m_static_heap;
+	while(hp) {
+		hp->m_in_use = false;
+		hp = hp->m_heapptr;
+	}
 
 	return mem_allocated(p_vm, true);
 

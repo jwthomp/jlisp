@@ -17,6 +17,17 @@
 [ ] Tuples
 [ ] Matching
 
+
+[ ] Dynamic scope
+		[/] Leaving closure that added to scope should remove it
+			[ ] What about when someone does defparameter or setq inside of closure?
+		[X] Fix gc bug
+		[ ] Fix setq
+
+[ ] Packages
+[ ] Loadf symbols that are undefined, and load binding when they are
+
+
 [ ] Funcall should support multiple arguments so params are passed
 [ ] Write basic eval
 [ ] Write eval with macro expand
@@ -108,72 +119,3 @@ read ->
 [X] Write compiler
 [X] Implement Closure lisp object
 [X] Implement Lambda lisp object
-		parameter list (list of symbols)
-		body (bytecode)
-		pool (literal lisp objects that the body refers to
-
-	Compiling is
-		Create a new lambda object
-		Verify the parameter list and assign it
-		Compile the body, which creates the pool
-		Return the the lambda object
-
-	compile(lispobj *plist, lispobj *body) {
-		labmda_t m;
-		for_each(p in plist) { assert(is_symbol(p));}
-		m.plist = plist;
-		for_each(p in body) {compile_form(&m, p); }
-		return make_lambda-lisp_object(&m);
-	}
-
-... eval basically amounts to:
-lispobj *lambda = compile(nil, list(body));
-lispobj *closure = make_closure(lambda, current_environment);
-run(closure);
-
-compile_form(lisp_obj* p)
-{
-	if (islist(p)) compile_function(p)
-	elseif (issymbol(p)) assembly(LOAD, p);
-	else assemble(PUSH, p);
-}
-
-compile_function(lisp_obj *p)
-{
-	lispobj *f = car(p);
-	lispobj *args = cdr(p);
-	compile_form(f);
-	int argc = compile_args(args);
-	assemble(CALL, argc);
-}
-
-pool is array of value_t's
-bytecode is an array of numbers
-push 10 means push pool[10] onto stack
-jump 30 means set the pc to index 30 of the bytecode
-call 2 means..
-loadf 20 means load the function for symbol at pool[20]
-
-
-
-push_index(int i)
-stack[sp++] = stack[(i < 0) ? sp + i ; bp + i]
-
-let;s you do -1, etc..
-
-void replace(int i); // i acts like push_index, but makes i the top of the stack, replacing whatever's there with the current top
-	replace(int i) { i += (i<0) ? sp : bp; stack[i++] = stack[sp-1]; sp = i;
-
-void uncons(int i); // again, i is the same as push_index
-	lispobj**p = &stack[...];
-	stack[sp++] = car(*p);
-	*p = cdr(*p);
-
-special operators take a different compilation path
-
-compile_quote(lispobj * args)
-{
-	lisobj *x = car(args);
-	assert(is_nil(cdr(args))) // syntax check
-	assemble (PUSH, x);
-}

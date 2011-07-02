@@ -25,34 +25,44 @@ value_t * eval(vm_t *p_vm, value_t * p_form);
 bool is_form_macro(vm_t *p_vm, value_t *p_value)
 {
 	value_t *v_car = p_value->m_cons[0];
+
+//printf("is_form_macro"); value_print(p_vm, v_car); printf("\n");
 	
 	if (is_symbol(p_vm, v_car) == false) {
 		return false;
 	}
 
-	value_t *v_bind = environment_binding_find(p_vm, v_car, true);
+	value_t *func;
 
-	if (v_bind == NULL) {
-		return false;
+	if (v_car->m_cons[2] != p_vm->voidobj) {
+		func = car(p_vm, v_car->m_cons[2]);
+	} else {
+		value_t *v_bind = environment_binding_find(p_vm, v_car, true);
+
+		if (v_bind == NULL) {
+			return false;
+		}
+
+		verify(is_binding(p_vm, v_bind), "is_form_macro: found binding is not a binding\n");
+
+		binding_t *bind = (binding_t *)v_bind->m_data;
+		func = bind->m_value;
 	}
 
-	verify(is_binding(p_vm, v_bind), "is_form_macro: found binding is not a binding\n");
-
-	binding_t *bind = (binding_t *)v_bind->m_data;
-
-	if (bind && bind->m_value && is_closure(p_vm, bind->m_value)) {
-		value_t *v_lambda = bind->m_value->m_cons[1];
+	if (is_closure(p_vm, func)) {
+		value_t *v_lambda = func->m_cons[1];
 		verify(v_lambda && is_lambda(p_vm, v_lambda), "is_form_macro: found binding value is not a lambda\n");
 		lambda_t *l = (lambda_t *)v_lambda->m_data;
 		if (l->m_is_macro) {
 			return true;
 		}
-	} else if (bind && bind->m_value && is_ifunc(p_vm, bind->m_value)) {
-		value_t *ifunc = bind->m_value;
-		if (*(bool *)&ifunc->m_data[sizeof(vm_func_t) + 4] == true) {
+	} else if (is_ifunc(p_vm, func)) {
+		if (*(bool *)&func->m_data[sizeof(vm_func_t) + 4] == true) {
 			return true;
 		}
 	}
+
+		
 
 	// See if 
 	return false;
@@ -60,6 +70,7 @@ bool is_form_macro(vm_t *p_vm, value_t *p_value)
 
 int macro_expand_1(vm_t *p_vm, value_t **p_value)
 {
+//printf("macro_expand_1: "); value_print(p_vm, *p_value); printf("\n");
 	if (is_cons(p_vm, *p_value) && is_form_macro(p_vm, *p_value)) {
 //printf("Found macro, compiling\n");
 		(*p_value)->m_cons[0]->m_type = VT_MACRO;
@@ -117,6 +128,8 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 		case OP_BINDG:
 		case OP_BINDF:
 		case OP_LAMBDA:
+		case OP_BINDD:
+		case OP_BINDDF:
 		{
 			int index = push_pool(p_vm, (value_t *)p_arg, p_pool, p_pool_index);
 			push_opcode(p_opcode, index, p_bytecode, p_bytecode_index);
@@ -131,8 +144,6 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 			push_opcode(p_opcode, (int)p_arg, p_bytecode, p_bytecode_index);
 			break;
 		}
-		case OP_BINDD:
-		case OP_BINDDF:
 		case OP_DUP:
 			verify(false, "op_dup are not supported. Write the code");
 			break;
@@ -259,7 +270,7 @@ assert(is_cons(p_vm, args->m_cons[0]));
 		value_t *form = args->m_cons[1]->m_cons[0];
 
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
-		assemble(OP_BINDG, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+		assemble(OP_BINDD, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 	} else if (is_symbol(p_vm, func) && is_symbol_name("DEFMACRO", func)) {
 		value_t *sym = args->m_cons[0];
@@ -293,7 +304,7 @@ assert(is_cons(p_vm, args->m_cons[0]));
 		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 		
 		// bindf symbol
-		assemble(OP_BINDGF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+		assemble(OP_BINDDF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
 

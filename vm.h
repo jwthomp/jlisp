@@ -74,16 +74,16 @@ typedef value_t *(*vm_func_t)(vm_t *p_vm);
 vm_t *vm_create(unsigned long p_stack_size, value_t *p_vm_parent);
 void vm_destroy(vm_t *);
 void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_arg_count );
-void vm_bind(vm_t *p_vm, char const *p_symbol, value_t *p_value);
-void vm_bindf(vm_t *p_vm, char const *p_symbol, vm_func_t p_func, unsigned long p_param_count, bool p_is_macro);
-void vm_bindf(vm_t *p_vm, char const *p_symbol, value_t *p_func);
+void vm_bind(vm_t *p_vm, char const *p_symbol, value_t *p_value, bool p_dynamic);
+void vm_bindf(vm_t *p_vm, char const *p_symbol, vm_func_t p_func, unsigned long p_param_count, bool p_is_macro, bool p_dynamic);
+void vm_bindf(vm_t *p_vm, char const *p_symbol, value_t *p_func, bool p_dynamic);
 void vm_cons(vm_t *p_vm);
 void vm_list(vm_t *p_vm, int p_list_size);
 void vm_push(vm_t *p_vm, value_t *p_value);
 void vm_push_env(vm_t *p_vm, value_t *p_env);
 void vm_pop_env(vm_t *p_vm);
 
-void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func, bool p_top);
+void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func, bool p_dynamic);
 
 void vm_print_stack(vm_t *p_vm);
 void vm_print_env(vm_t *p_vm);

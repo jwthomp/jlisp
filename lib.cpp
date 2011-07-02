@@ -20,6 +20,7 @@ typedef struct {
 	vm_func_t m_func;
 	int m_arg_count;
 	bool m_is_macro;
+	bool m_dynamic;
 } internal_func_def_t;
 
 value_t *print_vm(vm_t *p_vm);
@@ -52,33 +53,33 @@ value_t *seq(vm_t *p_vm);
 
 
 static internal_func_def_t g_ifuncs[] = {
-	{"PRINT-VM", print_vm, -1, false},
-	{"PRINT-ENV", print_env, -1, false},
-	{"PRINT-SP", print_stack, -1, false},
-	{"PRINT-SYMBOLS", print_symbols, -1, false},
-	{"PRINT", print, -1, false},
-	{"ATOM", atom, 1, false},
-	{"CONS", cons, 2, false},
-	{"CAR", car, 1, false},
-	{"CDR", cdr, 1, false},
-	{"CALL", call, 2, false}, 				// ?
-	{"+", plus, 2, false},
-	{"-", minus, 2, false},
-	{"<", less_then, 2, false},
-	{"STATUS", status, 0, false},
-	{"EQ", eq, 2, false},
-	{"LOAD", load, 1, false},
-	{"FBOUNDP", fboundp, 1, false},
-	{"DEBUG", debug, 1, false},
-	{"PROGN", progn, -1, true},				// Broken (progn 'a 'b)
-	{"LET", let, -1, true},					// Broken
-	{"READ", read, 0, false},
-	{"EVAL", eval_lib, 1, false},
-	{"GC", gc_lib, 0, false},
-	{"SPAWN", spawn_lib, 0, false},
-	{"TYPE-OF", type_of, 1, false},
-	{"SYMBOL-NAME", symbol_name, 1, false},
-	{"SEQ", seq, 1, false},
+	{"PRINT-VM", print_vm, -1, false, true},
+	{"PRINT-ENV", print_env, -1, false, true},
+	{"PRINT-SP", print_stack, -1, false, true},
+	{"PRINT-SYMBOLS", print_symbols, -1, false, true},
+	{"PRINT", print, -1, false, true},
+	{"ATOM", atom, 1, false, true},
+	{"CONS", cons, 2, false, true},
+	{"CAR", car, 1, false, true},
+	{"CDR", cdr, 1, false, true},
+	{"CALL", call, 2, false, true}, 				// ?
+	{"+", plus, 2, false, true},
+	{"-", minus, 2, false, true},
+	{"<", less_then, 2, false, true},
+	{"STATUS", status, 0, false, true},
+	{"EQ", eq, 2, false, true},
+	{"LOAD", load, 1, false, true},
+	{"FBOUNDP", fboundp, 1, false, true},
+	{"DEBUG", debug, 1, false, true},
+	{"PROGN", progn, -1, true, true},				// Broken (progn 'a 'b)
+	{"LET", let, -1, true, true},					// Broken
+	{"READ", read, 0, false, true},
+	{"EVAL", eval_lib, 1, false, true},
+	{"GC", gc_lib, 0, false, true},
+	{"SPAWN", spawn_lib, 0, false, true},
+	{"TYPE-OF", type_of, 1, false, true},
+	{"SYMBOL-NAME", symbol_name, 1, false, true},
+	{"SEQ", seq, 1, false, true},
 };
 
 #define NUM_IFUNCS 27
@@ -110,7 +111,7 @@ value_t *eval_lib(vm_t *p_vm)
     int i = setjmp(*push_handler_stack());
 	value_t *ret = p_vm->nil;
     if (i == 0) {
-		ret = eval(p_vm, p_vm->m_stack[p_vm->m_sp - 1]);
+		ret = eval(p_vm, p_vm->m_stack[p_vm->m_bp + 1]);
 	} else {
 		// Restore stack do to trapped error
 		p_vm->m_bp = vm_bp;
@@ -134,7 +135,7 @@ value_t *read(vm_t *p_vm)
     gets(input);
     stream_t *strm = stream_create(input);
     reader(p_vm, strm, false);
-    value_t *rd = p_vm->m_stack[p_vm->m_sp - 1];
+    value_t *rd = p_vm->m_stack[p_vm->m_bp + 1];
     return rd;
 }
 
@@ -251,6 +252,10 @@ value_t *symbol_value(vm_t *p_vm)
 {
 	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
 
+	if (arg->m_cons[1] != p_vm->voidobj) {
+		return car(p_vm, arg->m_cons[1]);
+	}
+
 	// Find and return the value of this symbol
 	value_t * ret = environment_binding_find(p_vm, arg, false);
 	if (ret == p_vm->nil) {
@@ -263,6 +268,10 @@ value_t *symbol_value(vm_t *p_vm)
 value_t *fboundp(vm_t *p_vm)
 {
 	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
+
+	if (arg->m_cons[2] != p_vm->voidobj) {
+		return car(p_vm, arg->m_cons[2]);
+	}
 
 	// Find and return the value of this symbol
 	value_t *ret =  environment_binding_find(p_vm, arg, true);
@@ -560,14 +569,14 @@ void lib_init(vm_t *p_vm)
 	p_vm->voidobj = value_create(p_vm, VT_VOID, 0, true);
 
 	for (i = 0; i < NUM_IFUNCS; i++) {
-		vm_bindf(p_vm, g_ifuncs[i].m_name, g_ifuncs[i].m_func, g_ifuncs[i].m_arg_count, g_ifuncs[i].m_is_macro);
+		vm_bindf(p_vm, g_ifuncs[i].m_name, g_ifuncs[i].m_func, g_ifuncs[i].m_arg_count, g_ifuncs[i].m_is_macro, g_ifuncs[i].m_dynamic);
 	}
 
 
 	p_vm->nil = value_create_symbol(p_vm, "NIL");
-	bind_internal(p_vm, p_vm->nil, p_vm->nil, false, false);
+	bind_internal(p_vm, p_vm->nil, p_vm->nil, false, true);
 //	vm_bind(p_vm, "NIL", p_vm->nil);
 	p_vm->t = value_create_symbol(p_vm, "T");
-	vm_bind(p_vm, "T", p_vm->t);
+	vm_bind(p_vm, "T", p_vm->t, true);
 
 }

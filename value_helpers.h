@@ -25,6 +25,25 @@ bool is_null(vm_t *p_vm, value_t *);
 bool is_pid(vm_t *p_vm, value_t *);
 bool is_process(vm_t *p_vm, value_t *);
 
+inline bool is_symbol_function_dynamic(vm_t *p_vm, value_t *p_val)
+{
+	if (p_val->m_cons[2] != p_vm->voidobj) {
+		return true;
+	}
+
+	return false;
+}
+
+inline bool is_symbol_dynamic(vm_t *p_vm, value_t *p_val)
+{
+	if (p_val->m_cons[1] != p_vm->voidobj) {
+		return true;
+	}
+
+	return false;
+}
+
+
 inline bool is_symbol(vm_t *p_vm, value_t *p_val)
 {
     if(p_val == p_vm->nil || is_fixnum(p_val)) {
