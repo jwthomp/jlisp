@@ -141,7 +141,7 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 		case OP_CATCH:
 		case OP_RET:
 		{
-			push_opcode(p_opcode, (int)p_arg, p_bytecode, p_bytecode_index);
+			push_opcode(p_opcode, (int)(long)p_arg, p_bytecode, p_bytecode_index);
 			break;
 		}
 		case OP_DUP:

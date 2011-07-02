@@ -383,7 +383,7 @@ static value_t *retain(vm_t *p_vm, value_t *p_value, pool_t *p_pool_new)
 		case COPY_COMPACT:
 			return retain_copy_compact(p_vm, p_value, p_pool_new);
 		default:
-			verify(NULL, "Retaining unknown gc type\n");
+			verify(false, "Retaining unknown gc type\n");
 			return NULL;
 	}
 }

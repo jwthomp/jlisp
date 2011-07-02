@@ -299,7 +299,7 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 	// Bind parameters
 	value_t *p = l->m_parameters;
 
-	int func_arg_count = (int)(*p_closure)->m_cons[2];
+	long int func_arg_count = (long int)(*p_closure)->m_cons[2];
 	// Condense remaining args into a list
 	if (func_arg_count < 0) {
 		func_arg_count = -func_arg_count;

@@ -325,7 +325,7 @@ printf("\n-------static Heap--------\n");
 		count++;
 		if (is_fixnum(heap)) {
 			mem += sizeof(heap);
-			printf("%d] %u ", count, sizeof(heap));
+			printf("%d] %lu ", count, sizeof(heap));
 		} else {
 		mem += sizeof(value_t) + heap->m_size;
 		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);
@@ -348,7 +348,7 @@ printf("\n-------g0 Heap--------\n");
 
 		if (is_fixnum(heap)) {
 			mem += sizeof(heap);
-			printf("%d] %u ", count, sizeof(heap));
+			printf("%d] %lu ", count, sizeof(heap));
 		} else {
 		mem += sizeof(value_t) + heap->m_size;
 		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);
@@ -366,7 +366,7 @@ printf("\n-------g1 Heap--------\n");
 		count++;
 		if (is_fixnum(heap)) {
 			mem += sizeof(heap);
-			printf("%d] %u ", count, sizeof(heap));
+			printf("%d] %lu ", count, sizeof(heap));
 		} else {
 		mem += sizeof(value_t) + heap->m_size;
 		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);

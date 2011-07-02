@@ -617,7 +617,7 @@ valuetype_config_data_t *valuetype_config_data_get(int p_val)
 		case VT_PROCESS:
 			return &g_valuetype_cfg[14];
 		default:
-			verify(NULL, "Unknown value type\n");
+			verify(false, "Unknown value type\n");
 			return NULL;
 	}
 }
