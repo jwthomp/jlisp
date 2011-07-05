@@ -25,37 +25,10 @@ bool is_null(vm_t *p_vm, value_t *);
 bool is_pid(vm_t *p_vm, value_t *);
 bool is_process(vm_t *p_vm, value_t *);
 
-inline bool is_symbol_function_dynamic(vm_t *p_vm, value_t *p_val)
-{
-	if (p_val->m_cons[2] != p_vm->voidobj) {
-		return true;
-	}
-
-	return false;
-}
-
-inline bool is_symbol_dynamic(vm_t *p_vm, value_t *p_val)
-{
-	if (p_val->m_cons[1] != p_vm->voidobj) {
-		return true;
-	}
-
-	return false;
-}
-
-
-inline bool is_symbol(vm_t *p_vm, value_t *p_val)
-{
-    if(p_val == p_vm->nil || is_fixnum(p_val)) {
-        return false;
-    }
-
-    return p_val->m_type == VT_SYMBOL;
-}
 
 value_t * value_create_number(vm_t *p_vm, int p_number);
+value_t * value_create_static_string(vm_t *p_vm, char const * const p_symbol);
 value_t * value_create_string(vm_t *p_vm, char const * const p_symbol);
-value_t * value_create_symbol(vm_t *p_vm, char const * const p_symbol);
 value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func, int p_nargs, bool p_is_macro);
 value_t * value_create_cons(vm_t *p_vm, value_t *p_car, value_t *p_cdr);
 value_t * value_create_bytecode(vm_t *p_vm, bytecode_t *p_code, int p_code_count);

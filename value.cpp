@@ -4,6 +4,7 @@
 #include "assert.h"
 #include "gc.h"
 #include "err.h"
+#include "symbols.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,30 +103,6 @@ value_t * value_create_string(vm_t *p_vm, char const * const p_string)
 	return ret;
 }
 
-value_t * value_create_symbol(vm_t *p_vm, char const * const p_symbol)
-{
-
-	// See if it already exists..
-	value_t *sym = p_vm->m_symbol_table;
-	while(sym) {
-		if (is_symbol_name(p_symbol, sym) == true) {
-			return sym;
-		}
-		sym = sym->m_next_symbol;
-	}
-	
-
-	value_t *string = value_create_static_string(p_vm, p_symbol);
-	sym =  value_create(p_vm, VT_SYMBOL, sizeof(value_t *) * 3, true);
-	sym->m_cons[0] = string;
-	sym->m_cons[1] = p_vm->voidobj;
-	sym->m_cons[2] = p_vm->voidobj;
-	sym->m_next_symbol = p_vm->m_symbol_table;
-	p_vm->m_symbol_table = sym;
-
-	return sym;
-}
-
 value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func, int p_nargs, bool p_is_macro)
 {
 	value_t *ret =  value_create(p_vm, VT_INTERNAL_FUNCTION, sizeof(vm_func_t) + 5, true);
@@ -183,10 +160,11 @@ int count_lambda_args(vm_t *p_vm, value_t *p_lambda)
 	while (p != p_vm->nil && p->m_cons[0] != p_vm->nil) {
 		nargs++;
 
-// value_print(p->m_cons[0]); printf("\n");
+// value_print(p_vm, p->m_cons[0]); printf("\n");
+//printf("string: %lu %s\n", p->m_cons[0]->m_type, p->m_cons[0]->m_cons[0]->m_data);
 
-		if (is_symbol(p_vm, p->m_cons[0]) && is_symbol_name("&REST", p)) {
-// printf("HAS REST\n"); 
+		if (is_symbol(p_vm, p->m_cons[0]) && is_symbol_name("&REST", p->m_cons[0])) {
+ printf("HAS REST\n"); 
 			has_rest = true;
 			nargs--;
 		}

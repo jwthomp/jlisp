@@ -18,19 +18,19 @@
 [ ] Matching
 
 
-[ ] Dynamic scope
-		[/] Leaving closure that added to scope should remove it
-			[ ] What about when someone does defparameter or setq inside of closure?
-		[X] Fix gc bug
-		[ ] Fix setq
 
-[ ] Packages
+[ ] Packages - Put in own symbols.* files
+
+
 [ ] Loadf symbols that are undefined, and load binding when they are
+[ ] Support flet and dynamic scoping
+[ ] Move all binding related code into binding.*
 
 
 [ ] Funcall should support multiple arguments so params are passed
 [ ] Write basic eval
 [ ] Write eval with macro expand
+
 
 
 
@@ -73,6 +73,11 @@ read ->
 [/] fix &rest so 'a sets args to ('a)
 
 
+[X] Dynamic scope
+		[X] Leaving closure that added to scope should remove it
+			[X] What about when someone does defparameter or setq inside of closure?
+		[X] Fix gc bug
+		[x] Fix setq
 [X] Fix bug in reader where strings were being capitalized
 [X] Fix bug in lisp running repl where (let (())...) was not properly finding binding
 [X] Add in a binary heap where all binary objects (strings, etc) that don't need to be

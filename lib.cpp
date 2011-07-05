@@ -6,6 +6,7 @@
 #include "reader.h"
 #include "compile.h"
 #include "gc.h"
+#include "symbols.h"
 
 #include "lib.h"
 
@@ -13,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/timeb.h>
 
 
 typedef struct {
@@ -40,6 +42,7 @@ value_t *status(vm_t *p_vm);
 value_t *eq(vm_t *p_vm);
 value_t *load(vm_t *p_vm);
 value_t *progn(vm_t *p_vm);
+value_t *boundp(vm_t *p_vm);
 value_t *fboundp(vm_t *p_vm);
 value_t *debug(vm_t *p_vm);
 value_t *let(vm_t *p_vm);
@@ -50,7 +53,9 @@ value_t *spawn_lib(vm_t *p_vm);
 value_t *type_of(vm_t *p_vm);
 value_t *symbol_name(vm_t *p_vm);
 value_t *seq(vm_t *p_vm);
+value_t *dbg_time(vm_t *p_vm);
 
+static struct timeb g_time;
 
 static internal_func_def_t g_ifuncs[] = {
 	{"PRINT-VM", print_vm, -1, false, true},
@@ -69,6 +74,7 @@ static internal_func_def_t g_ifuncs[] = {
 	{"STATUS", status, 0, false, true},
 	{"EQ", eq, 2, false, true},
 	{"LOAD", load, 1, false, true},
+	{"BOUNDP", boundp, 1, false, true},
 	{"FBOUNDP", fboundp, 1, false, true},
 	{"DEBUG", debug, 1, false, true},
 	{"PROGN", progn, -1, true, true},				// Broken (progn 'a 'b)
@@ -80,9 +86,10 @@ static internal_func_def_t g_ifuncs[] = {
 	{"TYPE-OF", type_of, 1, false, true},
 	{"SYMBOL-NAME", symbol_name, 1, false, true},
 	{"SEQ", seq, 1, false, true},
+	{"CLOCK", dbg_time, 0, false, true},
 };
 
-#define NUM_IFUNCS 27
+#define NUM_IFUNCS 29
 
 value_t *gc_lib(vm_t *p_vm)
 {
@@ -178,6 +185,16 @@ value_t *let(vm_t *p_vm)
 }
 
 
+value_t *dbg_time(vm_t *p_vm)
+{
+	timespec ts;
+
+	struct timeb tp;
+	ftime(&tp);
+
+	return make_fixnum(1000 * (tp.time - g_time.time) + (tp.millitm - g_time.millitm));
+}
+
 value_t *progn(vm_t *p_vm)
 {
 //printf("prognC: "); value_print(car(p_vm->m_stack[p_vm->m_bp + 1])); printf("\n");
@@ -258,6 +275,23 @@ value_t *symbol_value(vm_t *p_vm)
 
 	// Find and return the value of this symbol
 	value_t * ret = environment_binding_find(p_vm, arg, false);
+	if (ret == p_vm->nil) {
+		return ret;
+	} else {
+		return binding_get_value(ret);
+	}
+}
+
+value_t *boundp(vm_t *p_vm)
+{
+	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
+
+	if (arg->m_cons[1] != p_vm->voidobj) {
+		return car(p_vm, arg->m_cons[1]);
+	}
+
+	// Find and return the value of this symbol
+	value_t *ret =  environment_binding_find(p_vm, arg, false);
 	if (ret == p_vm->nil) {
 		return ret;
 	} else {
@@ -561,6 +595,7 @@ value_t *print(vm_t *p_vm)
 
 
 
+
 void lib_init(vm_t *p_vm)
 {
 	int i;
@@ -572,6 +607,8 @@ void lib_init(vm_t *p_vm)
 		vm_bindf(p_vm, g_ifuncs[i].m_name, g_ifuncs[i].m_func, g_ifuncs[i].m_arg_count, g_ifuncs[i].m_is_macro, g_ifuncs[i].m_dynamic);
 	}
 
+	ftime(&g_time);
+	
 
 	p_vm->nil = value_create_symbol(p_vm, "NIL");
 	bind_internal(p_vm, p_vm->nil, p_vm->nil, false, true);

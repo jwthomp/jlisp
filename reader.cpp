@@ -4,6 +4,7 @@
 #include "reader.h"
 #include "value_helpers.h"
 #include "err.h"
+#include "symbols.h"
 
 #include <stdio.h>
 #include <string.h>

@@ -6,6 +6,7 @@
 #include "lambda.h"
 #include "err.h"
 #include "reader.h"
+#include "symbols.h"
 
 #include <stdio.h>
 #include <stdlib.h>
