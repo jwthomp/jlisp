@@ -264,7 +264,7 @@ void vm_remove_dyn_value(vm_t *p_vm, value_t *p_sym_val)
 	value_t *dyn_val = sym->m_cons[1];
 	value_t *last = NULL;
 	while(dyn_val != p_vm->voidobj) {
-		if (car(p_vm, dyn_val) == value) {
+		if (dyn_val == cdr(p_vm, p_sym_val)) {
 			if (last == NULL) {
 				sym->m_cons[1] = cdr(p_vm, dyn_val);
 			} else {
@@ -347,11 +347,13 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 
 printf("binding: %d ", p->m_cons[0]->m_type); value_print(p_vm, p->m_cons[0]); printf (" to: "); value_print(p_vm, stack_val); printf("\n");
 
-			if (is_symbol_dynamic(p_vm, sym) == true) {
-				dyn_store = vm_store_dyn_value(p_vm, sym, stack_val, dyn_store);
-			}
 
 			vm_bind(p_vm, sym->m_cons[0]->m_data, stack_val, false);
+
+			if (is_symbol_dynamic(p_vm, sym) == true) {
+				dyn_store = vm_store_dyn_value(p_vm, sym, sym->m_cons[1], dyn_store);
+			}
+
 
 			bp_offset++;
 		}
@@ -600,14 +602,19 @@ vm_print_stack(p_vm);
 			case OP_UPDATE:
 			{
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
-				value_t *b = environment_binding_find(p_vm, sym, false);
 
-				verify(b && is_binding(p_vm, b), "op_load: Binding lookup failed: %s\n", 
-					(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
+				if (sym->m_cons[1] != p_vm->voidobj) {
+					sym->m_cons[1]->m_cons[0] = p_vm->m_stack[p_vm->m_sp - 1];
+				} else {
+					value_t *b = environment_binding_find(p_vm, sym, false);
 
-				// Change value
-				binding_t *bind = (binding_t *)b->m_data;
-				bind->m_value = p_vm->m_stack[p_vm->m_sp - 1];
+					verify(b && is_binding(p_vm, b), "op_load: Binding lookup failed: %s\n", 
+						(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
+
+					// Change value
+					binding_t *bind = (binding_t *)b->m_data;
+					bind->m_value = p_vm->m_stack[p_vm->m_sp - 1];
+				}
 
 				p_vm->m_ip++;
 				break;
