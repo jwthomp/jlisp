@@ -251,11 +251,30 @@ void vm_print_symbols(vm_t *p_vm)
 	}
 }
 
-void vm_remove_dyn_value(vm_t *p_vm, value_t *p_sym, value_t *p_value)
+value_t *vm_store_dyn_value(vm_t *p_vm, value_t *p_sym, value_t *p_value, value_t *p_sym_val)
 {
-	value_t *dyn_val = p_sym->m_cons[1];
+	return value_create_cons(p_vm, value_create_cons(p_vm, p_sym, p_value), p_sym_val);
+}
+
+void vm_remove_dyn_value(vm_t *p_vm, value_t *p_sym_val)
+{
+	value_t *sym = car(p_vm, p_sym_val);
+	value_t *value = cdr(p_vm, p_sym_val);
+
+	value_t *dyn_val = sym->m_cons[1];
+	value_t *last = NULL;
 	while(dyn_val != p_vm->voidobj) {
-		return 
+		if (car(p_vm, dyn_val) == value) {
+			if (last == NULL) {
+				sym->m_cons[1] = cdr(p_vm, dyn_val);
+			} else {
+				last->m_cons[1] = cdr(p_vm, dyn_val);
+			}
+			return;
+		}
+
+		last = dyn_val;
+		dyn_val = cdr(p_vm, dyn_val);
 	}
 }
 
@@ -329,7 +348,7 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 printf("binding: %d ", p->m_cons[0]->m_type); value_print(p_vm, p->m_cons[0]); printf (" to: "); value_print(p_vm, stack_val); printf("\n");
 
 			if (is_symbol_dynamic(p_vm, sym) == true) {
-				dyn_store = value_create_cons(p_vm, value_create_cons(p_vm, sym, stack_val), dyn_store);
+				dyn_store = vm_store_dyn_value(p_vm, sym, stack_val, dyn_store);
 			}
 
 			vm_bind(p_vm, sym->m_cons[0]->m_data, stack_val, false);
@@ -600,19 +619,14 @@ vm_print_stack(p_vm);
 
 	// Restore any dynamic bindings
 	// Search for any value we added and remove it if it still exists
+
 	while(dyn_store != p_vm->nil) {
 		// (sym . val)
 		value_t *sym_val = car(p_vm, dyn_store);
 
-		// Search sim for val and if it is there, remove it
-		value_t *values = sym->m_cons[0];
-		while(values != p_vm->m_nil) {
-		}
+		vm_remove_dyn_value(p_vm, sym_val);
 
-		
-
-		sym->m_cons[1] = sym->m_cons[1]->m_cons[1];
-//		printf("dyn binding: "); value_print(p_vm, sym); printf("\n");
+		printf("dyn binding: "); value_print(p_vm, car(p_vm, sym_val)); printf("\n");
 		dyn_store = cdr(p_vm, dyn_store);
 	}
 
