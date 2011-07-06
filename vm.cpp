@@ -327,7 +327,6 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 	// Condense remaining args into a list
 	if (func_arg_count < 0) {
 		func_arg_count = -func_arg_count;
-printf("farc: %lu p_nargs: %lu\n", func_arg_count, p_nargs);
 		for( ; p_nargs > func_arg_count; p_nargs--) {
 			vm_cons(p_vm);
 		}
@@ -348,8 +347,8 @@ printf("farc: %lu p_nargs: %lu\n", func_arg_count, p_nargs);
 			value_t *stack_val = p_vm->m_stack[p_vm->m_bp + bp_offset];
 			value_t *sym = p->m_cons[0];
 
-printf("binding: %d ", p->m_cons[0]->m_type); value_print(p_vm, p->m_cons[0]); printf (" to: "); value_print(p_vm, stack_val); printf("\n");
-printf("binding symbol: %s\n", sym->m_cons[0]->m_data);
+//printf("binding: %d ", p->m_cons[0]->m_type); value_print(p_vm, p->m_cons[0]); printf (" to: "); value_print(p_vm, stack_val); printf("\n");
+//printf("binding symbol: %s\n", sym->m_cons[0]->m_data);
 
 
 

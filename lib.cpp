@@ -58,10 +58,10 @@ value_t *dbg_time(vm_t *p_vm);
 static struct timeb g_time;
 
 static internal_func_def_t g_ifuncs[] = {
-	{"PRINT-VM", print_vm, -1, false, true},
-	{"PRINT-ENV", print_env, -1, false, true},
-	{"PRINT-SP", print_stack, -1, false, true},
-	{"PRINT-SYMBOLS", print_symbols, -1, false, true},
+	{"PRINT-VM", print_vm, 0, false, true},
+	{"PRINT-ENV", print_env, 0, false, true},
+	{"PRINT-SP", print_stack, 0, false, true},
+	{"PRINT-SYMBOLS", print_symbols, 0, false, true},
 	{"PRINT", print, -1, false, true},
 	{"ATOM", atom, 1, false, true},
 	{"CONS", cons, 2, false, true},
@@ -212,12 +212,20 @@ value_t *progn(vm_t *p_vm)
 
 value_t *symbol_name(vm_t *p_vm)
 {
-	return p_vm->nil;
+	value_t *p_val = p_vm->m_stack[p_vm->m_bp + 1];
+	verify(is_symbol(p_vm, p_val) == true, "The value %s is not of type SYMBOL", value_sprint(p_vm, p_val));
+	return p_val->m_cons[0];
 }
 
 value_t *type_of(vm_t *p_vm)
 {
-	return p_vm->nil;
+	value_t *p_val = p_vm->m_stack[p_vm->m_bp + 1];
+
+	if (is_fixnum(p_val) == true) {
+		return value_create_string(p_vm, "FIXNUM");
+	}
+
+	return value_create_string(p_vm, valuetype_print(p_val->m_type));
 }
 
 value_t *seq(vm_t *p_vm)
@@ -359,7 +367,7 @@ printf("\n-------static Heap--------\n");
 		count++;
 		if (is_fixnum(heap)) {
 			mem += sizeof(heap);
-			printf("%d] %lu ", count, sizeof(heap));
+			printf("%d] %ud ", count, sizeof(heap));
 		} else {
 		mem += sizeof(value_t) + heap->m_size;
 		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);
@@ -382,7 +390,7 @@ printf("\n-------g0 Heap--------\n");
 
 		if (is_fixnum(heap)) {
 			mem += sizeof(heap);
-			printf("%d] %lu ", count, sizeof(heap));
+			printf("%d] %ud ", count, sizeof(heap));
 		} else {
 		mem += sizeof(value_t) + heap->m_size;
 		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);
@@ -400,7 +408,7 @@ printf("\n-------g1 Heap--------\n");
 		count++;
 		if (is_fixnum(heap)) {
 			mem += sizeof(heap);
-			printf("%d] %lu ", count, sizeof(heap));
+			printf("%d] %ud ", count, sizeof(heap));
 		} else {
 		mem += sizeof(value_t) + heap->m_size;
 		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);
@@ -449,11 +457,12 @@ value_t *load(vm_t *p_vm)
 	fread(input, file_size, 1, fp);
 	
 	load_string(p_vm, input);
+	p_vm->m_sp--;
 
 	free(input);
 	fclose(fp);
 
-	return p_vm->nil;
+	return p_vm->t;
 }
 
 
@@ -588,9 +597,18 @@ value_t *plus(vm_t *p_vm)
 value_t *print(vm_t *p_vm)
 {
 //	printf("%lu>> ", p_vm->m_sp);
-	value_print(p_vm, p_vm->m_stack[p_vm->m_bp + 1]);
+
+	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
+	value_t *last = arg;
+	while(arg != p_vm->nil) {
+		assert(is_cons(p_vm, arg));
+		value_print(p_vm, arg->m_cons[0]);
+		printf(" ");
+		last = arg;
+		arg = arg->m_cons[1];
+	}
 	printf("\n");
-	return p_vm->m_stack[p_vm->m_bp + 1];
+	return last->m_cons[0];
 }
 
 

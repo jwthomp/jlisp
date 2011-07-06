@@ -17,11 +17,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-void load_string(vm_t *p_vm, char const *p_code);
-
 
 void load_string(vm_t *p_vm, char const *p_code)
 {
+	value_t *result = p_vm->nil;
 	unsigned long vm_bp = p_vm->m_bp;
 	unsigned long vm_sp = p_vm->m_sp;
 	unsigned long vm_ev = p_vm->m_ev;
@@ -54,7 +53,8 @@ void load_string(vm_t *p_vm, char const *p_code)
 			eval(p_vm, rd);
 
 			// Print a result
-printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
+//printf("res: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - count_down]); printf("\n");
+result = p_vm->m_stack[p_vm->m_sp - count_down];
 
 //printf("RESTORE CSP: %lu sp: %ld ev: %lu\n", p_vm->m_csp, p_vm->m_sp, p_vm->m_ev);
 
@@ -75,6 +75,8 @@ vm_print_stack(p_vm);
 
 	verify(p_vm->m_sp == vm_sp &&  p_vm->m_bp == vm_bp, "internal error");
 
+	p_vm->m_stack[p_vm->m_sp++] = result;
+
 //	printf("env: %p\n", p_vm->m_current_env[p_vm->m_ev - 1]);
 
 	pop_handler_stack();
@@ -85,7 +87,9 @@ vm_print_stack(p_vm);
 //vm_print_stack(p_vm);
 //printf("sp: %lu ev: %lu\n", p_vm->m_sp, p_vm->m_ev);
 
+
 	gc(p_vm, 1);
+
 //printf("---------------- gc ---------------\n");
 //vm_print_env(p_vm);
 //	printf("Memory: Free: %lu Allocated: %lu\n", mem_free(p_vm), mem_allocated(p_vm, true));
@@ -140,6 +144,9 @@ int main(int argc, char *arg[])
 	while(gets(input) != NULL && strcmp(input, "quit")) {
 		load_string(vm, input);
 		input[0] = 0;
+		printf("res: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
+//		vm_print_stack(vm);
+		vm->m_sp--;
 		printf("%d> ", flip);
 	}
 

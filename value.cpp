@@ -563,6 +563,8 @@ bool is_symbol_name(char const *p_name, value_t *p_symbol)
 
 valuetype_config_data_t *valuetype_config_data_get(int p_val)
 {
+
+
 	switch (p_val) {
 		case VT_NUMBER:
 			return &g_valuetype_cfg[0];

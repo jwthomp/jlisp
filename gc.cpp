@@ -66,7 +66,7 @@ value_t *gc_alloc(vm_t *p_vm, size_t p_size, alloc_type p_alloc_type)
 
 void gc_shutdown(vm_t *p_vm)
 {
-	gc(p_vm, 0);
+	gc(p_vm, 1);
 
 	value_t* p = p_vm->m_static_heap;
 	value_t* safe = NULL;
@@ -401,8 +401,10 @@ g_count = 0;
 
 	
 	value_t *ret;
-	ret = retain(p_vm, p_vm->m_symbol_table, pool_new);
-	p_vm->m_symbol_table = ret;
+	if (p_vm->m_symbol_table) {
+		ret = retain(p_vm, p_vm->m_symbol_table, pool_new);
+		p_vm->m_symbol_table = ret;
+	}
 
 //printf("IN ev: %p\n",  p_vm->m_current_env[p_vm->m_ev - 1]);
 
