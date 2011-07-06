@@ -67,7 +67,16 @@
     ((eq (caar e) 'lambda)
      (eval. (caddar e)
             (append (pair. (cadar e) (evlis. (cdr e) a))
-                     a)))))
+                     a)))
+((eq (caar e) 'macro)
+     (cond
+      ((eq (cadar e) 'lambda)
+       (eval. (eval. (car (cdddar e))
+                     (cons (list. (car (caddar e)) (cadr e)) a))
+              a))))
+))
+
+
 
 
 
@@ -80,3 +89,9 @@
   (cond ((null m) '())
         ('t (cons (eval.  (car m) a)
                   (evlis. (cdr m) a)))))
+
+
+(let ((e '((macro lambda (x) (list (quote car) (list (quote cdr) x)))
+           (cons (quote x) (cons (quote y) nil))))
+      (bindings `((list ,(symbol-function 'list.)))))
+  (eval. e bindings))

@@ -3,6 +3,10 @@
   (eq x '()))
 
 
+(defmacro time (&rest body)
+	(let ((base (clock))) ,@body (print (- (clock) base))))
+
+
 (defun append (x y)
   (cond ((null x) y)
         ('t (cons (car x) (append (cdr x) y)))))

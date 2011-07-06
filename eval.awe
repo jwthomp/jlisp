@@ -1,11 +1,11 @@
-"Writing eval.."
-"First just eval something basic"
+(print "Writing eval..")
+(print "First just eval something basic")
 
 (defun eval2 (e)
     (cond
-        ((atom e) (symbol-name e))
+        ((atom e) e)
 		((atom (car e))
 			(cond
-				(fboundp (funcall (fboundp e))
-    )))))
+				((eq (car e) 'quote) (cadr e))
+))))
 

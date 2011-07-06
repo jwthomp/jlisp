@@ -38,6 +38,7 @@ value_t * value_create_closure(vm_t *p_vm, value_t *p_env, value_t *p_lambda);
 value_t * value_create_environment(vm_t *p_vm, value_t *p_env);
 value_t * value_create_binding(vm_t *p_vm, value_t *p_key, value_t *p_binding);
 value_t * value_create_process(vm_t *p_vm, value_t *p_parent_vm);
+value_t * value_create_vm_state(vm_t *p_vm);
 
 value_t * list(vm_t *p_vm, value_t *p_value);
 

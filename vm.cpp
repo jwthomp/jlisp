@@ -279,9 +279,29 @@ void vm_remove_dyn_value(vm_t *p_vm, value_t *p_sym_val)
 	}
 }
 
+
+void vm_state_push(vm_t *p_vm)
+{
+	value_t *state = value_create_vm_state(p_vm);
+	vm_push(p_vm, state);
+}
+
+void vm_state_pop(vm_t *p_vm)
+{
+	value_t *val = p_vm->m_stack[p_vm->m_bp - 1];
+	vm_state_t *vm_state = (vm_state_t *)val->m_data;
+	p_vm->m_bp = vm_state->m_bp;
+}
+
 void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 {
+printf("vm_exec\n");
+printf("bp: %lu sp: %lu ev: %lu nargs: %d\n", p_vm->m_bp, p_vm->m_sp, p_vm->m_ev, p_nargs);
 
+	////////////////////////////
+	// If we get an ifunc then just collapse it's arguments if there is a &rest
+	// and call it
+	////////////////////////////
 	if (is_ifunc(p_vm, *p_closure)) {
 		vm_func_t func = *(vm_func_t *)(*p_closure)->m_data;
 
@@ -296,6 +316,7 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 			p_nargs++;
 		}
 
+vm_print_stack(p_vm);
 
 		verify(p_nargs == func_arg_count, "Mismatched ifunc arg count: %d != %d\n", p_nargs, func_arg_count);
 		
@@ -303,26 +324,37 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 		return;
 	}
 
+
+
+	//////////////////////////////////////////////
 	// Store current bp & sp
+	////////////////////////////////////////
 	int old_bp = p_vm->m_bp;
-
-	// Set bp to the name of the function we are calling
-	p_vm->m_bp = p_vm->m_sp - p_nargs;
-
 	int old_ip = p_vm->m_ip;
-	p_vm->m_ip = 0;
+	vm_state_push(p_vm);
 
 
-//printf("obp: %d nbp: %lu sp: %lu nargs: %d\n", old_bp, p_vm->m_bp, p_vm->m_sp, p_nargs);
 
-
+	////////////////////////////////
+	// Get lambda from closure
+	/////////////////////////////////
     assert(*p_closure && is_closure(p_vm, *p_closure) && (*p_closure)->m_cons[1]);
     lambda_t *l = (lambda_t *)((*p_closure)->m_cons[1]->m_data);
 
-
+	/////////////////////////////////////
 	// Bind parameters
+	////////////////////////////////////
 	value_t *p = l->m_parameters;
 
+	//////////////////////////////
+	// Push closure
+	// MODIFIES: SP
+	/////////////////////////////
+	vm_push(p_vm, (*p_closure));
+
+	////////////////////////////////
+	// If supports &rest need to collapse extra args into one spot on cons on the stack
+	///////////////////////////////
 	long int func_arg_count = (long int)(*p_closure)->m_cons[2];
 	// Condense remaining args into a list
 	if (func_arg_count < 0) {
@@ -333,12 +365,28 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 		p_nargs++;
 	}
 
+
+	/////////////////////////////////
+	// Reset ip to the start of bytecode since this is a new closure
+	////////////////////////////////
+	p_vm->m_ip = 0;
+
+	/////////////////////////////////
+	// Set bp to the symbol of the function we are calling
+	///////////////////////////////////////////
+	p_vm->m_bp = p_vm->m_sp - func_arg_count;
+
+
+	///////////////////////////////
+	// Push new environment
+	// MODIFIES: SP, EP
+	//////////////////////////////
 	value_t *env = value_create_environment(p_vm, (*p_closure)->m_cons[0]);
 	vm_push_env(p_vm, env);
 
-	vm_push(p_vm, (*p_closure));
-
-	// Save old dynamic values
+	//////////////////////////////
+	// Bind parameters and save old dynamic values
+	///////////////////////////////
 	value_t *dyn_store = p_vm->nil;
 
 	int bp_offset = 0;
@@ -349,7 +397,6 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 
 //printf("binding: %d ", p->m_cons[0]->m_type); value_print(p_vm, p->m_cons[0]); printf (" to: "); value_print(p_vm, stack_val); printf("\n");
 //printf("binding symbol: %s\n", sym->m_cons[0]->m_data);
-
 
 
 			bind_internal(p_vm, sym, stack_val, false, false);
@@ -369,6 +416,9 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 
 //printf("active pool: %p\n", l->m_pool);
 
+	///////////////////////////////////
+	// Execute byte code!
+	//////////////////////////////////
 	while(p_vm->m_ip != -1) {
 		// Grab lambda again as p_closure could have been copied due to a gc
     	l = (lambda_t *)((*p_closure)->m_cons[1]->m_data);
@@ -378,8 +428,8 @@ void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 		unsigned long p_arg = bc->m_value;
 		value_t *p_pool = l->m_pool;
 
-		if (g_debug_display == true) {
-			printf("ip: %d] sp: %ld] ep: %ld] %s %ld\n", p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, g_opcode_print[bc->m_opcode], bc->m_value);
+		if (1 || g_debug_display == true) {
+			printf("ip: %d] sp: %ld] ep: %ld bp: %ld] %s %ld\n", p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, p_vm->m_bp, g_opcode_print[bc->m_opcode], bc->m_value);
 vm_print_stack(p_vm);
 		}
 
@@ -625,6 +675,12 @@ vm_print_stack(p_vm);
 				break;
 			}
 		}
+
+		if (g_debug_display == true) {
+			printf("------\n");
+			vm_print_stack(p_vm);
+			printf("--ip: %d] sp: %ld] ep: %ld] %s %ld\n", p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, g_opcode_print[bc->m_opcode], bc->m_value);
+		}
 	}
 
 //printf("left active pool\n");
@@ -642,14 +698,32 @@ vm_print_stack(p_vm);
 		dyn_store = cdr(p_vm, dyn_store);
 	}
 
+printf("sp: %lu bp: %lu\n", p_vm->m_sp, p_vm->m_bp);
+vm_print_stack(p_vm);
+printf("----\n");
+
 
 	// Consume the stack back through the function name
-	p_vm->m_stack[p_vm->m_bp] = p_vm->m_stack[p_vm->m_sp - 1];
-	p_vm->m_sp = p_vm->m_bp + 1;
+	unsigned long cur_bp = p_vm->m_bp;
+	vm_state_pop(p_vm);
+
+	p_vm->m_stack[cur_bp - 2] = p_vm->m_stack[p_vm->m_sp - 1];
+	p_vm->m_sp = cur_bp - 1;
+
 	p_vm->m_bp = old_bp;
 	p_vm->m_ip =  old_ip;
 
+printf("sp: %lu bp: %lu\n", p_vm->m_sp, p_vm->m_bp);
+vm_print_stack(p_vm);
+printf("---------------------------\n");
+
 	vm_pop_env(p_vm);
 
+	if (g_debug_display == true) {
+		printf("--vm_exec\n");
+		vm_print_stack(p_vm);
+		}
+
+	return;
 }
 

@@ -421,7 +421,7 @@ value_t *execute(vm_t *p_vm, value_t *p_closure)
 
 value_t * eval(vm_t *p_vm, value_t * p_form)
 {
-	if (g_debug_display == true) {
+	if (1 || g_debug_display == true) {
 		printf("eval: "); value_print(p_vm, p_form), printf("\n");
 	}
 

@@ -39,6 +39,14 @@ extern bool g_debug_display;
 
 extern value_t *g_kernel_proc;
 
+typedef struct {
+	unsigned long m_sp;
+	unsigned long m_bp;
+	unsigned long m_ev;
+	unsigned long m_csp;
+	int m_ip;
+} vm_state_t;
+
 typedef struct vm_s {
 	value_t *m_kernel_env;
 	value_t *m_user_env;
@@ -67,6 +75,7 @@ typedef struct vm_s {
 
 	value_t *m_next;
 } vm_t;
+
 
 
 typedef value_t *(*vm_func_t)(vm_t *p_vm);

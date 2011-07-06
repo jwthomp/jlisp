@@ -33,6 +33,7 @@ valuetype_config_data_t g_valuetype_cfg[] = {
 	{"VT_VOID", STATIC},
 	{"VT_PID", MALLOC_MARK_SWEEP},
 	{"VT_PROCESS", STATIC},
+	{"VT_VM_STATE", MALLOC_MARK_SWEEP},
 };
 
 
@@ -216,6 +217,15 @@ value_t * value_create_environment(vm_t *p_vm, value_t *p_env)
 	return ret;
 }
 
+value_t * value_create_vm_state(vm_t *p_vm)
+{
+	value_t *ret = value_create(p_vm, VT_VM_STATE, sizeof(vm_state_t), false);
+	vm_state_t *vm_state = (vm_state_t *)ret->m_data;
+	vm_state->m_bp = p_vm->m_bp;
+	vm_state->m_ip = p_vm->m_ip;
+	return ret;
+}
+
 
 
 bool value_equal(value_t *p_value_1, value_t *p_value_2)
@@ -380,6 +390,11 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		case VT_PID:
 		{
 			snprintf(ret->m_data, STRING_SIZE, "PROCESS <%p>",  p_value);
+			break;
+		}
+		case VT_VM_STATE:
+		{
+			snprintf(ret->m_data, STRING_SIZE, "VM_STATE: <0x%p>", p_value);
 			break;
 		}
 		default:
@@ -596,6 +611,8 @@ valuetype_config_data_t *valuetype_config_data_get(int p_val)
 			return &g_valuetype_cfg[13];
 		case VT_PROCESS:
 			return &g_valuetype_cfg[14];
+		case VT_VM_STATE:
+			return &g_valuetype_cfg[15];
 		default:
 			verify(false, "Unknown value type\n");
 			return NULL;

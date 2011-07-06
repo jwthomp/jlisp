@@ -19,6 +19,7 @@ typedef enum {
 	VT_VOID = 1 << 12,
 	VT_PID = 1 << 13,
 	VT_PROCESS = 1 << 14,
+	VT_VM_STATE = 1 << 15,
 } value_type_t;
 
 typedef enum {
