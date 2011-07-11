@@ -223,6 +223,8 @@ value_t * value_create_vm_state(vm_t *p_vm)
 	vm_state_t *vm_state = (vm_state_t *)ret->m_data;
 	vm_state->m_bp = p_vm->m_bp;
 	vm_state->m_ip = p_vm->m_ip;
+	vm_state->m_ev = p_vm->m_ev;
+	vm_state->m_sp = p_vm->m_sp;
 	return ret;
 }
 

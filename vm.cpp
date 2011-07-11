@@ -293,6 +293,400 @@ void vm_state_pop(vm_t *p_vm)
 	p_vm->m_bp = vm_state->m_bp;
 }
 
+// Looks for closure on the stack and starts executing bytecode
+void vm_exec2(vm_t *p_vm)
+{
+	// Get pointer to closure
+	value_t *closure = p_vm->m_stack[p_vm->m_sp - 1];
+	assert(*p_closure && is_closure(p_vm, *p_closure) && (*p_closure)->m_cons[1]);
+
+	////////////////////////////////
+	// Get lambda from closure
+	/////////////////////////////////
+	lambda_t *l = (lambda_t *)((*p_closure)->m_cons[1]->m_data);
+
+	/////////////////////////////////////
+	// Bind parameters
+	////////////////////////////////////
+	value_t *p = l->m_parameters;
+	assert(is_nil(p) == true);
+
+	///////////////////////////////
+	// Push new environment
+	// MODIFIES: SP, EP
+	//////////////////////////////
+	value_t *env = value_create_environment(p_vm, (*p_closure)->m_cons[0]);
+	vm_push_env(p_vm, env);
+
+	///////////////////////////
+	// Setup vm
+	////////////////////////////
+	p_vm->m_ip = 0;
+	p_vm->m_bp = 1;
+
+	///////////////////////////
+	// Start executing
+	////////////////////////////
+	while(p_vm->m_ip != -1) {
+		bytecode_t *bc = &((bytecode_t *)l->m_bytecode->m_data)[p_vm->m_ip];
+		unsigned long p_arg = bc->m_value;
+		value_t *p_pool = l->m_pool;
+
+		if (1 || g_debug_display == true) {
+			printf("ip: %d] sp: %ld] ep: %ld bp: %ld] %s %ld\n", p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, p_vm->m_bp, g_opcode_print[bc->m_opcode], bc->m_value);
+vm_print_stack(p_vm);
+		}
+
+		////////////////////////////
+		// Handle OP CODES
+		////////////////////////////
+		switch (bc->m_opcode) {
+			case OP_PUSH:
+			{
+				p_vm->m_stack[p_vm->m_sp++] = ((value_t **)l->m_pool->m_data)[bc->m_value];
+				p_vm->m_ip++;
+				break;
+			}
+			case OP_BIND:
+			{
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_internal(p_vm, sym, value, false, false);
+				p_vm->m_ip++;
+				break;
+			}
+			case OP_BINDF:
+			{
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_internal(p_vm, sym, value, true, false);
+				p_vm->m_ip++;
+				break;
+			}
+			case OP_BINDD:
+			{
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_internal(p_vm, sym, value, false, true);
+				p_vm->m_ip++;
+				break;
+			}
+			case OP_BINDDF:
+			{
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_internal(p_vm, sym, value, true, true);
+				p_vm->m_ip++;
+				break;
+			}
+			case OP_CATCH:
+			{
+				//printf("op_catch arg: %d\n", (int)p_arg);
+
+				int ip = (int)p_arg;
+
+				if (ip == -1) {
+//printf("pop'd handler\n");
+					pop_handler_stack();
+					p_vm->m_ip++;
+					return;
+				}
+
+
+//////// TODO: Need to put this on the stack somehow?
+				int vm_bp = p_vm->m_bp;
+				int vm_sp = p_vm->m_sp;
+				int vm_ev = p_vm->m_ev;
+				int vm_ip = p_vm->m_ip;
+				value_t *vm_current_env = p_vm->m_current_env[p_vm->m_ev - 1];
+
+
+				int i = setjmp(*push_handler_stack());
+				if (i != 0) {
+//printf("error in catch\n");
+					p_vm->m_bp = vm_bp;
+					p_vm->m_sp = vm_sp;
+					p_vm->m_ev = vm_ev;
+					p_vm->m_ip = vm_ip;
+					p_vm->m_current_env[p_vm->m_ev - 1] = vm_current_env;
+
+					pop_handler_stack();
+					p_vm->m_ip = ip;
+//printf("jumping to %d\n", p_vm->m_ip);
+				} else {
+					p_vm->m_ip++;
+				}
+				break;
+			}
+			case OP_DUP:
+			{
+				// Get value from stack
+			
+				value_t *v = p_vm->m_stack[p_vm->m_bp + p_arg];
+
+				// Push it onto the stack
+				p_vm->m_stack[p_vm->m_sp++] = v;
+				p_vm->m_ip++;
+				break;
+			}
+			case OP_LOAD:
+			{
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+				if (is_symbol_dynamic(p_vm, sym)) {
+					p_vm->m_stack[p_vm->m_sp++] = car(p_vm, sym->m_cons[1]);
+					p_vm->m_ip++;
+				} else {
+					value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], false);
+
+					verify(b && is_binding(p_vm, b), "The variable %s is unbound.\n", 
+						(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
+
+//	printf("op_load: key: %d '", ((value_t **)p_pool->m_data)[p_arg]->m_type); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("'\n");
+
+
+					// Push it onto the stack
+					binding_t *bind = (binding_t *)b->m_data;
+
+					p_vm->m_stack[p_vm->m_sp++] = bind->m_value;
+					p_vm->m_ip++;
+				}
+				break;
+			}
+			case OP_LOADF:
+			{
+//	printf("loadf: "); value_print(p_vm, ((value_t **)p_pool->m_data)[p_arg]); printf("\n");
+//	printf("ev: %lu\n", p_vm->m_ev);
+
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+
+				if (is_symbol_function_dynamic(p_vm, sym)) {
+					p_vm->m_stack[p_vm->m_sp++] = car(p_vm, sym->m_cons[2]);
+					p_vm->m_ip++;
+				} else {
+					value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], true);
+
+					verify(b != NULL, "The variable %s is not bound to a function.\n", 
+						(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
+
+					// Push it onto the stack
+					binding_t *bind = (binding_t *)b->m_data;
+					p_vm->m_stack[p_vm->m_sp++] = bind->m_value;
+					p_vm->m_ip++;
+				}
+
+				break;
+			}
+			case OP_CALL:
+			{
+				//////////////////////
+				// Need to setup new bytecode to run
+				//
+				// Fix up parameters and bind them?
+				// Save current ip, bp, and ev
+				// Set new bp and ip
+				// Continue executing
+				// Ret is responsible for restoring ip, bp, and ev and updating stack
+				//
+				// NOTE: p_arg contains the number of args call is passing
+
+				///////////////////////////////
+				// Get the closure we are calling which will have been loaded and is right before the args
+				//////////////////////////////
+				value_t *call_closure = p_vm->m_stack[p_vm->m_sp - p_arg - 1];
+
+				////////////////////////////////
+				// Get lambda from closure
+				/////////////////////////////////
+				lambda_t *call_lambda = (lambda_t *)((*p_closure)->m_cons[1]->m_data);
+
+				////////////////////////////////
+				// If supports &rest need to collapse extra args into one spot on cons on the stack
+				///////////////////////////////
+				long int func_arg_count = (long int)(call_closure)->m_cons[2];
+				// Condense remaining args into a list
+				if (func_arg_count < 0) {
+					func_arg_count = -func_arg_count;
+					for( ; p_nargs > func_arg_count; p_nargs--) {
+						vm_cons(p_vm);
+					}
+					// Decrement p_arg since we've combined an argument
+					p_arg--;
+				}
+
+				//////////////////////////////
+				// If this is an ifunc then we can just call it now
+				/////////////////////////////
+				if (is_ifunc(p_vm, *p_closure)) {
+					vm_func_t func = *(vm_func_t *)(*p_closure)->m_data;
+					p_vm->m_stack[p_vm->m_sp++] = func(p_vm);
+					p_vm->m_ip++;
+					continue;
+				}
+				
+				///////////////////////////
+				// Put our current state onto the stack
+				//////////////////////////
+				vm_state_push(p_vm);
+
+				//////////////////////////
+				// Setup vm for new closure
+				/////////////////////////
+				// Set bp to the closure we are calling
+				p_vm->m_bp = p_vm->m_sp - (1 + p_arg);
+				
+
+				///////////////////////////////
+				// Push new environment
+				// MODIFIES: SP, EP
+				//////////////////////////////
+				value_t *env = value_create_environment(p_vm, (*p_closure)->m_cons[0]);
+				vm_push_env(p_vm, env);
+
+				/////////////////////////////
+				// Bind all parameters
+				///////////////////////////////
+				value_t *call_params = l->m_parameters;
+
+				value_t *dyn_store = p_vm->nil;
+
+				int bp_offset = 0;
+				while(call_params && call_params != p_vm->nil && call_params->m_cons[0]) {
+					if (strcmp(call_params->m_cons[0]->m_cons[0]->m_data, "&REST")) {
+						value_t *stack_val = p_vm->m_stack[p_vm->m_bp + bp_offset];
+						value_t *sym = call_params->m_cons[0];
+
+//printf("binding: %d ", call_params->m_cons[0]->m_type); value_print(p_vm, call_params->m_cons[0]); printf (" to: "); value_print(p_vm, stack_val); printf("\n");
+//printf("binding symbol: %s\n", sym->m_cons[0]->m_data);
+
+						bind_internal(p_vm, sym, stack_val, false, false);
+			
+						if (is_symbol_dynamic(p_vm, sym) == true) {
+							dyn_store = vm_store_dyn_value(p_vm, sym, sym->m_cons[1], dyn_store);
+						}
+
+
+						bp_offset++;
+					}
+					call_params = call_params->m_cons[1];
+				}
+
+
+				verify(func_arg_count == bp_offset, "Mismatched arg count: %d != %d\n", p_nargs, bp_offset);
+
+				// Store current bp & sp
+				int old_bp = p_vm->m_bp;
+
+
+
+				value_t *func_val = p_vm->m_stack[p_vm->m_bp];
+
+
+				value_t *ret = 0;
+				if (is_ifunc(p_vm, func_val)) {
+					vm_exec(p_vm, &p_vm->m_stack[p_vm->m_bp], p_arg);
+					ret = p_vm->m_stack[p_vm->m_sp - 1];
+				} else if (is_closure(p_vm, func_val)) {
+					vm_exec(p_vm, &p_vm->m_stack[p_vm->m_bp], p_arg);
+					ret = p_vm->m_stack[p_vm->m_sp - 1];
+				}  else {
+					verify(false, "ERROR: UNKNOWN FUNCTION TYPE: %d\n", func_val->m_type);
+				}
+
+				// Consume the stack back through the function name
+				p_vm->m_sp = p_vm->m_bp;
+				p_vm->m_stack[p_vm->m_sp++] = ret;
+				p_vm->m_bp = old_bp;
+				p_vm->m_ip++;
+				break;
+
+			}
+			case OP_LAMBDA:
+			{
+				// get value from pool
+				value_t *lambda = ((value_t **)p_pool->m_data)[p_arg];
+
+//printf("op_lambda: bc: "); value_print(((lambda_t *)lambda->m_data)->m_bytecode); printf("\n");
+
+				value_t *closure = make_closure(p_vm, lambda);
+				p_vm->m_stack[p_vm->m_sp++] = closure;
+				p_vm->m_ip++;
+				break;
+			}
+			case OP_BINDG:
+			{
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_internal(p_vm, sym, value, false, true);
+				p_vm->m_ip++;
+				break;
+			}
+			case OP_BINDGF:
+			{
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+				value_t *value = p_vm->m_stack[p_vm->m_sp - 1];
+				bind_internal(p_vm, sym, value, true, true);
+				p_vm->m_ip++;
+				break;
+			}
+			case OP_POP:
+				p_vm->m_sp--;
+				p_vm->m_ip++;
+				break;
+			case OP_JMP:
+				p_vm->m_ip += (int)p_arg;
+				break;
+			case OP_IFNILJMP:
+			{
+				value_t *top = p_vm->m_stack[p_vm->m_sp - 1];
+
+//printf("ifniljmp: "); value_print(top); printf("\n");
+
+				if (top == p_vm->nil) {
+					//printf("op_ifniljmp: %d\n", (int)p_arg);
+					p_vm->m_ip += (int)p_arg;
+				}  else { 
+					p_vm->m_ip++;
+				}
+			
+				break;
+			}
+			case OP_RET:
+			{
+				p_vm->m_ip = -1;
+
+				break;
+			}
+			case OP_UPDATE:
+			{
+				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
+
+				if (sym->m_cons[1] != p_vm->voidobj) {
+					sym->m_cons[1]->m_cons[0] = p_vm->m_stack[p_vm->m_sp - 1];
+				} else {
+					value_t *b = environment_binding_find(p_vm, sym, false);
+
+					verify(b && is_binding(p_vm, b), "op_load: Binding lookup failed: %s\n", 
+						(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
+
+					// Change value
+					binding_t *bind = (binding_t *)b->m_data;
+					bind->m_value = p_vm->m_stack[p_vm->m_sp - 1];
+				}
+
+				p_vm->m_ip++;
+				break;
+			}
+		}
+
+		if (g_debug_display == true) {
+			printf("------\n");
+			vm_print_stack(p_vm);
+			printf("--ip: %d] sp: %ld] ep: %ld] %s %ld\n", p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, g_opcode_print[bc->m_opcode], bc->m_value);
+		}
+	}
+}
+
+
 void vm_exec(vm_t *p_vm, value_t ** volatile p_closure, int p_nargs)
 {
 printf("vm_exec\n");
