@@ -11,6 +11,7 @@
 #include <string.h>
 
 #define STRING_SIZE 128
+//#define LOTS_OF_PRINT
 
 typedef struct {
 	char const *m_string;
@@ -225,6 +226,7 @@ value_t * value_create_vm_state(vm_t *p_vm)
 	vm_state->m_ip = p_vm->m_ip;
 	vm_state->m_ev = p_vm->m_ev;
 	vm_state->m_sp = p_vm->m_sp;
+	vm_state->m_exp = p_vm->m_exp;
 	return ret;
 }
 
@@ -298,7 +300,13 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 
 	switch(p_value->m_type) {
 		case VT_CLOSURE:
-			snprintf(ret->m_data, STRING_SIZE, "closure");
+			snprintf(ret->m_data, STRING_SIZE, "closure: <%p>", p_value);
+#if LOTS_OF_PRINT
+			printf("closure\n");
+			printf("env: "); value_print(p_vm, p_value->m_cons[0]); printf("\n");
+			printf("l: "); value_print(p_vm, p_value->m_cons[1]); printf("\n");
+			printf("args: %d\n", (int)p_value->m_cons[2]);
+#endif
 			break;
 		case VT_ENVIRONMENT:
 			snprintf(ret->m_data, STRING_SIZE, "environment");
@@ -306,39 +314,41 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		case VT_BYTECODE:
 		{
 			snprintf(ret->m_data, STRING_SIZE, "bytecode");
-			//printf("bytecode: \n");
-			//bytecode_t *bc = (bytecode_t *)p_value->m_data;
-			//for (unsigned long i = 0; i < (p_value->m_size / sizeof(bytecode_t)); i++) {
-		//		printf("op: %s code: %lu\n", g_opcode_print[bc[i].m_opcode], bc[i].m_value);
-		//	}
+			printf("bytecode: \n");
+#if LOTS_OF_PRINT
+			bytecode_t *bc = (bytecode_t *)p_value->m_data;
+			for (unsigned long i = 0; i < (p_value->m_size / sizeof(bytecode_t)); i++) {
+				printf("op: %s code: %lu\n", g_opcode_print[bc[i].m_opcode], bc[i].m_value);
+			}
+#endif
 			break;
 		}
 		case VT_LAMBDA:
 		{
 			snprintf(ret->m_data, STRING_SIZE, "lambda <0x%p>", p_value);
-#if 0
+#if LOTS_OF_PRINT
 			lambda_t *l = (lambda_t *)p_value->m_data;
 			printf("lambda: args: ");
-			value_print(l->m_parameters);
+			value_print(p_vm, l->m_parameters);
 			printf("\n");
 
 			printf("pool\n");
-			value_print(l->m_pool);
+			value_print(p_vm, l->m_pool);
 			
 
 			printf("bc:\n");
-			value_print(l->m_bytecode);
+			value_print(p_vm, l->m_bytecode);
 #endif
 			break;
 		}
 		case VT_POOL:
 		{
 			snprintf(ret->m_data, STRING_SIZE, "pool <0x%p>", p_value);
-#if 0
+#if LOTS_OF_PRINT
 			int pool_size = p_value->m_size / sizeof(value_t *);
 			printf("pool: ");
 			for (int i = 0; i < pool_size; i++) {
-				printf("%d] ", i); value_print(((value_t **)p_value->m_data)[i]); printf("\n");
+				printf("%d] ", i); value_print(p_vm, ((value_t **)p_value->m_data)[i]); printf("\n");
 			}
 #endif
 			break;

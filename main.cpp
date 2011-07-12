@@ -110,7 +110,37 @@ int main(int argc, char *arg[])
 		unit_test();
 	} else {
 
-#if 0
+#if 1
+	stream_t *strm = stream_create("(defun x () (+ 1 2)) (x)");
+	//stream_t *strm = stream_create("(load \"qsort\") (cadr '(1 2))");
+	//stream_t *strm = stream_create("(load \"qsort\") (pivot (seq 100))");
+	int args = reader(vm, strm, false);
+printf("args: %d\n", args);
+	int start_sp = vm->m_sp;
+	vm->m_bp = args;
+
+	while (args) {
+		value_t *form = vm->m_stack[start_sp - args--];
+
+printf("form: "); value_print(vm, form); printf("\n");
+
+		value_t *lambda = compile(vm, vm->nil, list(vm, form));
+		value_t *closure = make_closure(vm, lambda);
+		vm_push_exec(vm, closure);
+//		vm->m_stack[vm->m_sp++] = closure;
+		vm_exec2(vm);
+
+printf("res: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
+
+		vm->m_sp = start_sp;
+printf("===========================================\n");
+printf("===========================================\n");
+	}
+
+
+	vm_print_stack(vm);
+
+#elif 0
 	load_string(vm, "(load \"qsort\") (pivot (seq 1000))");
 #elif 0
 	value_t *vm1_val = value_create_process(vm, vm_val);
@@ -134,7 +164,7 @@ int main(int argc, char *arg[])
 		printf("%d> ", flip);
 	}
 
-#elif 1
+#elif 0
 	int flip = 0;
 	char input[256];
 	memset(input, 0, 256);

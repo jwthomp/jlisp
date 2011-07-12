@@ -37,6 +37,7 @@ value_t *cdr(vm_t *p_vm);
 value_t *call(vm_t *p_vm);
 value_t *minus(vm_t *p_vm);
 value_t *plus(vm_t *p_vm);
+value_t *times(vm_t *p_vm);
 value_t *less_then(vm_t *p_vm);
 value_t *status(vm_t *p_vm);
 value_t *eq(vm_t *p_vm);
@@ -68,6 +69,7 @@ static internal_func_def_t g_ifuncs[] = {
 	{"CAR", car, 1, false, true},
 	{"CDR", cdr, 1, false, true},
 	{"CALL", call, 2, false, true}, 				// ?
+	{"*", times, 2, false, true},
 	{"+", plus, 2, false, true},
 	{"-", minus, 2, false, true},
 	{"<", less_then, 2, false, true},
@@ -367,7 +369,7 @@ printf("\n-------static Heap--------\n");
 		count++;
 		if (is_fixnum(heap)) {
 			mem += sizeof(heap);
-			printf("%d] %lu ", count, sizeof(heap));
+			printf("%d] %ud ", count, sizeof(heap));
 		} else {
 		mem += sizeof(value_t) + heap->m_size;
 		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);
@@ -390,7 +392,7 @@ printf("\n-------g0 Heap--------\n");
 
 		if (is_fixnum(heap)) {
 			mem += sizeof(heap);
-			printf("%d] %lu ", count, sizeof(heap));
+			printf("%d] %ud ", count, sizeof(heap));
 		} else {
 		mem += sizeof(value_t) + heap->m_size;
 		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);
@@ -408,7 +410,7 @@ printf("\n-------g1 Heap--------\n");
 		count++;
 		if (is_fixnum(heap)) {
 			mem += sizeof(heap);
-			printf("%d] %lu ", count, sizeof(heap));
+			printf("%d] %ud ", count, sizeof(heap));
 		} else {
 		mem += sizeof(value_t) + heap->m_size;
 		printf("%d - %p] %lu ", count, heap, sizeof(value_t) + heap->m_size);
@@ -583,6 +585,16 @@ value_t *minus(vm_t *p_vm)
 	return make_fixnum(to_fixnum(first) - to_fixnum(second));
 }
 
+value_t *times(vm_t *p_vm)
+{
+	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
+	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
+
+	verify(is_fixnum(first), "argument X is not a number: %s", value_sprint(p_vm, first));
+	verify(is_fixnum(second), "argument Y is not a number: %s", value_sprint(p_vm, second));
+
+	return make_fixnum(to_fixnum(first) * to_fixnum(second));
+}
 value_t *plus(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
