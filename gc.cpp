@@ -397,7 +397,7 @@ static pool_t * do_gc(vm_t *p_vm, int p_age, unsigned long p_pool_size)
 
 g_count = 0;
 
-//printf("GC FIRED: sp: %lu csp: %lu ev: %ld gc: %d\n", p_vm->m_sp, p_vm->m_csp, p_vm->m_ev, g_count);
+printf("GC FIRED: sp: %lu csp: %lu ev: %ld gc: %d\n", p_vm->m_sp, p_vm->m_csp, p_vm->m_ev, g_count);
 
 	
 	value_t *ret;

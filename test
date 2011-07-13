@@ -91,7 +91,4 @@
                   (evlis. (cdr m) a)))))
 
 
-(let ((e '((macro lambda (x) (list (quote car) (list (quote cdr) x)))
-           (cons (quote x) (cons (quote y) nil))))
-      (bindings `((list ,(symbol-function 'list.)))))
-  (eval. e bindings))
+"(let ((e '((macro lambda (x) (list (quote car) (list (quote cdr) x))) (cons (quote x) (cons (quote y) nil)))) (bindings `((list ,(symbol-function 'list.))))) (eval. e bindings))"

@@ -98,6 +98,7 @@ void vm_push_env(vm_t *p_vm, value_t *p_env);
 void vm_pop_env(vm_t *p_vm);
 
 void vm_push_exec(vm_t *p_vm, value_t *p_closure);
+void vm_insert_exec(vm_t *p_vm, value_t *p_closure);
 void vm_pop_exec(vm_t *p_vm);
 value_t *vm_peek_exec_closure(vm_t *p_vm);
 

@@ -111,32 +111,42 @@ int main(int argc, char *arg[])
 	} else {
 
 #if 1
-	stream_t *strm = stream_create("(defun x () (+ 1 2)) (x)");
+	//stream_t *strm = stream_create("(+ 1 2)");
+	//stream_t *strm = stream_create("(+ 1 (* 2 3))");
+	//stream_t *strm = stream_create("(+ (* 2 3) 1) (+ 1 1)");
+	//stream_t *strm = stream_create("(call (lambda () (+ 1 2))) (+ 4 5)");
+	//stream_t *strm = stream_create("(call (lambda (a b) (+ a b)) 3 4)");
+	//stream_t *strm = stream_create("(defun x (a b) (+ a b)) (x 5 6)");
+	//stream_t *strm = stream_create("(load \"stf.awe\")");
+	stream_t *strm = stream_create("(load \"test\")");
 	//stream_t *strm = stream_create("(load \"qsort\") (cadr '(1 2))");
-	//stream_t *strm = stream_create("(load \"qsort\") (pivot (seq 100))");
+	//stream_t *strm = stream_create("(load \"qsort\") (pivot (seq 10))");
 	int args = reader(vm, strm, false);
 printf("args: %d\n", args);
 	int start_sp = vm->m_sp;
-	vm->m_bp = args;
 
-	while (args) {
-		value_t *form = vm->m_stack[start_sp - args--];
+	int i = 1;
+	while (i <= args) {
+		value_t *form = vm->m_stack[start_sp - i];
+#if 0
 
 printf("form: "); value_print(vm, form); printf("\n");
 
 		value_t *lambda = compile(vm, vm->nil, list(vm, form));
 		value_t *closure = make_closure(vm, lambda);
 		vm_push_exec(vm, closure);
-//		vm->m_stack[vm->m_sp++] = closure;
-		vm_exec2(vm);
+#endif
+		eval(vm, form);
+		i++;
 
-printf("res: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
-
-		vm->m_sp = start_sp;
 printf("===========================================\n");
 printf("===========================================\n");
 	}
 
+	vm->m_sp -= args;
+
+	vm_exec2(vm);
+printf("res: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
 
 	vm_print_stack(vm);
 
