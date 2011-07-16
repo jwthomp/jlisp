@@ -227,6 +227,7 @@ value_t * value_create_vm_state(vm_t *p_vm)
 	vm_state->m_ev = p_vm->m_ev;
 	vm_state->m_sp = p_vm->m_sp;
 	vm_state->m_exp = p_vm->m_exp;
+	vm_state->m_dynval = p_vm->nil;
 	return ret;
 }
 

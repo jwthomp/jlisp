@@ -2,6 +2,7 @@
 #include "value_helpers.h"
 #include "assert.h"
 #include "vm.h"
+#include "vm_exec.h"
 #include "gc.h"
 #include "lambda.h"
 #include "err.h"
@@ -75,7 +76,11 @@ int macro_expand_1(vm_t *p_vm, value_t **p_value)
 	if (is_cons(p_vm, *p_value) && is_form_macro(p_vm, *p_value)) {
 //printf("Found macro, compiling\n");
 		(*p_value)->m_cons[0]->m_type = VT_MACRO;
+
+printf("Abp: %lu\n", p_vm->m_bp);
 		*p_value = eval(p_vm, *p_value);
+printf("Bbp: %lu\n", p_vm->m_bp);
+		vm_exec(p_vm, p_vm->m_exp - 1);
 
 		return 1;
 	} else {
@@ -421,7 +426,7 @@ value_t *execute(vm_t *p_vm, value_t *p_closure)
 
 value_t * eval(vm_t *p_vm, value_t * p_form)
 {
-	if (1 || g_debug_display == true) {
+	if (g_debug_display == true) {
 		printf("eval: "); value_print(p_vm, p_form), printf("\n");
 	}
 
@@ -429,14 +434,10 @@ value_t * eval(vm_t *p_vm, value_t * p_form)
 	value_t *closure =  make_closure(p_vm, lambda);
 
 	p_vm->m_ip++;
-	vm_push_exec(p_vm, closure);
+	vm_push_exec_state(p_vm, closure);
 	p_vm->m_ip = 0;
 	p_vm->m_bp = p_vm->m_bp + 1;
 
-
-	//vm_exec(p_vm, &closure, 0);
-	//p_vm->m_stack[p_vm->m_sp - 2] = p_vm->m_stack[p_vm->m_sp - 1];
-	//p_vm->m_sp--;
 
 	return p_vm->m_stack[p_vm->m_sp - 1];
 }
