@@ -10,6 +10,109 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
+#include <pthread.h>
+
+#define NUM_HARDWARE_THREADS 1
+
+typedef struct vm_exec_proc_s
+{
+	int m_hardware_thread_affinity;
+	int m_count;
+	value_t *m_vm_list;
+	pthread_t m_pid;
+	struct vm_exec_proc_s *m_next;
+} vm_exec_proc_t;
+
+
+static pthread_key_t g_thread_key;
+static vm_exec_proc_t *g_exec_procs = NULL;
+value_t *g_static_heap;
+value_t *g_symbol_table;
+
+void vm_exec_proc_create();
+void *exec_proc_loop(void *arg);
+
+void vm_exec_init()
+{
+	voidobj = value_create(NULL, VT_VOID, 0, true);
+	g_static_heap = NULL;
+	g_symbol_table = voidobj;
+	g_exec_procs = NULL;
+
+	pthread_key_create(&g_thread_key, NULL);
+	
+	int pid_count = NUM_HARDWARE_THREADS;
+	for (int i = 0; i < pid_count; i++) {
+		vm_exec_proc_create();
+	}
+}
+
+void vm_exec_wait()
+{
+	void *data;
+	pthread_join(g_exec_procs->m_pid, &data);
+}
+
+void vm_exec_proc_create()
+{
+printf("START\n");
+	vm_exec_proc_t *exec_proc = (vm_exec_proc_t *)malloc(sizeof(vm_exec_proc_t));
+	exec_proc->m_hardware_thread_affinity = -1;
+	exec_proc->m_vm_list = nil;
+	exec_proc->m_pid = 0;
+	exec_proc->m_next = g_exec_procs;
+	exec_proc->m_count = 0;
+	g_exec_procs = exec_proc;
+
+	// Spawn this bad boy
+	int ret = pthread_create(&exec_proc->m_pid, NULL, exec_proc_loop, exec_proc);
+	assert(ret == 0);
+}
+
+void *exec_proc_loop(void *arg)
+{
+	vm_exec_proc_t *exec_proc = (vm_exec_proc_t *)arg;
+	while(exec_proc->m_pid == 0) {
+		usleep(100000);
+	}
+
+	pthread_setspecific(g_thread_key, exec_proc);
+
+	while(1) {
+		vm_exec(NULL, 0, true);
+
+		value_t *vm_val = exec_proc->m_vm_list;
+		vm_t *vm = *(vm_t **)vm_val->m_data; 
+		printf("res: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
+		vm_print_stack(vm);
+		// We exited so we need to remove the current vm
+		exec_proc->m_vm_list = exec_proc->m_vm_list->m_next_symbol;
+	}
+
+	printf("proc done\n");
+
+	return NULL;
+}
+
+
+void vm_exec_proc_destroy(value_t *p_proc)
+{
+	// Not implementing yet
+	assert(!"Not implementing yet");
+}
+
+void vm_exec_add_vm(value_t *p_vm)
+{
+	p_vm->m_next_symbol = g_exec_procs->m_vm_list;
+	g_exec_procs->m_vm_list = p_vm;
+}
+
+void vm_exec_remove_vm(vm_t *p_vm)
+{
+}
+
 
 value_t *vm_store_dyn_value(vm_t *p_vm, value_t *p_sym, value_t *p_value, value_t *p_sym_val)
 {
@@ -27,7 +130,7 @@ void vm_remove_dyn_value(vm_t *p_vm, value_t *p_sym_val)
 
 	value_t *dyn_val = sym->m_cons[1];
 	value_t *last = NULL;
-	while(dyn_val != p_vm->voidobj) {
+	while(dyn_val != voidobj) {
 		if (dyn_val == cdr(p_vm, p_sym_val)) {
 			if (last == NULL) {
 				sym->m_cons[1] = cdr(p_vm, dyn_val);
@@ -73,7 +176,7 @@ void vm_pop_exec_state(vm_t *p_vm)
 	// Restore any dynamic bindings
 	// Search for any value we added and remove it if it still exists
 	value_t *dyn_store = vm_state->m_dynval;
-	while(dyn_store != p_vm->nil) {
+	while(dyn_store != nil) {
 		// (sym . val)
 		value_t *sym_val = car(p_vm, dyn_store);
 		vm_remove_dyn_value(p_vm, sym_val);
@@ -92,9 +195,22 @@ value_t *vm_peek_exec_state_closure(vm_t *p_vm)
 
 
 // Looks for closure on the stack and starts executing bytecode
-void vm_exec(vm_t *p_vm, unsigned long p_return_on_exp)
+void vm_exec(vm_t *p_vmUNUSED, unsigned long p_return_on_exp, bool p_allow_preemption)
 {
 //printf("VM_EXEC2\n");
+	vm_exec_proc_t *exec_proc;
+	exec_proc = (vm_exec_proc_t *)pthread_getspecific(g_thread_key);
+
+	while(exec_proc->m_vm_list == NULL) {
+		usleep(300000);
+	}
+
+printf("GOT A VM\n");
+
+	value_t *vm_val = exec_proc->m_vm_list;
+
+	vm_t *p_vm = *(vm_t **)vm_val->m_data; 
+	
 
 	if (p_vm->m_exp == 0) {
 		return;
@@ -106,7 +222,7 @@ void vm_exec(vm_t *p_vm, unsigned long p_return_on_exp)
 
 //printf(" closure: "); value_print(p_vm, closure); printf("\n");
 
-	assert(closure && is_closure(p_vm, closure) && (closure)->m_cons[1]);
+	assert(closure && is_closure(closure) && (closure)->m_cons[1]);
 
 	////////////////////////////////
 	// Get lambda from closure
@@ -117,14 +233,14 @@ void vm_exec(vm_t *p_vm, unsigned long p_return_on_exp)
 	// Bind parameters
 	////////////////////////////////////
 	value_t *p = l->m_parameters;
-	assert(is_null(p_vm, p) == true);
+	assert(is_null(p) == true);
 
 	///////////////////////////
 	// Start executing
 	////////////////////////////
 	while(p_vm->m_exp > p_return_on_exp) {
 		value_t *c = vm_peek_exec_state_closure(p_vm);
-		assert(is_closure(p_vm, c) == true);
+		assert(is_closure(c) == true);
 		l = (lambda_t *)(c->m_cons[1]->m_data);
 		bytecode_t *bc = &((bytecode_t *)l->m_bytecode->m_data)[p_vm->m_ip];
 		unsigned long p_arg = bc->m_value;
@@ -230,13 +346,13 @@ void vm_exec(vm_t *p_vm, unsigned long p_return_on_exp)
 			case OP_LOAD:
 			{
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
-				if (is_symbol_dynamic(p_vm, sym)) {
+				if (is_symbol_dynamic(sym)) {
 					p_vm->m_stack[p_vm->m_sp++] = car(p_vm, sym->m_cons[1]);
 					p_vm->m_ip++;
 				} else {
 					value_t *b = environment_binding_find(p_vm, ((value_t **)p_pool->m_data)[p_arg], false);
 
-					verify(b && is_binding(p_vm, b), "The variable %s is unbound.\n", 
+					verify(b && is_binding(b), "The variable %s is unbound.\n", 
 						(char *)((value_t **)p_pool->m_data)[p_arg]->m_cons[0]->m_data);
 
 //	printf("op_load: key: %d '", ((value_t **)p_pool->m_data)[p_arg]->m_type); value_print(((value_t **)p_pool->m_data)[p_arg]); printf("'\n");
@@ -257,7 +373,7 @@ void vm_exec(vm_t *p_vm, unsigned long p_return_on_exp)
 
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
 
-				if (is_symbol_function_dynamic(p_vm, sym)) {
+				if (is_symbol_function_dynamic(sym)) {
 					p_vm->m_stack[p_vm->m_sp++] = car(p_vm, sym->m_cons[2]);
 					p_vm->m_ip++;
 				} else {
@@ -303,7 +419,7 @@ void vm_exec(vm_t *p_vm, unsigned long p_return_on_exp)
 				// If supports &rest need to collapse extra args into one spot on cons on the stack
 				///////////////////////////////
 				long int func_arg_count = 0;
-				if (is_ifunc(p_vm, call_closure)) {
+				if (is_ifunc(call_closure)) {
 					vm_func_t func = *(vm_func_t *)call_closure->m_data;
 					func_arg_count = call_closure->m_data[sizeof(vm_func_t)];
 				} else {
@@ -323,7 +439,7 @@ void vm_exec(vm_t *p_vm, unsigned long p_return_on_exp)
 				//////////////////////////////
 				// If this is an ifunc then we can just call it now
 				/////////////////////////////
-				if (is_ifunc(p_vm, call_closure)) {
+				if (is_ifunc(call_closure)) {
 					vm_func_t func = *(vm_func_t *)call_closure->m_data;
 					p_vm->m_bp = p_vm->m_sp - 1 - p_arg;
 printf("bp: %lu = sp: %lu - 1 - p_arg %lu\n", p_vm->m_bp, p_vm->m_sp, p_arg);
@@ -354,12 +470,12 @@ printf("bp: %lu = sp: %lu - 1 - p_arg %lu\n", p_vm->m_bp, p_vm->m_sp, p_arg);
 				///////////////////////////////
 				value_t *call_params = call_lambda->m_parameters;
 
-				value_t *dyn_store = p_vm->nil;
+				value_t *dyn_store = nil;
 
 //printf("params2: "); value_print(p_vm, call_params); printf("\n");
 
 				int bp_offset = 0;
-				while(call_params && call_params != p_vm->nil && call_params->m_cons[0]) {
+				while(call_params && call_params != nil && call_params->m_cons[0]) {
 					if (strcmp(call_params->m_cons[0]->m_cons[0]->m_data, "&REST")) {
 						value_t *stack_val = p_vm->m_stack[p_vm->m_bp + 1 + bp_offset];
 						value_t *sym = call_params->m_cons[0];
@@ -369,7 +485,7 @@ printf("bp: %lu = sp: %lu - 1 - p_arg %lu\n", p_vm->m_bp, p_vm->m_sp, p_arg);
 
 						bind_internal(p_vm, sym, stack_val, false, false);
 			
-						if (is_symbol_dynamic(p_vm, sym) == true) {
+						if (is_symbol_dynamic(sym) == true) {
 							dyn_store = vm_store_dyn_value(p_vm, sym, sym->m_cons[1], dyn_store);
 						}
 
@@ -428,7 +544,7 @@ printf("p_arg: %lu bp_offset: %d\n", p_arg, bp_offset);
 
 //printf("ifniljmp: "); value_print(top); printf("\n");
 
-				if (top == p_vm->nil) {
+				if (top == nil) {
 					//printf("op_ifniljmp: %d\n", (int)p_arg);
 					p_vm->m_ip += (int)p_arg;
 				}  else { 
@@ -478,7 +594,7 @@ vm_print_stack(p_vm);
 /*
 				// Restore any dynamic bindings
 				// Search for any value we added and remove it if it still exists
-				while(dyn_store != p_vm->nil) {
+				while(dyn_store != nil) {
 					// (sym . val)
 					value_t *sym_val = car(p_vm, dyn_store);
 					vm_remove_dyn_value(p_vm, sym_val);
@@ -522,12 +638,12 @@ vm_print_stack(p_vm);
 			{
 				value_t *sym = ((value_t **)p_pool->m_data)[p_arg];
 
-				if (sym->m_cons[1] != p_vm->voidobj) {
+				if (sym->m_cons[1] != voidobj) {
 					sym->m_cons[1]->m_cons[0] = p_vm->m_stack[p_vm->m_sp - 1];
 				} else {
 					value_t *b = environment_binding_find(p_vm, sym, false);
 
-					verify(b && is_binding(p_vm, b), "op_load: Binding lookup failed: %s\n", 
+					verify(b && is_binding(b), "op_load: Binding lookup failed: %s\n", 
 						(char *)((value_t **)p_pool->m_data)[p_arg]->m_data);
 
 					// Change value

@@ -42,7 +42,7 @@ static char const *test_lambda_basic()
 	value_t *rd = vm->m_stack[vm->m_sp - 1];
 	eval(vm, rd);
 	mu_assert("(lambda () (+ 1 2)) -> Did not have a vm->m_sp of 1\n", vm->m_sp == 1);
-	mu_assert("(lambda () (+ 1 2)) -> Did not return a closure\n", is_closure(vm, vm->m_stack[vm->m_sp - 1]));
+	mu_assert("(lambda () (+ 1 2)) -> Did not return a closure\n", is_closure(vm->m_stack[vm->m_sp - 1]));
 	vm_destroy(vm);
 	return 0;
 }

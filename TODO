@@ -13,28 +13,25 @@
 [ ] Support packages
 [ ] Add FFI support
 [ ] How to do shared dev?
-
 [ ] Tuples
 [ ] Matching
-
-
-[ ] Get dynval storing and restoration to work with mp vm_exec
-
-
 [ ] Packages - Put in own symbols.* files
+
+
+[ ] Make nil, voidobj  and t static symbols that aren't tied to a vm
+
+
+
+
 
 
 [ ] Loadf symbols that are undefined, and load binding when they are
 [ ] Support flet and dynamic scoping
 [ ] Move all binding related code into binding.*
 
-
 [ ] Funcall should support multiple arguments so params are passed
 [ ] Write basic eval
 [ ] Write eval with macro expand
-
-
-
 
 [ ] Move top level kern_env and usr_env to their own heap and anything put there should get stuck onto that heap
 [ ] Allow processes to be freed
@@ -46,12 +43,6 @@
 [ ] Send/Receive for processes
 
 [ ] Write unit tests for stable functionality
-
-
-
-
-[ ] Implement dynamic and lexical scoped symbols as totally different namespaces
-
 
 
 [ ] Support `,
@@ -75,6 +66,7 @@ read ->
 [/] fix &rest so 'a sets args to ('a)
 
 
+[x] Get dynval storing and restoration to work with mp vm_exec
 [X] Dynamic scope
 		[X] Leaving closure that added to scope should remove it
 			[X] What about when someone does defparameter or setq inside of closure?

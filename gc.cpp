@@ -6,6 +6,7 @@
 #include "value_helpers.h"
 #include "assert.h"
 #include "err.h"
+#include "vm_exec.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,8 +58,8 @@ value_t *gc_alloc(vm_t *p_vm, size_t p_size, alloc_type p_alloc_type)
 		val->m_heapptr = p_vm->m_heap_g0;
 		p_vm->m_heap_g0 = val;
 	} else if (p_alloc_type == STATIC) {
-		val->m_heapptr = p_vm->m_static_heap;
-		p_vm->m_static_heap = val;
+		val->m_heapptr = g_static_heap;
+		g_static_heap = val;
 	}
 
 	return val;
@@ -68,7 +69,7 @@ void gc_shutdown(vm_t *p_vm)
 {
 	gc(p_vm, 1);
 
-	value_t* p = p_vm->m_static_heap;
+	value_t* p = g_static_heap;
 	value_t* safe = NULL;
 
 	for(;p;p = safe) {
@@ -401,9 +402,9 @@ printf("GC FIRED: sp: %lu csp: %lu ev: %ld gc: %d\n", p_vm->m_sp, p_vm->m_csp, p
 
 	
 	value_t *ret;
-	if (p_vm->m_symbol_table) {
-		ret = retain(p_vm, p_vm->m_symbol_table, pool_new);
-		p_vm->m_symbol_table = ret;
+	if (g_symbol_table) {
+		ret = retain(p_vm, g_symbol_table, pool_new);
+		g_symbol_table = ret;
 	}
 
 //printf("IN ev: %p\n",  p_vm->m_current_env[p_vm->m_ev - 1]);
@@ -564,7 +565,7 @@ unsigned long gc(vm_t *p_vm, int p_age)
 		sweep(p_vm, &p_vm->m_heap_g0, &p_vm->m_heap_g1);
 	}
 
-	value_t *hp = p_vm->m_static_heap;
+	value_t *hp = g_static_heap;
 	while(hp) {
 		hp->m_in_use = false;
 		hp = hp->m_heapptr;

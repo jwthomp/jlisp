@@ -30,13 +30,13 @@ bool is_form_macro(vm_t *p_vm, value_t *p_value)
 
 //printf("is_form_macro"); value_print(p_vm, v_car); printf("\n");
 	
-	if (is_symbol(p_vm, v_car) == false) {
+	if (is_symbol(v_car) == false) {
 		return false;
 	}
 
 	value_t *func;
 
-	if (v_car->m_cons[2] != p_vm->voidobj) {
+	if (v_car->m_cons[2] != voidobj) {
 		func = car(p_vm, v_car->m_cons[2]);
 	} else {
 		value_t *v_bind = environment_binding_find(p_vm, v_car, true);
@@ -45,20 +45,20 @@ bool is_form_macro(vm_t *p_vm, value_t *p_value)
 			return false;
 		}
 
-		verify(is_binding(p_vm, v_bind), "is_form_macro: found binding is not a binding\n");
+		verify(is_binding(v_bind), "is_form_macro: found binding is not a binding\n");
 
 		binding_t *bind = (binding_t *)v_bind->m_data;
 		func = bind->m_value;
 	}
 
-	if (is_closure(p_vm, func)) {
+	if (is_closure(func)) {
 		value_t *v_lambda = func->m_cons[1];
-		verify(v_lambda && is_lambda(p_vm, v_lambda), "is_form_macro: found binding value is not a lambda\n");
+		verify(v_lambda && is_lambda(v_lambda), "is_form_macro: found binding value is not a lambda\n");
 		lambda_t *l = (lambda_t *)v_lambda->m_data;
 		if (l->m_is_macro) {
 			return true;
 		}
-	} else if (is_ifunc(p_vm, func)) {
+	} else if (is_ifunc(func)) {
 		if (*(bool *)&func->m_data[sizeof(vm_func_t) + 4] == true) {
 			return true;
 		}
@@ -73,14 +73,14 @@ bool is_form_macro(vm_t *p_vm, value_t *p_value)
 int macro_expand_1(vm_t *p_vm, value_t **p_value)
 {
 //printf("macro_expand_1: "); value_print(p_vm, *p_value); printf("\n");
-	if (is_cons(p_vm, *p_value) && is_form_macro(p_vm, *p_value)) {
+	if (is_cons(*p_value) && is_form_macro(p_vm, *p_value)) {
 //printf("Found macro, compiling\n");
 		(*p_value)->m_cons[0]->m_type = VT_MACRO;
 
 printf("Abp: %lu\n", p_vm->m_bp);
 		*p_value = eval(p_vm, *p_value);
 printf("Bbp: %lu\n", p_vm->m_bp);
-		vm_exec(p_vm, p_vm->m_exp - 1);
+		vm_exec(p_vm, p_vm->m_exp - 1, false);
 
 		return 1;
 	} else {
@@ -170,7 +170,7 @@ int compile_args(value_t *p_form, vm_t *p_vm,
 	// Return how many there were
 	value_t *val = p_form;
 	int n_args = 0;
-	while(val != p_vm->nil && val->m_cons[0]) {
+	while(val != nil && val->m_cons[0]) {
 		n_args++;
 		compile_form(val->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		val = val->m_cons[1];
@@ -185,21 +185,21 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 {
 //	printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
 
-	assert(p_form && is_cons(p_vm, p_form));
+	assert(p_form && is_cons(p_form));
 	value_t *func = p_form->m_cons[0];
 	value_t *args = p_form->m_cons[1];
 
 //printf("cf: func: "); value_print(p_vm, func); printf("\n");
 //printf("cf: args: "); value_print(p_vm, args); printf("\n");
 
-	if (is_symbol(p_vm, func) && is_symbol_name("QUOTE", func)) {
+	if (is_symbol(func) && is_symbol_name("QUOTE", func)) {
 		
 //printf("quote: %s", valuetype_print(args->m_type)); value_print(p_vm, args); printf("\n");
 
 		// is of form (args . nil) so only push car
 		assemble(OP_PUSH, args->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if (is_symbol(p_vm, func) && is_symbol_name("DEFVAR", func)) {
-		assert(args->m_cons[0] != p_vm->nil && args->m_cons[1] != p_vm->nil && args->m_cons[1]->m_cons[0] != p_vm->nil);
+	} else if (is_symbol(func) && is_symbol_name("DEFVAR", func)) {
+		assert(args->m_cons[0] != nil && args->m_cons[1] != nil && args->m_cons[1]->m_cons[0] != nil);
 
 		value_t *sym = car(p_vm, args);
 		value_t *form = cadr(p_vm, args);
@@ -207,8 +207,8 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BIND, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if (is_symbol(p_vm, func) && is_symbol_name("SETQ", func)) {
-		assert(args->m_cons[0] != p_vm->nil && args->m_cons[1] != p_vm->nil && args->m_cons[1]->m_cons[0] != p_vm->nil);
+	} else if (is_symbol(func) && is_symbol_name("SETQ", func)) {
+		assert(args->m_cons[0] != nil && args->m_cons[1] != nil && args->m_cons[1]->m_cons[0] != nil);
 
 		value_t *sym = car(p_vm, args);
 		value_t *form = cadr(p_vm, args);
@@ -216,7 +216,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_UPDATE, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if (is_symbol(p_vm, func) && is_symbol_name("UNWIND-PROTECT", func)) {
+	} else if (is_symbol(func) && is_symbol_name("UNWIND-PROTECT", func)) {
 		value_t * protect_form = args->m_cons[0];
 		value_t * cleanup_form = args->m_cons[1]->m_cons[0];
 
@@ -236,14 +236,14 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 		assemble(OP_RET, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
-	} else if (is_symbol(p_vm, func) && is_symbol_name("LOOP", func)) {
+	} else if (is_symbol(func) && is_symbol_name("LOOP", func)) {
 		int old_index = *p_bytecode_index;
 		compile_form(car(p_vm, args), p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_POP, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 		assemble(OP_JMP, (int *)(old_index - *p_bytecode_index), p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if (is_symbol(p_vm, func) && is_symbol_name("COND", func)) {
-		while(args != p_vm->nil) {
-assert(is_cons(p_vm, args->m_cons[0]));
+	} else if (is_symbol(func) && is_symbol_name("COND", func)) {
+		while(args != nil) {
+assert(is_cons(args->m_cons[0]));
 			value_t * test = args->m_cons[0]->m_cons[0];
 			value_t * if_true = args->m_cons[0]->m_cons[1]->m_cons[0];
 
@@ -270,7 +270,7 @@ assert(is_cons(p_vm, args->m_cons[0]));
 			args = args->m_cons[1];
 		}
 //printf("cond: "); value_print(args->m_cons[0]); printf("\n");
-	} else if (is_symbol(p_vm, func) && is_symbol_name("DEFPARAMETER", func)) {
+	} else if (is_symbol(func) && is_symbol_name("DEFPARAMETER", func)) {
 		assert(args->m_cons[0] && args->m_cons[1] && args->m_cons[1]->m_cons[0]);
 
 		value_t *sym = args->m_cons[0];
@@ -279,7 +279,7 @@ assert(is_cons(p_vm, args->m_cons[0]));
 		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 		assemble(OP_BINDD, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
-	} else if (is_symbol(p_vm, func) && is_symbol_name("DEFMACRO", func)) {
+	} else if (is_symbol(func) && is_symbol_name("DEFMACRO", func)) {
 		value_t *sym = args->m_cons[0];
 		value_t *largs = args->m_cons[1]->m_cons[0];
 		value_t *body_list = args->m_cons[1]->m_cons[1];
@@ -297,7 +297,7 @@ assert(is_cons(p_vm, args->m_cons[0]));
 		assemble(OP_BINDGF, sym, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
-	} else if (is_symbol(p_vm, func) && is_symbol_name("DEFUN", func)) {
+	} else if (is_symbol(func) && is_symbol_name("DEFUN", func)) {
 		// (defun func (args) body) ==> (bindgf func (lambda (args) body))
 		//printf("defun: "); value_print(args); printf("\n");
 		value_t *sym = args->m_cons[0];
@@ -315,11 +315,11 @@ assert(is_cons(p_vm, args->m_cons[0]));
 
 
 
-	} else if (is_symbol(p_vm, func) && is_symbol_name("FUNCALL", func)) {
+	} else if (is_symbol(func) && is_symbol_name("FUNCALL", func)) {
 		value_t *closure = args->m_cons[0];
 		compile_form(closure, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, true);
 		assemble(OP_CALL, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if (is_symbol(p_vm, func) && is_symbol_name("LAMBDA", func)) {
+	} else if (is_symbol(func) && is_symbol_name("LAMBDA", func)) {
 		value_t *largs = args->m_cons[0];
 		value_t *body_list = args->m_cons[1];
 		value_t *lambda = compile(p_vm, largs, body_list);
@@ -327,7 +327,7 @@ assert(is_cons(p_vm, args->m_cons[0]));
 	} else {
 		// Must do test on whether this is a macro prior to calling compile_form as that will
 		// switch a symbol from type VT_MACRO to type VT_SYMBOL
-		bool macro = is_macro(p_vm, func);
+		bool macro = is_macro(func);
 
 		compile_form(func, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, true);
 		value_t * final_args = args;
@@ -348,16 +348,16 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 	//printf("Compile form: "); value_print(p_vm, p_form); printf("\n");
 
 	// If it's a cons, do a macroexpand in case this is a macro
-	if (is_cons(p_vm, p_form)) {
+	if (is_cons(p_form)) {
 		macro_expand(p_vm, &p_form);
 	}
 
 	//printf("Compile post macro form: "); value_print(p_vm, p_form); printf("\n");
 
 	// If this was a macro, we need to do checks again here since the form may have changed
-	if (is_cons(p_vm, p_form)) {
+	if (is_cons(p_form)) {
 		compile_function(p_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if (is_symbol(p_vm, p_form) || (is_macro(p_vm, p_form))) {
+	} else if (is_symbol(p_form) || (is_macro(p_form))) {
 		// Change type back to symbol
 		p_form->m_type = VT_SYMBOL;
 		opcode_e opcode = p_function ? OP_LOADF : OP_LOAD;
@@ -376,23 +376,23 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 
 // printf("POOL: %p\n", pool);
 
-//printf("nil: %p param: %p -> ", p_vm->nil, p_parameters); value_print(p_parameters); printf("\n");
+//printf("nil: %p param: %p -> ", nil, p_parameters); value_print(p_parameters); printf("\n");
 
-	assert(p_parameters == NULL || p_parameters == p_vm->nil || is_cons(p_vm, p_parameters));
+	assert(p_parameters == NULL || p_parameters == nil || is_cons(p_parameters));
 
 
 	value_t *param = p_parameters;
-	while((param != p_vm->nil) && param->m_cons[0]) {
-		assert(is_symbol(p_vm, param->m_cons[0]));
+	while((param != nil) && param->m_cons[0]) {
+		assert(is_symbol(param->m_cons[0]));
 		param = param->m_cons[1];
 	}
 
 	assert(p_body != NULL);
-	verify(p_body != p_vm->nil, "compile: p_body is nil\n");
-	verify(is_cons(p_vm, p_body), "compile: p_body is not a cons\n");
+	verify(p_body != nil, "compile: p_body is nil\n");
+	verify(is_cons(p_body), "compile: p_body is not a cons\n");
 
 	value_t *val = p_body;
-	while(val && val != p_vm->nil) {
+	while(val && val != nil) {
 //printf("compile!: "); value_print(val->m_cons[0]); printf("\n");
 		compile_form(val->m_cons[0], p_vm, (bytecode_t *)bytecode, &bytecode_index, (value_t **)pool, &pool_index, false);
 		val = val->m_cons[1];
@@ -430,7 +430,7 @@ value_t * eval(vm_t *p_vm, value_t * p_form)
 		printf("eval: "); value_print(p_vm, p_form), printf("\n");
 	}
 
-	value_t *lambda = compile(p_vm, p_vm->nil, list(p_vm, p_form));
+	value_t *lambda = compile(p_vm, nil, list(p_vm, p_form));
 	value_t *closure =  make_closure(p_vm, lambda);
 
 	p_vm->m_ip++;

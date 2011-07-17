@@ -5,18 +5,18 @@
 #include "value_helpers.h"
 #include "vm.h"
 
-inline bool is_symbol_function_dynamic(vm_t *p_vm, value_t *p_val)
+inline bool is_symbol_function_dynamic(value_t *p_val)
 {
-    if (p_val->m_cons[2] != p_vm->voidobj) {
+    if (p_val->m_cons[2] != voidobj) {
         return true;
     }
 
     return false;
 }
 
-inline bool is_symbol_dynamic(vm_t *p_vm, value_t *p_val)
+inline bool is_symbol_dynamic(value_t *p_val)
 {
-    if (p_val->m_cons[1] != p_vm->voidobj) {
+    if (p_val->m_cons[1] != voidobj) {
         return true;
     }
 
@@ -24,9 +24,9 @@ inline bool is_symbol_dynamic(vm_t *p_vm, value_t *p_val)
 }
 
 
-inline bool is_symbol(vm_t *p_vm, value_t *p_val)
+inline bool is_symbol(value_t *p_val)
 {
-    if(p_val == p_vm->nil || is_fixnum(p_val)) {
+    if(p_val == nil || is_fixnum(p_val)) {
         return false;
     }
 

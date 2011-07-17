@@ -7,6 +7,7 @@
 #include "gc.h"
 #include "err.h"
 #include "symbols.h"
+#include "vm_exec.h"
 
 #include "vm.h"
 
@@ -49,16 +50,13 @@ bool g_debug_display = false;
 value_t *g_kernel_proc = NULL;
 
 
-
 vm_t *vm_create(unsigned long p_stack_size, value_t *p_vm_parent)
 {
 	vm_t *vm = (vm_t *)malloc(sizeof(vm_t));
 	vm->m_heap_g0 = NULL;
 	vm->m_heap_g1 = NULL;
 	vm->m_pool_g0 = pool_alloc(0);
-	vm->m_static_heap = NULL;
 	vm->m_free_heap = NULL;
-	vm->m_symbol_table = NULL;
 	vm->m_sp = 0;
 	vm->m_csp = 0;
 	vm->m_bp = 0;
@@ -107,20 +105,20 @@ void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func,
 {
 	if (p_dynamic == true) {
 		if (p_func == true) {
-			p_symbol->m_cons[2] = value_create_cons(p_vm, p_value, p_vm->voidobj);
+			p_symbol->m_cons[2] = value_create_cons(p_vm, p_value, voidobj);
 		} else {
-			p_symbol->m_cons[1] = value_create_cons(p_vm, p_value, p_vm->voidobj);
+			p_symbol->m_cons[1] = value_create_cons(p_vm, p_value, voidobj);
 		}
 		return;
 	}
 
 	if (p_func == true) {
-		if (p_symbol->m_cons[2] != p_vm->voidobj) {
+		if (p_symbol->m_cons[2] != voidobj) {
 			p_symbol->m_cons[2] = value_create_cons(p_vm, p_value, p_symbol->m_cons[2]);
 			return;
 		}
 	} else {
-		if (p_symbol->m_cons[1] != p_vm->voidobj) {
+		if (p_symbol->m_cons[1] != voidobj) {
 			p_symbol->m_cons[1] = value_create_cons(p_vm, p_value, p_symbol->m_cons[1]);
 			return;
 		}
@@ -180,7 +178,7 @@ void vm_cons(vm_t *p_vm)
 
 void vm_list(vm_t *p_vm, int p_args)
 {
-	vm_push(p_vm, p_vm->nil);
+	vm_push(p_vm, nil);
 
 	for(int i = p_args; i > 0; i--) {
 		vm_cons(p_vm);
@@ -249,7 +247,7 @@ void vm_print_stack(vm_t *p_vm)
 
 void vm_print_symbols(vm_t *p_vm)
 {
-	value_t *sym = p_vm->m_symbol_table;
+	value_t *sym = g_symbol_table;
 	while(sym) {
 		printf("Sym] "); value_print(p_vm, sym); printf(" %p\n", sym);
 		sym = sym->m_next_symbol;

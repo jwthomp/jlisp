@@ -21,7 +21,7 @@
 
 void load_string(vm_t *p_vm, char const *p_code)
 {
-	value_t *result = p_vm->nil;
+	value_t *result = nil;
 	unsigned long vm_bp = p_vm->m_bp;
 	unsigned long vm_sp = p_vm->m_sp;
 	unsigned long vm_ev = p_vm->m_ev;
@@ -37,7 +37,7 @@ void load_string(vm_t *p_vm, char const *p_code)
 		int args = reader(p_vm, strm, false);
 
 //printf("reader found %d forms\n", args);
-		vm_push(p_vm, p_vm->nil);
+		vm_push(p_vm, nil);
 
 		int count_down = args;
 		while(count_down > 0) {
@@ -99,6 +99,43 @@ vm_print_stack(p_vm);
 
 int main(int argc, char *arg[])
 {
+	vm_exec_init();
+	value_t *vm_val = value_create_process(NULL, NULL);
+	vm_t *vm = *(vm_t **)vm_val->m_data;
+	lib_init(vm);
+
+	value_t *vm_val2 = value_create_process(vm, vm_val);
+	vm_t *vm2 = *(vm_t **)vm_val2->m_data;
+
+	stream_t *strm = stream_create("(loop (print (eval (read))))");
+	int args = reader(vm, strm, false);
+	printf("args: %d\n", args);
+	int start_sp = vm->m_sp;
+	int i = 1;
+	while (i <= args) {
+		value_t *form = vm->m_stack[start_sp - i];
+		eval(vm, form);
+		i++;
+	}
+	stream_t *strm2 = stream_create("(+ 1 2)");
+	args = reader(vm2, strm2, false);
+	start_sp = vm2->m_sp;
+	i = 1;
+	while (i <= args) {
+		value_t *form = vm2->m_stack[start_sp - i];
+		eval(vm2, form);
+		i++;
+	}
+
+	vm_exec_add_vm(vm_val);
+	vm_exec_add_vm(vm_val2);
+	printf("vm: %p\n", vm);
+	vm_exec_wait();
+
+	gc(vm, 1);
+
+#if 0
+	vm_exec_init();
 	vm_t *vm = vm_create(1000000, NULL);
 	lib_init(vm);
 
@@ -188,7 +225,7 @@ printf("res: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
 
 		vm->m_sp -= args;
 
-		vm_exec(vm, 0);
+		vm_exec(vm, 0, true);
 		printf("res: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
 		flip++;
 		vm_print_stack(vm);
@@ -207,4 +244,5 @@ printf("res: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
 	gc(vm, 1);
 //printf("---------- END OF END OF DAYS---------\n");
 	vm_destroy(vm);
+#endif
 }

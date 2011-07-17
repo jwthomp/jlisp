@@ -14,19 +14,19 @@ value_t *environment_binding_find(vm_t *p_vm, value_t * p_symbol, bool p_func)
 
 value_t *environment_binding_find(vm_t *p_vm, value_t * p_env, value_t * p_symbol, bool p_func)
 {
-	if (p_env == p_vm->nil || is_fixnum(p_env) || p_env == NULL || p_env->m_type != VT_ENVIRONMENT) {
+	if (p_env == nil || is_fixnum(p_env) || p_env == NULL || p_env->m_type != VT_ENVIRONMENT) {
         return NULL;
     }
-	if (p_symbol == p_vm->nil || is_fixnum(p_symbol) || p_symbol == NULL || p_symbol->m_type != VT_SYMBOL) {
+	if (p_symbol == nil || is_fixnum(p_symbol) || p_symbol == NULL || p_symbol->m_type != VT_SYMBOL) {
         return NULL;
     }
 
 
 	while(p_env) {
 		environment_t *env = (environment_t *)p_env->m_data;
-		assert((env->m_parent == NULL) || is_environment(p_vm, env->m_parent));
-		assert((env->m_bindings == NULL) || is_binding(p_vm, env->m_bindings));
-		assert((env->m_function_bindings == NULL) || is_binding(p_vm, env->m_function_bindings));
+		assert((env->m_parent == NULL) || is_environment(env->m_parent));
+		assert((env->m_bindings == NULL) || is_binding(env->m_bindings));
+		assert((env->m_function_bindings == NULL) || is_binding(env->m_function_bindings));
 
 		value_t *top_binding = p_func == true ? 
 				((environment_t *)p_env->m_data)->m_function_bindings :

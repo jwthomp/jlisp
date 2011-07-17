@@ -10,20 +10,25 @@
 #define is_fixnum(p) (((size_t)(p)) & 1)
 #define to_fixnum(p) (((long)(p)) >> 1)
 
-bool is_environment(vm_t *p_vm, value_t *);
-bool is_binding(vm_t *p_vm, value_t *);
-bool is_closure(vm_t *p_vm, value_t *);
-bool is_ifunc(vm_t *p_vm, value_t *);
-bool is_string(vm_t *p_vm, value_t *);
-bool is_cons(vm_t *p_vm, value_t *);
-bool is_macro(vm_t *p_vm, value_t *);
-bool is_number(vm_t *p_vm, value_t *);
-bool is_bytecode(vm_t *p_vm, value_t *);
-bool is_pool(vm_t *p_vm, value_t *);
-bool is_lambda(vm_t *p_vm, value_t *);
-bool is_null(vm_t *p_vm, value_t *);
-bool is_pid(vm_t *p_vm, value_t *);
-bool is_process(vm_t *p_vm, value_t *);
+extern value_t *t;
+extern value_t *nil;
+extern value_t *voidobj;
+
+
+bool is_environment(value_t *);
+bool is_binding(value_t *);
+bool is_closure(value_t *);
+bool is_ifunc(value_t *);
+bool is_string(value_t *);
+bool is_cons(value_t *);
+bool is_macro(value_t *);
+bool is_number(value_t *);
+bool is_bytecode(value_t *);
+bool is_pool(value_t *);
+bool is_lambda(value_t *);
+bool is_null(value_t *);
+bool is_pid(value_t *);
+bool is_process(value_t *);
 
 
 value_t * value_create_number(vm_t *p_vm, int p_number);

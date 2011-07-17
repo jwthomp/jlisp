@@ -53,22 +53,16 @@ typedef struct vm_s {
 	value_t *m_kernel_env;
 	value_t *m_user_env;
 
-	value_t *t;
-	value_t *nil;
-	value_t *voidobj;
 
     value_t **m_current_env;
 	value_t **m_stack;
 	value_t **m_c_stack;
 	value_t **m_exec_stack;
 
-	value_t *m_static_heap;
 	value_t *m_heap_g0;
 	pool_t *m_pool_g0;
 	value_t *m_heap_g1;
 	value_t *m_free_heap;
-
-	value_t *m_symbol_table;
 
 	unsigned long m_sp;
 	unsigned long m_bp;
@@ -79,7 +73,6 @@ typedef struct vm_s {
 
 	value_t *m_next;
 } vm_t;
-
 
 
 typedef value_t *(*vm_func_t)(vm_t *p_vm);

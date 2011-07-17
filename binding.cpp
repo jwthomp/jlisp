@@ -16,7 +16,7 @@ value_t * binding_find(vm_t *p_vm, value_t * p_bindings, value_t *p_key)
 
 	value_t *cur_bindings = p_bindings;
 	while(cur_bindings) {
-		if (cur_bindings == NULL || cur_bindings == p_vm->nil || is_fixnum(cur_bindings)) {
+		if (cur_bindings == NULL || cur_bindings == nil || is_fixnum(cur_bindings)) {
 			return NULL;
 		}
 
