@@ -98,11 +98,10 @@ value_t *gc_lib(vm_t *p_vm)
 {
 	gc(p_vm, 1);
 
-	//p_vm->m_sp = p_vm->m_bp + 1;
-	//p_vm->m_stack[p_vm->m_bp] = nil;
 	p_vm->m_ip++;
+	p_vm->m_stack[p_vm->m_sp++] = nil;
 
-	return nil;
+	return t;
 }
 
 value_t *spawn_lib(vm_t *p_vm)
@@ -116,9 +115,8 @@ value_t *spawn_lib(vm_t *p_vm)
 	vm_exec_add_vm(vm_val);
 	vm_push_exec_state(vm, form);
 
-	//p_vm->m_sp = p_vm->m_bp + 1;
-	//p_vm->m_stack[p_vm->m_bp] = t;
 	p_vm->m_ip++;
+	p_vm->m_stack[p_vm->m_sp++] = t;
 	
 	return t;
 }
@@ -143,10 +141,7 @@ value_t *eval_lib(vm_t *p_vm)
     if (i == 0) {
 		p_vm->m_ip++;
 		value_t *form = p_vm->m_stack[p_vm->m_bp + 1];
-//		p_vm->m_sp = p_vm->m_bp;
-//		p_vm->m_bp--;
 		ret = eval(p_vm, form);
-//		p_vm->m_stack[p_vm->m_bp] = ret;
 	} else {
 		// Restore stack do to trapped error
 		p_vm->m_bp = vm_bp;
@@ -177,11 +172,10 @@ value_t *read(vm_t *p_vm)
     reader(p_vm, strm, false);
     value_t *rd = p_vm->m_stack[p_vm->m_bp + 1];
 
-//	p_vm->m_sp = p_vm->m_bp + 1;
-//	p_vm->m_stack[p_vm->m_bp] = rd;
 	p_vm->m_ip++;
+	p_vm->m_stack[p_vm->m_sp++] = rd;
 
-    return rd;
+    return t;
 }
 
 
@@ -220,11 +214,10 @@ printf("let: body "); value_print(p_vm, body); printf("\n");
 	
 printf("let end: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
 
-	//p_vm->m_stack[p_vm->m_bp] = p_vm->m_stack[p_vm->m_sp - 1];
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
 
-	return p_vm->m_stack[p_vm->m_sp - 1];
+	p_vm->m_stack[p_vm->m_sp++] = p_vm->m_stack[p_vm->m_sp - 1];
+	return t;
 }
 
 
@@ -235,12 +228,9 @@ value_t *dbg_time(vm_t *p_vm)
 	struct timeb tp;
 	ftime(&tp);
 
-	//p_vm->m_stack[p_vm->m_bp] = make_fixnum(1000 * (tp.time - g_time.time) + (tp.millitm - g_time.millitm));
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
-
-
-	return make_fixnum(1000 * (tp.time - g_time.time) + (tp.millitm - g_time.millitm));
+	p_vm->m_stack[p_vm->m_sp++] = make_fixnum(1000 * (tp.time - g_time.time) + (tp.millitm - g_time.millitm));
+	return t;
 }
 
 value_t *progn(vm_t *p_vm)
@@ -256,11 +246,9 @@ value_t *progn(vm_t *p_vm)
 	vm_cons(p_vm);
 //printf("end prognC: "); value_print(p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
 
-	//p_vm->m_stack[p_vm->m_bp] = p_vm->m_stack[p_vm->m_sp - 1];
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
 
-	return p_vm->m_stack[p_vm->m_sp - 1];
+	return t;
 }
 
 value_t *symbol_name(vm_t *p_vm)
@@ -268,11 +256,10 @@ value_t *symbol_name(vm_t *p_vm)
 	value_t *p_val = p_vm->m_stack[p_vm->m_bp + 1];
 	verify(is_symbol(p_val) == true, "The value %s is not of type SYMBOL", value_sprint(p_vm, p_val));
 
-	//p_vm->m_stack[p_vm->m_bp] = p_val->m_cons[0];
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
+	p_vm->m_stack[p_vm->m_sp++] = p_val->m_cons[0];
 
-	return p_val->m_cons[0];
+	return t;
 }
 
 value_t *type_of(vm_t *p_vm)
@@ -280,14 +267,14 @@ value_t *type_of(vm_t *p_vm)
 	value_t *p_val = p_vm->m_stack[p_vm->m_bp + 1];
 
 	if (is_fixnum(p_val) == true) {
+		p_vm->m_stack[p_vm->m_sp++] = value_create_string(p_vm, "FIXNUM");
 		return value_create_string(p_vm, "FIXNUM");
 	}
 
-	//p_vm->m_stack[p_vm->m_bp] = value_create_string(p_vm, valuetype_print(p_val->m_type));
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
+	p_vm->m_stack[p_vm->m_sp++] = value_create_string(p_vm, valuetype_print(p_val->m_type));
 
-	return p_vm->m_stack[p_vm->m_bp];
+	return t;
 }
 
 value_t *seq(vm_t *p_vm)
@@ -305,11 +292,10 @@ value_t *seq(vm_t *p_vm)
 		ret2 = ret2->m_cons[1];
 	}
 
-	//p_vm->m_stack[p_vm->m_bp] = ret;
-	//p_vm->m_sp = p_vm->m_bp + 1;
+	p_vm->m_stack[p_vm->m_sp++] = ret;
 	p_vm->m_ip++;
 
-	return ret;
+	return t;
 }
 
 
@@ -317,37 +303,33 @@ value_t *seq(vm_t *p_vm)
 value_t *print_vm(vm_t *p_vm)
 {
 	printf("sp: %lu ev: %lu\n", p_vm->m_sp, p_vm->m_ev);
-	//p_vm->m_stack[p_vm->m_bp] = nil;
-	//p_vm->m_sp = p_vm->m_bp + 1;
+	p_vm->m_stack[p_vm->m_sp++] = t; 
 	p_vm->m_ip++;
-	return nil;
+	return t;
 }
 
 value_t *print_env(vm_t *p_vm)
 {
 	vm_print_env(p_vm);
-	//p_vm->m_stack[p_vm->m_bp] = nil;
-	//p_vm->m_sp = p_vm->m_bp + 1;
+	p_vm->m_stack[p_vm->m_sp++] = t;
 	p_vm->m_ip++;
-	return nil;
+	return t;
 }
 
 value_t *print_stack(vm_t *p_vm)
 {
 	vm_print_stack(p_vm);
-	//p_vm->m_stack[p_vm->m_bp] = nil;
-	//p_vm->m_sp = p_vm->m_bp + 1;
+	p_vm->m_stack[p_vm->m_sp++] = t;
 	p_vm->m_ip++;
-	return nil;
+	return t;
 }
 
 value_t *print_symbols(vm_t *p_vm)
 {
 	vm_print_symbols(p_vm);
-	//p_vm->m_stack[p_vm->m_bp] = nil;
-	//p_vm->m_sp = p_vm->m_bp + 1;
+	p_vm->m_stack[p_vm->m_sp++] = t;
 	p_vm->m_ip++;
-	return nil;
+	return t;
 }
 
 value_t *symbol_value(vm_t *p_vm)
@@ -360,14 +342,13 @@ value_t *symbol_value(vm_t *p_vm)
 
 	// Find and return the value of this symbol
 	value_t * ret = environment_binding_find(p_vm, arg, false);
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
 	if (ret == nil) {
-		//p_vm->m_stack[p_vm->m_bp] = ret;
+		p_vm->m_stack[p_vm->m_sp++] = ret;
 		return ret;
 	} else {
-		//p_vm->m_stack[p_vm->m_bp] = binding_get_value(ret);
-		return binding_get_value(ret);
+		p_vm->m_stack[p_vm->m_sp++] = binding_get_value(ret);
+		return t;
 	}
 }
 
@@ -381,14 +362,13 @@ value_t *boundp(vm_t *p_vm)
 
 	// Find and return the value of this symbol
 	value_t *ret =  environment_binding_find(p_vm, arg, false);
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
 	if (ret == nil) {
-		//p_vm->m_stack[p_vm->m_bp] = ret;
+		p_vm->m_stack[p_vm->m_sp++] = ret;
 		return ret;
 	} else {
-		//p_vm->m_stack[p_vm->m_bp] = binding_get_value(ret);
-		return binding_get_value(ret);
+		p_vm->m_stack[p_vm->m_sp++] = binding_get_value(ret);
+		return t;
 	}
 }
 
@@ -402,14 +382,13 @@ value_t *fboundp(vm_t *p_vm)
 
 	// Find and return the value of this symbol
 	value_t *ret =  environment_binding_find(p_vm, arg, true);
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
 	if (ret == nil) {
-		//p_vm->m_stack[p_vm->m_bp] = ret;
+		p_vm->m_stack[p_vm->m_sp++] = ret;
 		return ret;
 	} else {
-		//p_vm->m_stack[p_vm->m_bp] = binding_get_value(ret);
-		return binding_get_value(ret);
+		p_vm->m_stack[p_vm->m_sp++] = binding_get_value(ret);
+		return t;
 	}
 }
 
@@ -417,13 +396,11 @@ value_t *atom(vm_t *p_vm)
 {
 	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
 	if (is_cons(arg) == true) {
-		//p_vm->m_sp = p_vm->m_bp + 1;
-		//p_vm->m_stack[p_vm->m_bp] = nil;
+		p_vm->m_stack[p_vm->m_sp++] = nil;
 		p_vm->m_ip++;
 		return nil;
 	} else {
-		//p_vm->m_sp = p_vm->m_bp + 1;
-		//p_vm->m_stack[p_vm->m_bp] = t;
+		//p_vm->m_stack[p_vm->m_sp++] = t;
 		p_vm->m_ip++;
 		return t;
 	}
@@ -442,14 +419,12 @@ value_t *debug(vm_t *p_vm)
 		return t;
 	} else if (args != nil) {
 		g_debug_display = true;
-		//p_vm->m_sp = p_vm->m_bp + 1;
-		//p_vm->m_stack[p_vm->m_bp] = t;
+		p_vm->m_stack[p_vm->m_sp++] = t;
 		p_vm->m_ip++;
 		return t;
 	} else {
 		g_debug_display = false;
-		//p_vm->m_sp = p_vm->m_bp + 1;
-		//p_vm->m_stack[p_vm->m_bp] = nil;
+		p_vm->m_stack[p_vm->m_sp++] = nil;
 		p_vm->m_ip++;
 		return nil;
 	}
@@ -539,11 +514,10 @@ printf("\n-------g1 Heap--------\n");
 	printf("Live Objects: %d\n", count);
 	printf("Memory used: %lu\n", mem);
 
-	//p_vm->m_stack[p_vm->m_bp] = nil;
-	//p_vm->m_sp = p_vm->m_bp + 1;
+	p_vm->m_stack[p_vm->m_sp++] = t;
 	p_vm->m_ip++;
 	
-	return nil;
+	return t;
 }
 
 
@@ -575,8 +549,6 @@ printf("start sp: %d sp: %lu args: %d\n", start_sp, p_vm->m_sp, args);
 vm_print_stack(p_vm);
 
 	p_vm->m_ip++;
-	//p_vm->m_stack[p_vm->m_bp] = t;
-	//p_vm->m_sp = p_vm->m_bp + 1;
 
 	int i = 1;
     while (i <= args) {
@@ -612,7 +584,7 @@ printf("exec: args: %d", nargs); value_print(p_vm, closure); printf("\n");
 	p_vm->m_bp = p_vm->m_bp + 1;
 
 
-	return p_vm->m_stack[p_vm->m_sp - 1];
+	return t;
 }
 
 
@@ -621,43 +593,42 @@ value_t *cons(vm_t *p_vm)
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 	value_t *second = p_vm->m_stack[p_vm->m_bp + 2];
 
-	//p_vm->m_stack[p_vm->m_bp] = value_create_cons(p_vm, first, second);
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
-	return value_create_cons(p_vm, first, second);
+	p_vm->m_stack[p_vm->m_sp++] = value_create_cons(p_vm, first, second);
+	return t;
 }
 
 value_t *car(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
 	if(is_null(first)) {
-		//p_vm->m_stack[p_vm->m_bp] = first;
-		return first;
+		p_vm->m_stack[p_vm->m_sp++] = first;
+		return t;
 	}
 
 verify(is_cons(first) == true, "car'ing something not a cons %d", first->m_type);
 
-	//p_vm->m_stack[p_vm->m_bp] = first->m_cons[0];
-	return first->m_cons[0];
+printf("f: "); value_print(p_vm, first->m_cons[0]); printf("\n");
+
+	p_vm->m_stack[p_vm->m_sp++] = first->m_cons[0];
+	return t;
 }
 
 value_t *cdr(vm_t *p_vm)
 {
 	value_t *first = p_vm->m_stack[p_vm->m_bp + 1];
 
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
 	if(is_null(first)) {
-		//p_vm->m_stack[p_vm->m_bp] = first;
+		p_vm->m_stack[p_vm->m_sp++] = first;
 		return first;
 	}
 	assert(is_cons(first));
 
-	//p_vm->m_stack[p_vm->m_bp] = first->m_cons[1];
-	return first->m_cons[1];
+	p_vm->m_stack[p_vm->m_sp++] = first->m_cons[1];
+	return t;
 }
 
 value_t *eq(vm_t *p_vm)
@@ -668,22 +639,21 @@ value_t *eq(vm_t *p_vm)
 	bool first_num = is_fixnum(first);
 	bool second_num = is_fixnum(second);
 
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
 
 	if (first_num != second_num) {
-		//p_vm->m_stack[p_vm->m_bp] = nil;
+		p_vm->m_stack[p_vm->m_sp++] = nil;
 		return nil;
 	}
 
 	if (first_num == true && second_num == true) {
-		//p_vm->m_stack[p_vm->m_bp] = to_fixnum(first) == to_fixnum(second) ? t : nil;
-		return to_fixnum(first) == to_fixnum(second) ? t : nil;
+		p_vm->m_stack[p_vm->m_sp++] = to_fixnum(first) == to_fixnum(second) ? t : nil;
+		return t;
 	}
 
 
 	if (first->m_type != second->m_type) {
-		//p_vm->m_stack[p_vm->m_bp] = nil;
+		p_vm->m_stack[p_vm->m_sp++] = t;
 		return nil;
 	}
 
@@ -695,10 +665,10 @@ value_t *eq(vm_t *p_vm)
 		case VT_SYMBOL:
 		case VT_STRING:
 			if (value_equal(first, second) == true) {
-				//p_vm->m_stack[p_vm->m_bp] = t;
+				p_vm->m_stack[p_vm->m_sp++] = t;
 				return t;
 			} else {
-				//p_vm->m_stack[p_vm->m_bp] = nil;
+				p_vm->m_stack[p_vm->m_sp++] = nil;
 				return nil;
 			}
 
@@ -707,7 +677,7 @@ value_t *eq(vm_t *p_vm)
 			break;
 	}
 
-	//p_vm->m_stack[p_vm->m_bp] = nil;
+	p_vm->m_stack[p_vm->m_sp++] = nil;
 	return nil;
 }
 
@@ -719,14 +689,13 @@ value_t *less_then(vm_t *p_vm)
 	verify(is_fixnum(first), "argument X is not a number: %s", value_sprint(p_vm, first));
 	verify(is_fixnum(second), "argument Y is not a number: %s", value_sprint(p_vm, second));
 
-	//p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
 
 	if (to_fixnum(first) < to_fixnum(second)) {
-		//p_vm->m_stack[p_vm->m_bp] = t;
+		p_vm->m_stack[p_vm->m_sp++] = t;
 		return t;
 	} else {
-		//p_vm->m_stack[p_vm->m_bp] = nil;
+		p_vm->m_stack[p_vm->m_sp++] = nil;
 		return nil;
 	}
 }
@@ -740,9 +709,8 @@ value_t *minus(vm_t *p_vm)
 	verify(is_fixnum(second), "argument Y is not a number: %s", value_sprint(p_vm, second));
 
 	p_vm->m_ip++;
-	//p_vm->m_stack[p_vm->m_bp] = make_fixnum(to_fixnum(first) - to_fixnum(second));
-	//p_vm->m_sp = p_vm->m_bp + 1;
-	return make_fixnum(to_fixnum(first) - to_fixnum(second));
+	p_vm->m_stack[p_vm->m_sp++] = make_fixnum(to_fixnum(first) - to_fixnum(second));
+	return t;
 }
 
 value_t *times(vm_t *p_vm)
@@ -753,11 +721,10 @@ value_t *times(vm_t *p_vm)
 	verify(is_fixnum(first), "argument X is not a number: %s", value_sprint(p_vm, first));
 	verify(is_fixnum(second), "argument Y is not a number: %s", value_sprint(p_vm, second));
 
-	//p_vm->m_stack[p_vm->m_bp] = make_fixnum(to_fixnum(first) * to_fixnum(second));
-	//p_vm->m_sp = p_vm->m_bp + 1;
+	p_vm->m_stack[p_vm->m_sp++] = make_fixnum(to_fixnum(first) * to_fixnum(second));
 	p_vm->m_ip++;
 
-	return make_fixnum(to_fixnum(first) * to_fixnum(second));
+	return t;
 }
 value_t *plus(vm_t *p_vm)
 {
@@ -769,11 +736,9 @@ value_t *plus(vm_t *p_vm)
 
 	p_vm->m_stack[p_vm->m_sp++] = make_fixnum(to_fixnum(first) + to_fixnum(second));
 
-//	p_vm->m_stack[p_vm->m_bp] = make_fixnum(to_fixnum(first) + to_fixnum(second));
-//	p_vm->m_sp = p_vm->m_bp + 1;
 	p_vm->m_ip++;
 
-	return make_fixnum(to_fixnum(first) + to_fixnum(second));
+	return t;
 }
 
 value_t *print(vm_t *p_vm)
@@ -801,13 +766,11 @@ value_t *print(vm_t *p_vm)
 
 	p_vm->m_stack[p_vm->m_sp++] = arg;
 
-//	p_vm->m_stack[p_vm->m_bp] = arg;
-//	p_vm->m_stack[p_vm->m_bp] = last->m_cons[0];
-//	p_vm->m_sp = p_vm->m_bp + 1;
+	p_vm->m_stack[p_vm->m_sp++] = arg;
+//	p_vm->m_stack[p_vm->m_sp++] = last->m_cons[0];
 	p_vm->m_ip++;
 
-	//return last->m_cons[0];
-	return arg;
+	return t;
 }
 
 

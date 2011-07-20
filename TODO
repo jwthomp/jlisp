@@ -17,6 +17,7 @@
 [ ] Matching
 [ ] Packages - Put in own symbols.* files
 
+[ ] Test Eval and Load
 
 
 [ ] Loadf symbols that are undefined, and load binding when they are

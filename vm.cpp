@@ -16,7 +16,7 @@
 #include <string.h>
 
 #define EXEC_STACK_SIZE 32 
-#define C_STACK_SIZE 32 
+#define C_STACK_SIZE 1024
 
 typedef struct bytecode_jump {
 	bytecode_t m_bytecode;
