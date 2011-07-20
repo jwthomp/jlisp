@@ -11,7 +11,7 @@
 #include <string.h>
 
 #define STRING_SIZE 128
-//#define LOTS_OF_PRINT
+#define LOTS_OF_PRINT 1
 
 typedef struct {
 	char const *m_string;

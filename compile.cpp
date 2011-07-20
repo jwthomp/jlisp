@@ -433,10 +433,10 @@ value_t * eval(vm_t *p_vm, value_t * p_form)
 	value_t *lambda = compile(p_vm, nil, list(p_vm, p_form));
 	value_t *closure =  make_closure(p_vm, lambda);
 
-	p_vm->m_ip++;
+//	p_vm->m_ip++;
 	vm_push_exec_state(p_vm, closure);
 	p_vm->m_ip = 0;
-	p_vm->m_bp = p_vm->m_bp + 1;
+	p_vm->m_bp = p_vm->m_bp; // + 1;
 
 
 	return p_vm->m_stack[p_vm->m_sp - 1];

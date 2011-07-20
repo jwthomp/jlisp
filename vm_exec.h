@@ -13,7 +13,10 @@ void vm_push_exec_state(vm_t *p_vm, value_t *p_closure);
 
 void vm_exec(vm_t *p_vm, unsigned long p_return_on_exp, bool p_allow_preemption);
 
+value_t *vm_current_vm();
+
 extern value_t *g_static_heap;
+extern bool g_step_debug;
 
 extern value_t *g_symbol_table;
 #endif /* __VM_EXEC_H_ */

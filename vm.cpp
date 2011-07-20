@@ -16,7 +16,7 @@
 #include <string.h>
 
 #define EXEC_STACK_SIZE 32 
-#define C_STACK_SIZE 1024
+#define C_STACK_SIZE 32 
 
 typedef struct bytecode_jump {
 	bytecode_t m_bytecode;
@@ -66,6 +66,7 @@ vm_t *vm_create(unsigned long p_stack_size, value_t *p_vm_parent)
 	vm->m_stack = (value_t **)malloc(sizeof(value_t *) * p_stack_size);
 	vm->m_exec_stack = (value_t **)malloc(sizeof(value_t *) * EXEC_STACK_SIZE);
 	vm->m_c_stack = (value_t **)malloc(sizeof(value_t *) * C_STACK_SIZE);
+	vm->m_count = 0;
 
 	// CANNOT create any value_t's until the above is initialized
 

@@ -70,6 +70,7 @@ typedef struct vm_s {
 	unsigned long m_csp;
 	unsigned long m_exp;
 	int m_ip;
+	unsigned long m_count;
 
 	value_t *m_next;
 } vm_t;
