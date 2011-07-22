@@ -1,1 +1,6 @@
-(loop (print (read)))
+(print-val '+)
+(+ 1 2)
+(+ 2 3)
+(defun x () (+ 1 2))
+(defun y () (+ (x) 1))
+(y)

@@ -5,13 +5,14 @@
 #include "gc.h"
 #include "err.h"
 #include "symbols.h"
+#include "vm_exec.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define STRING_SIZE 128
-#define LOTS_OF_PRINT 1
+//#define LOTS_OF_PRINT 1
 
 typedef struct {
 	char const *m_string;
@@ -300,7 +301,17 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 
 	switch(p_value->m_type) {
 		case VT_CLOSURE:
-			snprintf(ret->m_data, STRING_SIZE, "closure: <%p>", p_value);
+		{
+			// find symbol that points at this
+			value_t *sym = g_symbol_table;
+			while (sym != voidobj) {
+				if (sym->m_cons[2]->m_cons[0] == p_value) {
+					break;
+				}
+				sym = sym->m_next_symbol;
+			}
+
+			snprintf(ret->m_data, STRING_SIZE, "closure: <0x%p> <%s>", p_value, value_sprint(p_vm, sym)->m_data);
 #if LOTS_OF_PRINT
 			printf("closure\n");
 			printf("env: "); value_print(p_vm, p_value->m_cons[0]); printf("\n");
@@ -308,6 +319,7 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 			printf("args: %d\n", (int)p_value->m_cons[2]);
 #endif
 			break;
+		}
 		case VT_ENVIRONMENT:
 			snprintf(ret->m_data, STRING_SIZE, "environment");
 			break;
@@ -361,7 +373,16 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		}
 		case VT_INTERNAL_FUNCTION:
 		{
-			snprintf(ret->m_data, STRING_SIZE, "INTERNAL FUNCTION: <0x%p>", p_value);
+			// find symbol that points at this
+			value_t *sym = g_symbol_table;
+			while (sym != voidobj) {
+				if (sym->m_cons[2]->m_cons[0] == p_value) {
+					break;
+				}
+				sym = sym->m_next_symbol;
+			}
+
+			snprintf(ret->m_data, STRING_SIZE, "INTERNAL FUNCTION: <0x%p> <%s>", p_value, value_sprint(p_vm, sym)->m_data);
 			break;
 		}
 		case VT_STRING:
@@ -391,7 +412,7 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		}
 		case VT_VOID:
 		{
-			snprintf(ret->m_data, STRING_SIZE, "PROCESS <%p>",  p_value);
+			snprintf(ret->m_data, STRING_SIZE, "VT_VOID");
 			break;
 		}
 		case VT_PROCESS:
@@ -401,7 +422,7 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		}
 		case VT_PID:
 		{
-			snprintf(ret->m_data, STRING_SIZE, "PROCESS <%p>",  p_value);
+			snprintf(ret->m_data, STRING_SIZE, "PID <%p>",  p_value);
 			break;
 		}
 		case VT_VM_STATE:

@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define EXEC_STACK_SIZE 32 
+#define EXEC_STACK_SIZE 1024
 #define C_STACK_SIZE 1024
 
 typedef struct bytecode_jump {
@@ -104,6 +104,9 @@ void vm_destroy(vm_t *p_vm)
 
 void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func, bool p_dynamic)
 {
+printf("binding (%d, %d)", p_func, p_dynamic); value_print(p_vm, p_symbol); printf(" to "); 
+value_print(p_vm, p_value); printf("\n");
+
 	if (p_dynamic == true) {
 		if (p_func == true) {
 			p_symbol->m_cons[2] = value_create_cons(p_vm, p_value, voidobj);
@@ -128,8 +131,6 @@ void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func,
 	value_t *binding = value_create_binding(p_vm, p_symbol, p_value);
 	binding_t *bind = (binding_t *)binding->m_data;
 
-//printf("binding (%d, %d)", p_func, p_top); value_print(bind->m_key); printf(" to "); 
-//value_print(bind->m_value); printf("\n");
 
 	environment_t *env = NULL;
 	env = (environment_t *)(p_vm->m_current_env[p_vm->m_ev - 1])->m_data;

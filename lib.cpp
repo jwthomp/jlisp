@@ -8,6 +8,7 @@
 #include "compile.h"
 #include "gc.h"
 #include "symbols.h"
+#include "lambda.h"
 
 #include "lib.h"
 
@@ -30,6 +31,7 @@ value_t *print_vm(vm_t *p_vm);
 value_t *print_env(vm_t *p_vm);
 value_t *print_stack(vm_t *p_vm);
 value_t *print_symbols(vm_t *p_vm);
+value_t *print_val(vm_t *p_vm);
 value_t *print(vm_t *p_vm);
 value_t *atom(vm_t *p_vm);
 value_t *cons(vm_t *p_vm);
@@ -59,7 +61,8 @@ value_t *dbg_time(vm_t *p_vm);
 
 static struct timeb g_time;
 
-static internal_func_def_t g_ifuncs[] = {
+static internal_func_def_t g_ifuncs[31] = {
+	{"PRINT-VAL", print_val, 0, false, true},
 	{"PRINT-VM", print_vm, 0, false, true},
 	{"PRINT-ENV", print_env, 0, false, true},
 	{"PRINT-SP", print_stack, 0, false, true},
@@ -92,7 +95,7 @@ static internal_func_def_t g_ifuncs[] = {
 	{"CLOCK", dbg_time, 0, false, true},
 };
 
-#define NUM_IFUNCS 29
+#define NUM_IFUNCS 31
 
 value_t *gc_lib(vm_t *p_vm)
 {
@@ -187,8 +190,8 @@ value_t *let(vm_t *p_vm)
 	value_t *largs = car(p_vm, p_vm->m_stack[p_vm->m_bp + 1]);
 	value_t *body = cdr(p_vm, p_vm->m_stack[p_vm->m_bp + 1]);
 
-printf("let: args "); value_print(p_vm, largs); printf("\n");
-printf("let: body "); value_print(p_vm, body); printf("\n");
+//printf("let: args "); value_print(p_vm, largs); printf("\n");
+//printf("let: body "); value_print(p_vm, body); printf("\n");
 
 	// Break ((var val) (var val)) down into a list of args and vals
 	value_t *arg_list = nil;
@@ -216,7 +219,7 @@ printf("let end: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\
 
 	p_vm->m_ip++;
 
-	p_vm->m_stack[p_vm->m_sp++] = p_vm->m_stack[p_vm->m_sp - 1];
+	//p_vm->m_stack[p_vm->m_sp++] = p_vm->m_stack[p_vm->m_sp - 1];
 	return t;
 }
 
@@ -550,15 +553,19 @@ vm_print_stack(p_vm);
 
 	p_vm->m_ip++;
 
-	int i = 1;
-    while (i <= args) {
-        value_t *form = p_vm->m_stack[p_vm->m_sp - i];
+	int i = 0;
+    while (i < args) {
+//	for (int i = 1; i <= args; i++) {
+//		p_vm->m_sp--;
+        value_t *form = p_vm->m_stack[start_sp + i];
 
 printf("form: "); value_print(p_vm, form); printf("\n");
 
-        value_t *lambda = compile(p_vm, nil, list(p_vm, form));
-        value_t *closure = make_closure(p_vm, lambda);
-        vm_push_exec_state(p_vm, closure);
+//        value_t *lambda = compile(p_vm, nil, list(p_vm, form));
+ //       value_t *closure = make_closure(p_vm, lambda);
+  //      vm_push_exec_state(p_vm, closure);
+			eval(p_vm, form);
+			vm_exec(p_vm, p_vm->m_exp - 1, false);
 		i++;
     }
 
@@ -741,32 +748,58 @@ value_t *plus(vm_t *p_vm)
 	return t;
 }
 
+value_t *print_val(vm_t *p_vm)
+{
+	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
+
+	value_t *p = NULL;
+	if (is_symbol_function_dynamic(arg)) {
+		p  = car(p_vm, arg->m_cons[2]);
+	} else {
+		p = environment_binding_find(p_vm, arg, true); 
+	}
+
+ 	if (is_closure(p)) {
+		lambda_t *l = (lambda_t *)p->m_cons[1]->m_data;
+		value_t *pool = l->m_pool;
+
+		printf("---- Closure ----\n");
+		printf("Pool: \n");
+		int pool_size = pool->m_size / sizeof(value_t *);
+		for (int i = 0; i < pool_size; i++) {
+			printf("%d] ", i);
+			value_print(p_vm, ((value_t **)pool->m_data)[i]);
+			printf("\n");
+		}
+
+		printf("\nBytecode: \n");
+		bytecode_t *code = (bytecode_t *)l->m_bytecode->m_data;
+		for (unsigned long i = 0; i < (l->m_bytecode->m_size / sizeof(bytecode_t)); i++) {
+			printf("op: %s code: %lu\n", g_opcode_print[code[i].m_opcode], code[i].m_value);
+		}
+		printf("-----------------\n");
+	} else {
+		value_print(p_vm, p); printf("\n");
+	}
+
+	p_vm->m_stack[p_vm->m_sp++] = p;
+//	p_vm->m_stack[p_vm->m_sp++] = last->m_cons[0];
+	p_vm->m_ip++;
+	return t;
+}
+
 value_t *print(vm_t *p_vm)
 {
-
 //	printf("PRINT!!!!!! sp: %lu bp: %lu>> \n", p_vm->m_sp, p_vm->m_bp);
 //	vm_print_stack(p_vm);
 //	printf("<<\n");
 
-
 	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
-	value_print(p_vm, arg); printf("\n");
-#if 0
-	value_t *last = arg;
-	while(arg != nil) {
-		assert(is_cons(p_vm, arg));
-	//	value_print(p_vm, arg->m_cons[0]);
-	//	value_print(p_vm, arg->m_cons[0]);
-		printf(" ");
-		last = arg;
-		arg = arg->m_cons[1];
-	}
-	printf("\n");
-#endif
+
+	printf("PRINT: ");value_print(p_vm, arg); printf("\n");
 
 	p_vm->m_stack[p_vm->m_sp++] = arg;
 
-	p_vm->m_stack[p_vm->m_sp++] = arg;
 //	p_vm->m_stack[p_vm->m_sp++] = last->m_cons[0];
 	p_vm->m_ip++;
 

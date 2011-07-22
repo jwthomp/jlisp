@@ -77,10 +77,11 @@ int macro_expand_1(vm_t *p_vm, value_t **p_value)
 //printf("Found macro, compiling\n");
 		(*p_value)->m_cons[0]->m_type = VT_MACRO;
 
-printf("Abp: %lu\n", p_vm->m_bp);
-		*p_value = eval(p_vm, *p_value);
-printf("Bbp: %lu\n", p_vm->m_bp);
+//printf("Abp: %lu\n", p_vm->m_bp);
+		eval(p_vm, *p_value);
+//printf("Bbp: %lu\n", p_vm->m_bp);
 		vm_exec(p_vm, p_vm->m_exp - 1, false);
+		*p_value = p_vm->m_stack[p_vm->m_sp - 1];
 
 		return 1;
 	} else {
@@ -183,7 +184,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-//	printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
+	//printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
 
 	assert(p_form && is_cons(p_form));
 	value_t *func = p_form->m_cons[0];
@@ -304,8 +305,8 @@ assert(is_cons(args->m_cons[0]));
 		value_t *arg_list = args->m_cons[1]->m_cons[0];
 		value_t *body_list = args->m_cons[1]->m_cons[1];
 
-//printf("largs: "); value_print(arg_list); printf("\n");
-//printf("body: "); value_print(body_list); printf("\n");
+//printf("largs: "); value_print(p_vm, arg_list); printf("\n");
+//printf("body: "); value_print(p_vm, body_list); printf("\n");
 
 		value_t *lambda = compile(p_vm, arg_list, body_list);
 		assemble(OP_LAMBDA, lambda, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
@@ -352,7 +353,7 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 		macro_expand(p_vm, &p_form);
 	}
 
-	//printf("Compile post macro form: "); value_print(p_vm, p_form); printf("\n");
+//	printf("Compile post macro form: "); value_print(p_vm, p_form); printf("\n");
 
 	// If this was a macro, we need to do checks again here since the form may have changed
 	if (is_cons(p_form)) {
@@ -374,9 +375,9 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 	int pool_index = 0;
 	int bytecode_index = 0;
 
-// printf("POOL: %p\n", pool);
+ //printf("POOL: %p\n", pool);
 
-//printf("nil: %p param: %p -> ", nil, p_parameters); value_print(p_parameters); printf("\n");
+//printf("nil: %p param: %p -> ", nil, p_parameters); value_print(p_vm, p_parameters); printf("\n");
 
 	assert(p_parameters == NULL || p_parameters == nil || is_cons(p_parameters));
 
@@ -393,7 +394,7 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 
 	value_t *val = p_body;
 	while(val && val != nil) {
-//printf("compile!: "); value_print(val->m_cons[0]); printf("\n");
+//printf("compile!: "); value_print(p_vm, val->m_cons[0]); printf("\n");
 		compile_form(val->m_cons[0], p_vm, (bytecode_t *)bytecode, &bytecode_index, (value_t **)pool, &pool_index, false);
 		val = val->m_cons[1];
 	}
@@ -407,7 +408,7 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 	free(bc_allocd);
 	value_t *pool_final = value_create_pool(p_vm, pool, pool_index);
 
-// printf("POOL OUT: %p\n", pool);
+ //printf("POOL OUT: %p\n", pool);
 	return value_create_lambda(p_vm, p_parameters, bytecode_final, pool_final);
 }
 
