@@ -1,0 +1,11 @@
+(defun list (x y)
+    (cond
+        ((eq y 'nil) (cons x y))
+        ('t (cons x (cons y '())))))
+
+
+"(cons 'a (list 'b 'c))"
+
+(defun x (a) (+ a 1))
+(defun y () (x (x 1)))
+"(y)"

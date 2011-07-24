@@ -305,7 +305,7 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 			// find symbol that points at this
 			value_t *sym = g_symbol_table;
 			while (sym != voidobj) {
-				if (sym->m_cons[2]->m_cons[0] == p_value) {
+				if (sym->m_cons[2] != voidobj && sym->m_cons[2]->m_cons[0] == p_value) {
 					break;
 				}
 				sym = sym->m_next_symbol;
@@ -376,7 +376,7 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 			// find symbol that points at this
 			value_t *sym = g_symbol_table;
 			while (sym != voidobj) {
-				if (sym->m_cons[2]->m_cons[0] == p_value) {
+				if (sym->m_cons[2] != voidobj && sym->m_cons[2]->m_cons[0] == p_value) {
 					break;
 				}
 				sym = sym->m_next_symbol;
@@ -427,7 +427,8 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		}
 		case VT_VM_STATE:
 		{
-			snprintf(ret->m_data, STRING_SIZE, "VM_STATE: <0x%p>", p_value);
+			vm_state_t *state = (vm_state_t *)p_value->m_data;
+			snprintf(ret->m_data, STRING_SIZE, "VM_STATE: <0x%p> bp: %lu", p_value, state->m_bp);
 			break;
 		}
 		default:

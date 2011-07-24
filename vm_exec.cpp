@@ -286,6 +286,7 @@ void vm_exec(vm_t *p_vmUNUSED, unsigned long p_return_on_exp, bool p_allow_preem
 		value_t *p_pool = NULL;
 		if (is_ifunc(c) && p_vm->m_ip > 0) {
 			bc_opcode = OP_RET;
+			bc_value = 1;
 		} else if (is_ifunc(c)) {
 			vm_func_t func = *(vm_func_t *)c->m_data;
 			func(p_vm);
@@ -309,10 +310,12 @@ void vm_exec(vm_t *p_vmUNUSED, unsigned long p_return_on_exp, bool p_allow_preem
 		if (g_step_debug == true) {
 			char input[256];
 			input[0] = '\0';
-			printf("ip: %d %s %ld [r]un [n]ext [s]tack [c]losure [v]m: ", p_vm->m_ip, g_opcode_print[bc_opcode], bc_value);
+			printf("ip: %d %s %ld [r]un [n]ext [s]tack [x]call-stack [c]losure [v]m: ", p_vm->m_ip, g_opcode_print[bc_opcode], bc_value);
 			while(gets(input) != NULL && strcmp(input, "n")) {
 				if (!strcmp(input, "s")) {
 					vm_print_stack(p_vm);
+				} else if (!strcmp(input, "x")) {
+					vm_print_exec_stack(p_vm);
 				} else if (!strcmp(input, "c")) { 
 					printf("\n");
 					if (is_ifunc(c)) {
@@ -339,10 +342,17 @@ void vm_exec(vm_t *p_vmUNUSED, unsigned long p_return_on_exp, bool p_allow_preem
 					g_step_debug = false;
 					break;
 				} else if (!strcmp(input, "v")) {
-					printf("%p) ip: %d] sp: %ld] ep: %ld bp: %ld] exp: %ld] %s %ld\n", p_vm, p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, p_vm->m_bp, p_vm->m_exp, g_opcode_print[bc->m_opcode], bc->m_value);
+					if (is_ifunc(c)) {
+						printf("%p) ip: %d] sp: %ld] ep: %ld bp: %ld] exp: %ld]\n", 
+								p_vm, p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, p_vm->m_bp, p_vm->m_exp);
+					} else {
+						printf("%p) ip: %d] sp: %ld] ep: %ld bp: %ld] exp: %ld] %s %ld\n", 
+								p_vm, p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, p_vm->m_bp, 
+								p_vm->m_exp, g_opcode_print[bc->m_opcode], bc->m_value);
+					}
 				}
 
-				printf("ip: %d %s %ld [r]un [n]ext [s]tack [c]losure [v]m: ", 
+				printf("ip: %d %s %ld [r]un [n]ext [s]tack [x]call-stack [c]losure [v]m: ", 
 						p_vm->m_ip, g_opcode_print[bc_opcode], bc_value);
 			}
 		}
@@ -545,6 +555,8 @@ assert(b != NULL);
 
 				}
 
+//printf("CALL: "); value_print(p_vm, call_closure); printf("\n");
+
 
 				//////////////////////////////
 				// If this is an ifunc then we can just call it now
@@ -552,8 +564,8 @@ assert(b != NULL);
 				if (is_ifunc(call_closure)) {
 					vm_func_t func = *(vm_func_t *)call_closure->m_data;
 					p_vm->m_ip++;
-					p_vm->m_bp = p_vm->m_sp - 1 - p_arg;
 					vm_push_exec_state(p_vm, call_closure);
+					p_vm->m_bp = p_vm->m_sp - 1 - p_arg;
 //printf("bp: %lu = sp: %lu - 1 - p_arg %lu\n", p_vm->m_bp, p_vm->m_sp, p_arg);
 					continue;
 				}

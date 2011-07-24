@@ -548,8 +548,8 @@ value_t *load(vm_t *p_vm)
 	stream_t *strm = stream_create(input);
 	int args = reader(p_vm, strm, false);
 
-printf("start sp: %d sp: %lu args: %d\n", start_sp, p_vm->m_sp, args);
-vm_print_stack(p_vm);
+//printf("start sp: %d sp: %lu args: %d\n", start_sp, p_vm->m_sp, args);
+//vm_print_stack(p_vm);
 
 	p_vm->m_ip++;
 
@@ -617,7 +617,7 @@ value_t *car(vm_t *p_vm)
 
 verify(is_cons(first) == true, "car'ing something not a cons %d", first->m_type);
 
-printf("f: "); value_print(p_vm, first->m_cons[0]); printf("\n");
+//printf("f: "); value_print(p_vm, first->m_cons[0]); printf("\n");
 
 	p_vm->m_stack[p_vm->m_sp++] = first->m_cons[0];
 	return t;
@@ -660,7 +660,7 @@ value_t *eq(vm_t *p_vm)
 
 
 	if (first->m_type != second->m_type) {
-		p_vm->m_stack[p_vm->m_sp++] = t;
+		p_vm->m_stack[p_vm->m_sp++] = nil;
 		return nil;
 	}
 

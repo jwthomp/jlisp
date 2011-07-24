@@ -104,8 +104,8 @@ void vm_destroy(vm_t *p_vm)
 
 void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func, bool p_dynamic)
 {
-printf("binding (%d, %d)", p_func, p_dynamic); value_print(p_vm, p_symbol); printf(" to "); 
-value_print(p_vm, p_value); printf("\n");
+//printf("binding (%d, %d)", p_func, p_dynamic); value_print(p_vm, p_symbol); printf(" to "); 
+//value_print(p_vm, p_value); printf("\n");
 
 	if (p_dynamic == true) {
 		if (p_func == true) {
@@ -244,6 +244,13 @@ void vm_print_stack(vm_t *p_vm)
 {
 	for (unsigned long i = 0; i < p_vm->m_sp; i++) {
 		printf("S %lu] ", i); value_print(p_vm, p_vm->m_stack[i]); printf("\n");
+	}
+}
+
+void vm_print_exec_stack(vm_t *p_vm)
+{
+	for (unsigned long i = 0; i < p_vm->m_exp; i++) {
+		printf("S %lu] ", i); value_print(p_vm, p_vm->m_exec_stack[i]); printf("\n");
 	}
 }
 
