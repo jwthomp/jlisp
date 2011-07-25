@@ -33,6 +33,11 @@ typedef enum opcode_s {
 	OP_SET_PROC_STATUS,	// 18
 } opcode_e;
 
+typedef enum {
+	VM_RUNNING = 0,
+	VM_WAITING_ON_MESSAGE = 1
+} vm_running_state_e;
+
 extern char const *g_opcode_print[];
 
 extern bool g_debug_display;
@@ -58,19 +63,24 @@ typedef struct vm_s {
 	value_t **m_stack;
 	value_t **m_c_stack;
 	value_t **m_exec_stack;
+	value_t **m_msg_queue;
 
 	value_t *m_heap_g0;
 	pool_t *m_pool_g0;
 	value_t *m_heap_g1;
 	value_t *m_free_heap;
 
+
 	unsigned long m_sp;
 	unsigned long m_bp;
 	unsigned long m_ev;
 	unsigned long m_csp;
 	unsigned long m_exp;
+	unsigned long m_mp;
 	int m_ip;
 	unsigned long m_count;
+
+	vm_running_state_e m_running_state;
 
 	value_t *m_next;
 } vm_t;

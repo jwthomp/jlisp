@@ -8,6 +8,7 @@
 #include "err.h"
 #include "symbols.h"
 #include "vm_exec.h"
+#include "message.h"
 
 #include "vm.h"
 
@@ -15,7 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define EXEC_STACK_SIZE 1024
+#define EXEC_STACK_SIZE 4096 * 10 
 #define C_STACK_SIZE 1024
 
 typedef struct bytecode_jump {
@@ -63,10 +64,14 @@ vm_t *vm_create(unsigned long p_stack_size, value_t *p_vm_parent)
 	vm->m_ip = 0;
 	vm->m_ev = 0;
 	vm->m_exp = 0;
+p_stack_size = EXEC_STACK_SIZE;
 	vm->m_stack = (value_t **)malloc(sizeof(value_t *) * p_stack_size);
 	vm->m_exec_stack = (value_t **)malloc(sizeof(value_t *) * EXEC_STACK_SIZE);
 	vm->m_c_stack = (value_t **)malloc(sizeof(value_t *) * C_STACK_SIZE);
 	vm->m_count = 0;
+	vm->m_running_state = VM_RUNNING;
+
+	vm_init_message(vm);
 
 	// CANNOT create any value_t's until the above is initialized
 
@@ -90,6 +95,7 @@ vm_t *vm_create(unsigned long p_stack_size, value_t *p_vm_parent)
 
 void vm_destroy(vm_t *p_vm)
 {
+	vm_shutdown_message(p_vm);
 	gc_shutdown(p_vm);
 	p_vm->m_heap_g0 = NULL;
 	p_vm->m_heap_g1 = NULL;

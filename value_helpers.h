@@ -18,7 +18,6 @@ extern value_t *voidobj;
 bool is_environment(value_t *);
 bool is_binding(value_t *);
 bool is_closure(value_t *);
-bool is_ifunc(value_t *);
 bool is_string(value_t *);
 bool is_cons(value_t *);
 bool is_macro(value_t *);
@@ -29,6 +28,15 @@ bool is_lambda(value_t *);
 bool is_null(value_t *);
 bool is_pid(value_t *);
 bool is_process(value_t *);
+
+inline bool is_ifunc(value_t *p_val) {
+  if (is_fixnum(p_val)) {
+      return false;
+  }
+
+  return (p_val->m_type == VT_INTERNAL_FUNCTION);
+}
+
 
 
 value_t * value_create_number(vm_t *p_vm, int p_number);

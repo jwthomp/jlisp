@@ -9,6 +9,7 @@
 #include "gc.h"
 #include "symbols.h"
 #include "lambda.h"
+#include "message.h"
 
 #include "lib.h"
 
@@ -58,10 +59,12 @@ value_t *type_of(vm_t *p_vm);
 value_t *symbol_name(vm_t *p_vm);
 value_t *seq(vm_t *p_vm);
 value_t *dbg_time(vm_t *p_vm);
+value_t *msg_send(vm_t *p_vm);
+value_t *msg_recv(vm_t *p_vm);
 
 static struct timeb g_time;
 
-static internal_func_def_t g_ifuncs[31] = {
+static internal_func_def_t g_ifuncs[33] = {
 	{"PRINT-VAL", print_val, 0, false, true},
 	{"PRINT-VM", print_vm, 0, false, true},
 	{"PRINT-ENV", print_env, 0, false, true},
@@ -93,9 +96,11 @@ static internal_func_def_t g_ifuncs[31] = {
 	{"SYMBOL-NAME", symbol_name, 1, false, true},
 	{"SEQ", seq, 1, false, true},
 	{"CLOCK", dbg_time, 0, false, true},
+	{"SEND", msg_send, 2, false, true},
+	{"RECEIVE", msg_recv, 0, false, true},
 };
 
-#define NUM_IFUNCS 31
+#define NUM_IFUNCS 33
 
 value_t *gc_lib(vm_t *p_vm)
 {
@@ -119,7 +124,7 @@ value_t *spawn_lib(vm_t *p_vm)
 	vm_push_exec_state(vm, form);
 
 	p_vm->m_ip++;
-	p_vm->m_stack[p_vm->m_sp++] = t;
+	p_vm->m_stack[p_vm->m_sp++] = vm_val;
 	
 	return t;
 }
@@ -215,7 +220,7 @@ value_t *let(vm_t *p_vm)
 	vm_push(p_vm, val_list);
 	vm_cons(p_vm);
 	
-printf("let end: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
+//printf("let end: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
 
 	p_vm->m_ip++;
 
@@ -253,6 +258,38 @@ value_t *progn(vm_t *p_vm)
 
 	return t;
 }
+
+value_t *msg_send(vm_t *p_vm)
+{
+	value_t *vm_to_value = p_vm->m_stack[p_vm->m_bp + 1];
+	value_t *msg = p_vm->m_stack[p_vm->m_bp + 2];
+
+	// Extract vm out of value
+	vm_t *vm_to = *(vm_t **)vm_to_value->m_data;
+
+	message_send(vm_to, msg);
+
+	if (vm_to->m_running_state == VM_WAITING_ON_MESSAGE) {
+		vm_to->m_running_state = VM_RUNNING;
+	}
+
+	p_vm->m_ip++;
+	p_vm->m_stack[p_vm->m_sp++] = nil;
+	return nil;
+}
+
+value_t *msg_recv(vm_t *p_vm)
+{
+	value_t *ret = message_recv(p_vm);
+	p_vm->m_running_state = VM_WAITING_ON_MESSAGE;
+	if (ret != voidobj) {
+		p_vm->m_stack[p_vm->m_sp++] = ret;
+		p_vm->m_running_state = VM_RUNNING;
+		p_vm->m_ip++;
+	}
+	return nil;
+}
+
 
 value_t *symbol_name(vm_t *p_vm)
 {
@@ -755,6 +792,8 @@ value_t *print_val(vm_t *p_vm)
 	value_t *p = NULL;
 	if (is_symbol_function_dynamic(arg)) {
 		p  = car(p_vm, arg->m_cons[2]);
+	} else if (is_symbol_dynamic(arg)) {
+		p  = car(p_vm, arg->m_cons[1]);
 	} else {
 		p = environment_binding_find(p_vm, arg, true); 
 	}

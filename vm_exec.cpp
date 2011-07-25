@@ -88,7 +88,7 @@ void *exec_proc_loop(void *arg)
 	pthread_setspecific(g_thread_key, exec_proc);
 
 	while(1) {
-		vm_exec(NULL, 0, true);
+		vm_exec(NULL, -1, true);
 
 		value_t *vm_val = exec_proc->m_vm_list;
 		vm_t *vm = *(vm_t **)vm_val->m_data; 
@@ -160,7 +160,7 @@ void vm_push_exec_state(vm_t *p_vm, value_t *p_closure)
 
 //	printf("push_exec: ip: %d bp: %lu exp: %lu\n", p_vm->m_ip, p_vm->m_bp, p_vm->m_exp);
 //value_print(p_vm, p_closure);
-assert(p_vm->m_exp < 128);
+//assert(p_vm->m_exp < 1024);
 
 	///////////////////////////////
 	// Push new environment
@@ -209,7 +209,7 @@ value_t *vm_peek_exec_state_closure(vm_t *p_vm)
 
 
 // Looks for closure on the stack and starts executing bytecode
-void vm_exec(vm_t *p_vmUNUSED, unsigned long p_return_on_exp, bool p_allow_preemption)
+void vm_exec(vm_t *p_vmUNUSED, int p_return_on_exp, bool p_allow_preemption)
 {
 //printf("VM_EXEC2: ret: %lu  %s\n", p_return_on_exp, p_allow_preemption ? "Yes" : "No");
 	vm_exec_proc_t *exec_proc;
@@ -253,22 +253,42 @@ void vm_exec(vm_t *p_vmUNUSED, unsigned long p_return_on_exp, bool p_allow_preem
 	///////////////////////////
 	// Start executing
 	////////////////////////////
-	while(p_vm->m_exp > p_return_on_exp) {
+	while(((int)p_vm->m_exp) > p_return_on_exp) {
+		if (p_vm->m_exp == 0) {
+			// We exited so we need to remove the current vm
+			if (exec_proc->m_vm_list->m_next_symbol) {
+				exec_proc->m_vm_list = exec_proc->m_vm_list->m_next_symbol;
+				p_vm = *(vm_t **)exec_proc->m_vm_list->m_data;
+			}
+		}
+
 		p_vm->m_count++;
 
-		if (p_vm->m_count > 1) {
+		if (p_vm->m_count > 1 || p_vm->m_running_state != VM_RUNNING) {
 			p_vm->m_count = 0;
 			// See if there is another vm, switch to it and continue
-			if (exec_proc->m_vm_list->m_next_symbol) {
-				value_t *current_vm = exec_proc->m_vm_list;
-				p_vm = *(vm_t **)current_vm->m_next_symbol->m_data;
-				exec_proc->m_vm_list = current_vm->m_next_symbol;
-				value_t *head = exec_proc->m_vm_list;;
-				current_vm->m_next_symbol = NULL;
-				while (head->m_next_symbol) {
-					head = head->m_next_symbol;
+			value_t *vm_val = exec_proc->m_vm_list->m_next_symbol;
+			while (vm_val) {
+				vm_t *vm = *(vm_t **)vm_val->m_data;
+				if (vm->m_running_state == VM_RUNNING) {
+					value_t *current_vm = exec_proc->m_vm_list;
+					p_vm = vm;
+					exec_proc->m_vm_list = vm_val;
+					value_t *head = exec_proc->m_vm_list;
+					current_vm->m_next_symbol = NULL;
+					while (head->m_next_symbol) {
+						head = head->m_next_symbol;
+					}
+					head->m_next_symbol = current_vm;
+					break;
+				} else {
+					vm_val = vm_val->m_next_symbol;
 				}
-				head->m_next_symbol = current_vm;
+			}
+			if (vm_val == NULL && p_vm->m_running_state != VM_RUNNING) {
+printf("usleeping\n");
+				usleep(300000);
+				continue;
 			}
 		}
 
@@ -284,15 +304,17 @@ void vm_exec(vm_t *p_vmUNUSED, unsigned long p_return_on_exp, bool p_allow_preem
 		long bc_value = 0;
 		unsigned long p_arg = 0;
 		value_t *p_pool = NULL;
-		if (is_ifunc(c) && p_vm->m_ip > 0) {
+		bool ifunc = c->m_type == VT_INTERNAL_FUNCTION ? true : false;
+		if (ifunc == true && p_vm->m_ip > 0) {
 			bc_opcode = OP_RET;
 			bc_value = 1;
-		} else if (is_ifunc(c)) {
+		} else if (ifunc == true) {
 			vm_func_t func = *(vm_func_t *)c->m_data;
 			func(p_vm);
 			continue;
 		} else {
-			assert(is_closure(c) == true);
+			//assert(is_closure(c) == true);
+			assert(c->m_type == VT_CLOSURE);
 			l = (lambda_t *)(c->m_cons[1]->m_data);
 			bc = &((bytecode_t *)l->m_bytecode->m_data)[p_vm->m_ip];
 			p_arg = bc->m_value;
@@ -719,6 +741,7 @@ assert(b != NULL);
 			printf("--ip: %d] sp: %ld] ep: %ld] bp: %ld] exp: %ld] %s %ld\n", p_vm->m_ip, p_vm->m_sp, p_vm->m_ev, p_vm->m_bp, p_vm->m_exp, g_opcode_print[bc_opcode], bc_value);
 		}
 	}
+
 
 	return;
 }

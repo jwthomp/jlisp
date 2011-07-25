@@ -10,14 +10,20 @@
 [ ] Implement for
 [ ] List comprehensions
 [ ] implement deconstruct-bind
-[ ] Support packages
 [ ] Add FFI support
 [ ] How to do shared dev?
 [ ] Tuples
 [ ] Matching
 [ ] Packages - Put in own symbols.* files
 
-[ ] Test Eval and Load
+
+[ ] m_next_symbol should always end in voidobj
+[ ] Add support for send/receive
+[ ] Support packages
+[ ] Support `,
+[ ] Support ,@
+[/] fix &rest so 'a sets args to ('a)
+
 
 
 [ ] Loadf symbols that are undefined, and load binding when they are
@@ -40,8 +46,6 @@
 [ ] Write unit tests for stable functionality
 
 
-[ ] Support `,
-[ ] Support ,@
 [ ] Improve verify messages
 [ ] Support for examining stack
 [ ] Support for examining closure
@@ -58,7 +62,6 @@ read ->
 			take place to see if another process should run
 
 
-[/] fix &rest so 'a sets args to ('a)
 
 
 [X] Make nil, voidobj  and t static symbols that aren't tied to a vm

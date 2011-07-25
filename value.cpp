@@ -417,7 +417,8 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		}
 		case VT_PROCESS:
 		{
-			snprintf(ret->m_data, STRING_SIZE, "PROCESS <%p>",  p_value);
+			vm_t *vm = *(vm_t **)p_value->m_data;
+			snprintf(ret->m_data, STRING_SIZE, "PROCESS <%p> st: %d",  p_value, vm->m_running_state);
 			break;
 		}
 		case VT_PID:
@@ -488,13 +489,13 @@ bool is_string(value_t *p_val) {
 	return (p_val->m_type == VT_STRING);
 }
 	
-bool is_ifunc(value_t *p_val) {
-	if (is_fixnum(p_val)) {
-		return false;
-	}
-
-	return (p_val->m_type == VT_INTERNAL_FUNCTION);
-}
+//bool is_ifunc(value_t *p_val) {
+//	if (is_fixnum(p_val)) {
+//		return false;
+//	}
+//
+//	return (p_val->m_type == VT_INTERNAL_FUNCTION);
+//}
 	
 bool is_pid(value_t *p_val) {
 	if (is_fixnum(p_val)) {

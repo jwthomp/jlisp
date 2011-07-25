@@ -11,7 +11,7 @@ void vm_exec_remove_vm(value_t *p_vm);
 
 void vm_push_exec_state(vm_t *p_vm, value_t *p_closure);
 
-void vm_exec(vm_t *p_vm, unsigned long p_return_on_exp, bool p_allow_preemption);
+void vm_exec(vm_t *p_vm, int p_return_on_exp, bool p_allow_preemption);
 
 value_t *vm_current_vm();
 

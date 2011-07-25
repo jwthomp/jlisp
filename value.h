@@ -41,6 +41,7 @@ typedef struct value_s {
 	bool m_in_use;
 
 	struct value_s *m_next_symbol;
+	struct value_s *m_next_message;
 
 	union {
 		char m_data[0];
