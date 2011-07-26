@@ -591,21 +591,14 @@ value_t *load(vm_t *p_vm)
 	p_vm->m_ip++;
 
 	int i = 0;
-    while (i < args) {
-//	for (int i = 1; i <= args; i++) {
-//		p_vm->m_sp--;
+	for (int i = 1; i <= args; i++) {
+		p_vm->m_sp--;
         value_t *form = p_vm->m_stack[start_sp + i];
-
-printf("form: "); value_print(p_vm, form); printf("\n");
-
-//        value_t *lambda = compile(p_vm, nil, list(p_vm, form));
- //       value_t *closure = make_closure(p_vm, lambda);
-  //      vm_push_exec_state(p_vm, closure);
-			eval(p_vm, form);
-			vm_exec(p_vm, p_vm->m_exp - 1, false);
+		eval(p_vm, form);
 		i++;
     }
 
+	vm_exec(p_vm, p_vm->m_exp - 1, false);
 	
 
 	free(input);
@@ -835,7 +828,8 @@ value_t *print(vm_t *p_vm)
 
 	value_t *arg = p_vm->m_stack[p_vm->m_bp + 1];
 
-	printf("PRINT: ");value_print(p_vm, arg); printf("\n");
+//	printf("PRINT: ");
+	value_print(p_vm, arg); printf("\n");
 
 	p_vm->m_stack[p_vm->m_sp++] = arg;
 

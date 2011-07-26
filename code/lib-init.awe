@@ -1,0 +1,2 @@
+(load "code/dict.awe")
+(loop (print (eval (read))))

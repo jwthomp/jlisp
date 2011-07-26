@@ -1,0 +1,6 @@
+(defun dict-new () '('dict '()))
+
+(defun dict-store (key value dict)
+	(print 'a)
+	(print 'b))
+	

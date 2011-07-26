@@ -28,7 +28,7 @@ typedef struct vm_exec_proc_s
 
 static pthread_key_t g_thread_key;
 static vm_exec_proc_t *g_exec_procs = NULL;
-bool g_step_debug = false;
+bool g_step_debug = true;
 value_t *g_static_heap;
 value_t *g_symbol_table;
 
@@ -64,7 +64,6 @@ value_t *vm_current_vm()
 
 void vm_exec_proc_create()
 {
-printf("START\n");
 	vm_exec_proc_t *exec_proc = (vm_exec_proc_t *)malloc(sizeof(vm_exec_proc_t));
 	exec_proc->m_hardware_thread_affinity = -1;
 	exec_proc->m_vm_list = nil;
@@ -264,7 +263,7 @@ void vm_exec(vm_t *p_vmUNUSED, int p_return_on_exp, bool p_allow_preemption)
 
 		p_vm->m_count++;
 
-		if (p_vm->m_count > 1 || p_vm->m_running_state != VM_RUNNING) {
+		if (p_vm->m_count > 1000 || p_vm->m_running_state != VM_RUNNING) {
 			p_vm->m_count = 0;
 			// See if there is another vm, switch to it and continue
 			value_t *vm_val = exec_proc->m_vm_list->m_next_symbol;
@@ -423,8 +422,8 @@ printf("usleeping\n");
 			}
 			case OP_CATCH:
 			{
-				printf("CATCH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 				//printf("op_catch arg: %d\n", (int)p_arg);
+				//printf("CATCH!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
 				int ip = (int)p_arg;
 
@@ -432,32 +431,30 @@ printf("usleeping\n");
 //printf("pop'd handler\n");
 					pop_handler_stack();
 					p_vm->m_ip++;
-					return;
-				}
-
-
-//////// TODO: Need to put this on the stack somehow?
-				int vm_bp = p_vm->m_bp;
-				int vm_sp = p_vm->m_sp;
-				int vm_ev = p_vm->m_ev;
-				int vm_ip = p_vm->m_ip;
-				value_t *vm_current_env = p_vm->m_current_env[p_vm->m_ev - 1];
-
-
-				int i = setjmp(*push_handler_stack());
-				if (i != 0) {
-//printf("error in catch\n");
-					p_vm->m_bp = vm_bp;
-					p_vm->m_sp = vm_sp;
-					p_vm->m_ev = vm_ev;
-					p_vm->m_ip = vm_ip;
-					p_vm->m_current_env[p_vm->m_ev - 1] = vm_current_env;
-
-					pop_handler_stack();
-					p_vm->m_ip = ip;
-//printf("jumping to %d\n", p_vm->m_ip);
 				} else {
-					p_vm->m_ip++;
+//////// TODO: Need to put this on the stack somehow?
+					int vm_bp = p_vm->m_bp;
+					int vm_sp = p_vm->m_sp;
+					int vm_ev = p_vm->m_ev;
+					int vm_ip = p_vm->m_ip + ip;
+					value_t *vm_current_env = p_vm->m_current_env[p_vm->m_ev - 1];
+
+printf("saved ip: %d\n", vm_ip);
+
+					int i = setjmp(*push_handler_stack());
+					if (i != 0) {
+printf("error in catch\n");
+						p_vm->m_bp = vm_bp;
+						p_vm->m_sp = vm_sp;
+						p_vm->m_ev = vm_ev;
+						p_vm->m_ip = vm_ip;
+						p_vm->m_current_env[p_vm->m_ev - 1] = vm_current_env;
+
+						pop_handler_stack();
+printf("jumping to %d\n", p_vm->m_ip);
+					} else {
+						p_vm->m_ip++;
+					}
 				}
 				break;
 			}
@@ -648,6 +645,127 @@ assert(b != NULL);
 				break;
 
 			}
+			case OP_RETCALL:
+			{
+				// Move the closure and it's args up to bp
+				for (int i = 0; i < 1 + p_arg; i++) {
+					p_vm->m_stack[p_vm->m_bp + i] = p_vm->m_stack[p_vm->m_sp - p_arg - 1 + i];
+				}
+				p_vm->m_sp = p_vm->m_bp + 1 + p_arg;
+				vm_pop_exec_state(p_vm);
+
+				// Replace exec state with the new one
+				value_t *call_closure = p_vm->m_stack[p_vm->m_sp - p_arg - 1];
+
+				////////////////////////////////
+				// Get lambda from closure
+				/////////////////////////////////
+				lambda_t *call_lambda = (lambda_t *)(call_closure->m_cons[1]->m_data);
+
+//printf("params1: %d ", (int)call_closure->m_cons[2]); value_print(p_vm, call_lambda->m_parameters); printf("\n");
+
+				////////////////////////////////
+				// If supports &rest need to collapse extra args into one spot on cons on the stack
+				///////////////////////////////
+				long int func_arg_count = 0;
+				if (is_ifunc(call_closure)) {
+					vm_func_t func = *(vm_func_t *)call_closure->m_data;
+					func_arg_count = call_closure->m_data[sizeof(vm_func_t)];
+				} else {
+					func_arg_count = (long int)(call_closure)->m_cons[2];
+				}
+
+				// Condense remaining args into a list
+				if (func_arg_count < 0) {
+					func_arg_count = -func_arg_count;
+					for( ; p_arg > func_arg_count; p_arg--) {
+						vm_cons(p_vm);
+					}
+
+				}
+
+//printf("CALL: "); value_print(p_vm, call_closure); printf("\n");
+
+
+				//////////////////////////////
+				// If this is an ifunc then we can just call it now
+				/////////////////////////////
+				if (is_ifunc(call_closure)) {
+					vm_func_t func = *(vm_func_t *)call_closure->m_data;
+					p_vm->m_ip++;
+					vm_push_exec_state(p_vm, call_closure);
+					p_vm->m_bp = p_vm->m_sp - 1 - p_arg;
+//printf("bp: %lu = sp: %lu - 1 - p_arg %lu\n", p_vm->m_bp, p_vm->m_sp, p_arg);
+					continue;
+				}
+
+				///////////////////////////
+				// Put our current state onto the stack
+				//////////////////////////
+//printf("ip: %d\n", p_vm->m_ip);
+				p_vm->m_ip++;
+				vm_push_exec_state(p_vm, call_closure);
+				
+				//////////////////////////
+				// Setup vm for new closure
+				/////////////////////////
+				// Store current bp & sp
+
+				// Set bp to the closure we are calling
+				p_vm->m_bp = p_vm->m_sp - 1 - p_arg;
+				p_vm->m_ip = 0;
+				
+
+
+				/////////////////////////////
+				// Bind all parameters
+				///////////////////////////////
+				value_t *call_params = call_lambda->m_parameters;
+
+				value_t *dyn_store = nil;
+
+//printf("params2: "); value_print(p_vm, call_params); printf("\n");
+
+				int bp_offset = 0;
+				while(call_params && call_params != nil && call_params->m_cons[0]) {
+					if (strcmp(call_params->m_cons[0]->m_cons[0]->m_data, "&REST")) {
+						value_t *stack_val = p_vm->m_stack[p_vm->m_bp + 1 + bp_offset];
+						value_t *sym = call_params->m_cons[0];
+
+//printf("binding: %d ", call_params->m_cons[0]->m_type); value_print(p_vm, call_params->m_cons[0]); printf (" to: "); value_print(p_vm, stack_val); printf("\n");
+//printf("binding symbol: %s\n", sym->m_cons[0]->m_data);
+
+						bind_internal(p_vm, sym, stack_val, false, false);
+			
+						if (is_symbol_dynamic(sym) == true) {
+							dyn_store = vm_store_dyn_value(p_vm, sym, sym->m_cons[1], dyn_store);
+						}
+
+
+						bp_offset++;
+					}
+					call_params = call_params->m_cons[1];
+				}
+
+//printf("p_arg: %lu bp_offset: %d\n", p_arg, bp_offset);
+
+				verify(func_arg_count == bp_offset, "Mismatched arg count: %d != %d\n", p_arg, bp_offset);
+				break;
+
+			}
+			case OP_RET:
+			{
+//printf("B ip: %d\n", p_vm->m_ip);
+				// Move top of stack to bp
+				if (p_vm->m_sp > 1) {
+					p_vm->m_stack[p_vm->m_bp] = p_vm->m_stack[p_vm->m_sp - 1];
+					p_vm->m_sp = p_vm->m_bp + 1;
+				}
+				vm_pop_exec_state(p_vm);
+
+
+				break;
+			}
 			case OP_LAMBDA:
 			{
 				// get value from pool
@@ -656,6 +774,8 @@ assert(b != NULL);
 //printf("op_lambda: bc: "); value_print(p_vm, ((lambda_t *)lambda->m_data)->m_bytecode); printf("\n");
 //printf("op_lambda: "); value_print(p_vm, lambda); printf("\n");
 
+value_t *optimize(vm_t *p_vm, value_t *p_lambda);
+				lambda = optimize(p_vm, lambda);
 				value_t *closure = make_closure(p_vm, lambda);
 				p_vm->m_stack[p_vm->m_sp++] = closure;
 				p_vm->m_ip++;
@@ -677,6 +797,9 @@ assert(b != NULL);
 				p_vm->m_ip++;
 				break;
 			}
+			case OP_NOP:
+				p_vm->m_ip++;
+				break;
 			case OP_POP:
 				p_vm->m_sp--;
 				p_vm->m_ip++;
@@ -697,20 +820,6 @@ assert(b != NULL);
 					p_vm->m_ip++;
 				}
 			
-				break;
-			}
-			case OP_RET:
-			{
-//printf("B ip: %d\n", p_vm->m_ip);
-
-				// Move top of stack to bp
-				if (p_vm->m_sp > 1) {
-					p_vm->m_stack[p_vm->m_bp] = p_vm->m_stack[p_vm->m_sp - 1];
-					p_vm->m_sp = p_vm->m_bp + 1;
-				}
-				vm_pop_exec_state(p_vm);
-
-
 				break;
 			}
 			case OP_UPDATE:

@@ -34,13 +34,14 @@ int main(int argc, char *arg[])
 	value_t *vm_current_env = vm->m_current_env[vm->m_ev - 1];
 
 
+	printf("awesome-lang v0.0.3, copyright (c) 2011 by jeffrey thompson\n");
+
 	int i = setjmp(*push_handler_stack());
 	if (i == 0) {
 		char input[256];
 		memset(input, 0, 256);
 //		printf("> ");
-		//stream_t *strm = stream_create("(eval '(+ 1 2))");
-		stream_t *strm = stream_create("(loop (print (eval (read))))");
+		stream_t *strm = stream_create("(load \"code/lib-init.awe\")");
 		int args = reader(vm, strm, false);
 		int start_sp = vm->m_sp;
 		int i = 1;
@@ -50,10 +51,12 @@ int main(int argc, char *arg[])
 			i++;
 		}
 
+		vm->m_sp--;
+
+
 		vm_exec_add_vm(vm_val);
 
-//		printf("\nres: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
-//		vm->m_sp--;
+		//printf("\nres: "); value_print(vm, vm->m_stack[vm->m_sp - 1]); printf("\n");
 
 		// Put the process back in the list 
 	//	vm_exec_add_vm(vm_val);
@@ -75,19 +78,5 @@ vm_print_stack(vm);
 	gc(vm, 1);
 	vm_destroy(vm);
 
-#if 0
-	stream_t *strm = stream_create("(loop (print (eval (read))))");
-	//stream_t *strm = stream_create("(+ 1 2)");
-	//stream_t *strm = stream_create("(+ 1 (* 2 3))");
-	//stream_t *strm = stream_create("(+ (* 2 3) 1) (+ 1 1)");
-	//stream_t *strm = stream_create("(call (lambda () (+ 1 2))) (+ 4 5)");
-	//stream_t *strm = stream_create("(call (lambda (a b) (+ a b)) 3 4)");
-	//stream_t *strm = stream_create("(defun x (a b) (+ a b)) (x 5 6)");
-	//stream_t *strm = stream_create("(load \"stf.awe\")");
-	//stream_t *strm = stream_create("(load \"test\")");
-	//stream_t *strm = stream_create("(load \"qsort\") (cadr '(1 2))");
-	//stream_t *strm = stream_create("(load \"qsort\") (pivot (seq 10))");
-	int args = reader(vm, strm, false);
-#endif
 
 }

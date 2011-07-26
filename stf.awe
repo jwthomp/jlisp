@@ -1,1 +1,1 @@
-(defparameter p (spawn (lambda () (print (receive)))))
+(defparameter p (spawn (lambda () (loop (print (receive))))))

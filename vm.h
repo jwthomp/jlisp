@@ -31,6 +31,8 @@ typedef enum opcode_s {
 	OP_JMP,			// 16
 	OP_POP,			// 17
 	OP_SET_PROC_STATUS,	// 18
+	OP_NOP,			// 19
+	OP_RETCALL,		// 20
 } opcode_e;
 
 typedef enum {

@@ -44,6 +44,9 @@ char const *g_opcode_print[] =  {
 	"OP_BINDDF",
 	"OP_JMP",
 	"OP_POP",
+	"OP_SET_PROC_STATUS",
+	"OP_NOP",
+	"OP_RETCALL",
 };
 
 bool g_debug_display = false;

@@ -231,10 +231,13 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 //printf("catch: %d\n", save_index - old_index);
 		*p_bytecode_index = save_index;
 
+		assemble(OP_CATCH, (int *)-1, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+
 		compile_form(cleanup_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
 
+
 		// return
-		assemble(OP_RET, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+//		assemble(OP_RET, (int *)0, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 
 
 	} else if (is_symbol(func) && is_symbol_name("LOOP", func)) {
@@ -425,6 +428,48 @@ value_t *execute(vm_t *p_vm, value_t *p_closure)
 	return p_closure;
 }
 
+
+value_t *optimize(vm_t *p_vm, value_t *p_lambda)
+{
+	// Tail recursion
+	// Replace all OP_CALL/OP_RET's with OP_RETCALL
+	lambda_t *l = (lambda_t *)p_lambda->m_data;
+	assert(p_lambda->m_type == VT_LAMBDA);
+
+	value_t *bc_val = l->m_bytecode;
+	bytecode_t *bc = (bytecode_t *)bc_val->m_data;
+	int instructions = bc_val->m_size / sizeof(bytecode_t);
+
+	for (int i = 1; i < instructions; i++) {
+		if (bc[i].m_opcode == OP_RET && bc[i - 1].m_opcode == OP_CALL) {
+			bc[i - 1].m_opcode = OP_RETCALL;
+			bc[i].m_opcode = OP_NOP;
+		}
+	}
+
+#if 0
+     value_t *pool = l->m_pool;
+
+    printf("---- Closure ----\n");
+    printf("Pool: \n");
+    int pool_size = pool->m_size / sizeof(value_t *);
+    for (int i = 0; i < pool_size; i++) {
+        printf("%d] ", i);
+        value_print(p_vm, ((value_t **)pool->m_data)[i]);
+        printf("\n");
+    }
+     printf("\nBytecode: \n");
+    for (unsigned long i = 0; i < (l->m_bytecode->m_size / sizeof(bytecode_t)); i++) {
+        printf("%lu] %s code: %ld\n", i, g_opcode_print[bc[i].m_opcode], bc[i].m_value);
+    }
+    printf("-----------------\n");
+#endif
+
+
+	return p_lambda;
+}
+
+
 value_t * eval(vm_t *p_vm, value_t * p_form)
 {
 	if (g_debug_display == true) {
@@ -432,6 +477,7 @@ value_t * eval(vm_t *p_vm, value_t * p_form)
 	}
 
 	value_t *lambda = compile(p_vm, nil, list(p_vm, p_form));
+	lambda = optimize(p_vm, lambda);
 	value_t *closure =  make_closure(p_vm, lambda);
 
 //	p_vm->m_ip++;
