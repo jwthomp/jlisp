@@ -149,7 +149,7 @@ value_t *eval_lib(vm_t *p_vm)
     if (i == 0) {
 		p_vm->m_ip++;
 		value_t *form = p_vm->m_stack[p_vm->m_bp + 1];
-		ret = eval(p_vm, form);
+		ret = eval(p_vm, form, false);
 	} else {
 		// Restore stack do to trapped error
 		p_vm->m_bp = vm_bp;
@@ -589,8 +589,8 @@ value_t *load(vm_t *p_vm)
 	stream_t *strm = stream_create(input);
 	int args = reader(p_vm, strm, false);
 
-printf("start sp: %d sp: %lu args: %d\n", start_sp, p_vm->m_sp, args);
-vm_print_stack(p_vm);
+//printf("start sp: %d sp: %lu args: %d\n", start_sp, p_vm->m_sp, args);
+//vm_print_stack(p_vm);
 
 
 	unsigned long start_exp = p_vm->m_exp - 1;
@@ -598,7 +598,7 @@ vm_print_stack(p_vm);
 	int i = p_vm->m_sp - 1;
 	while (i >= start_sp) {
         value_t *form = p_vm->m_stack[i];
-		eval(p_vm, form);
+		eval(p_vm, form, true);
 		i--;
     }
 

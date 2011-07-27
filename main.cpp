@@ -47,7 +47,7 @@ int main(int argc, char *arg[])
 		int i = 1;
 		while (i <= args) {
 			value_t *form = vm->m_stack[start_sp - i];
-			eval(vm, form);
+			eval(vm, form, true);
 			i++;
 		}
 

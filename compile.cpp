@@ -9,6 +9,8 @@
 #include "reader.h"
 #include "symbols.h"
 
+#include "compile.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +18,7 @@
 #define MAX_POOL_SIZE 256
 #define MAX_BYTECODE_SIZE 1024
 
-value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body);
+//value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body);
 
 void compile_form(value_t *p_form, vm_t *p_vm, 
 					bytecode_t *p_bytecode, int *p_bytecode_index,
@@ -78,7 +80,7 @@ int macro_expand_1(vm_t *p_vm, value_t **p_value)
 		(*p_value)->m_cons[0]->m_type = VT_MACRO;
 
 //printf("Abp: %lu\n", p_vm->m_bp);
-		eval(p_vm, *p_value);
+		eval(p_vm, *p_value, false);
 //printf("Bbp: %lu\n", p_vm->m_bp);
 		vm_exec(p_vm, p_vm->m_exp - 1, false);
 		*p_value = p_vm->m_stack[p_vm->m_sp - 1];
@@ -473,7 +475,7 @@ value_t *optimize(vm_t *p_vm, value_t *p_lambda)
 }
 
 
-value_t * eval(vm_t *p_vm, value_t * p_form)
+value_t * eval(vm_t *p_vm, value_t * p_form, bool p_pop)
 {
 	if (g_debug_display == true) {
 		printf("eval: "); value_print(p_vm, p_form), printf("\n");
@@ -481,7 +483,7 @@ value_t * eval(vm_t *p_vm, value_t * p_form)
 
 	value_t *lambda = compile(p_vm, nil, list(p_vm, p_form));
 
-	{
+	if (p_pop == true) {
 		lambda_t *l = (lambda_t *)lambda->m_data;
 		value_t *bc_val = l->m_bytecode;
 		bytecode_t *bc = (bytecode_t *)bc_val->m_data;
