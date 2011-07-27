@@ -8,6 +8,7 @@ typedef struct lambda_s {
 	value_t *m_parameters;
 	value_t *m_bytecode;
 	value_t *m_pool;
+	value_t *m_form;
 } lambda_t;
 
 

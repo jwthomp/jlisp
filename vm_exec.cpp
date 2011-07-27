@@ -28,7 +28,7 @@ typedef struct vm_exec_proc_s
 
 static pthread_key_t g_thread_key;
 static vm_exec_proc_t *g_exec_procs = NULL;
-bool g_step_debug = true;
+bool g_step_debug = false;
 value_t *g_static_heap;
 value_t *g_symbol_table;
 
@@ -258,7 +258,10 @@ void vm_exec(vm_t *p_vmUNUSED, int p_return_on_exp, bool p_allow_preemption)
 			if (exec_proc->m_vm_list->m_next_symbol) {
 				exec_proc->m_vm_list = exec_proc->m_vm_list->m_next_symbol;
 				p_vm = *(vm_t **)exec_proc->m_vm_list->m_data;
+				continue;
 			}
+
+			break;
 		}
 
 		p_vm->m_count++;
@@ -335,8 +338,10 @@ printf("usleeping\n");
 			while(gets(input) != NULL && strcmp(input, "n")) {
 				if (!strcmp(input, "s")) {
 					vm_print_stack(p_vm);
+				} else if (!strcmp(input, "z")) {
+					vm_print_exec_stack(p_vm, true);
 				} else if (!strcmp(input, "x")) {
-					vm_print_exec_stack(p_vm);
+					vm_print_exec_stack(p_vm, false);
 				} else if (!strcmp(input, "c")) { 
 					printf("\n");
 					if (is_ifunc(c)) {
@@ -344,6 +349,8 @@ printf("usleeping\n");
 						printf("\n");
 					} else {
 						printf("---- Closure ----\n");
+						printf("Form: \n");
+						value_print(p_vm, l->m_form); printf("\n");
 						printf("Pool: \n");
 						int pool_size = p_pool->m_size / sizeof(value_t *);
 			            for (int i = 0; i < pool_size; i++) {
@@ -651,8 +658,12 @@ assert(b != NULL);
 				for (int i = 0; i < 1 + p_arg; i++) {
 					p_vm->m_stack[p_vm->m_bp + i] = p_vm->m_stack[p_vm->m_sp - p_arg - 1 + i];
 				}
+int cnt = 0;
+printf("%d] sp: %lu bp: %lu\n", cnt++, p_vm->m_sp, p_vm->m_bp);
 				p_vm->m_sp = p_vm->m_bp + 1 + p_arg;
+printf("%d] sp: %lu bp: %lu\n", cnt++, p_vm->m_sp, p_vm->m_bp);
 				vm_pop_exec_state(p_vm);
+
 
 				// Replace exec state with the new one
 				value_t *call_closure = p_vm->m_stack[p_vm->m_sp - p_arg - 1];
@@ -692,7 +703,7 @@ assert(b != NULL);
 				/////////////////////////////
 				if (is_ifunc(call_closure)) {
 					vm_func_t func = *(vm_func_t *)call_closure->m_data;
-					p_vm->m_ip++;
+				//	p_vm->m_ip++;
 					vm_push_exec_state(p_vm, call_closure);
 					p_vm->m_bp = p_vm->m_sp - 1 - p_arg;
 //printf("bp: %lu = sp: %lu - 1 - p_arg %lu\n", p_vm->m_bp, p_vm->m_sp, p_arg);
@@ -703,8 +714,10 @@ assert(b != NULL);
 				// Put our current state onto the stack
 				//////////////////////////
 //printf("ip: %d\n", p_vm->m_ip);
-				p_vm->m_ip++;
+//				p_vm->m_ip++;
+printf("%d] sp: %lu bp: %lu\n", cnt++, p_vm->m_sp, p_vm->m_bp);
 				vm_push_exec_state(p_vm, call_closure);
+printf("%d] sp: %lu bp: %lu\n", cnt++, p_vm->m_sp, p_vm->m_bp);
 				
 				//////////////////////////
 				// Setup vm for new closure
@@ -713,6 +726,7 @@ assert(b != NULL);
 
 				// Set bp to the closure we are calling
 				p_vm->m_bp = p_vm->m_sp - 1 - p_arg;
+printf("%d] sp: %lu bp: %lu\n", cnt++, p_vm->m_sp, p_vm->m_bp);
 				p_vm->m_ip = 0;
 				
 

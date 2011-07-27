@@ -136,7 +136,7 @@ value_t * value_create_pool(vm_t *p_vm, value_t *p_literals[], int p_literal_cou
 	return ret;
 }
 
-value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_bytecode, value_t *p_pool)
+value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_bytecode, value_t *p_pool, value_t *p_form)
 {
 	assert((p_parameters == nil) || is_cons(p_parameters));
 	assert(p_bytecode && is_bytecode(p_bytecode));
@@ -148,6 +148,7 @@ value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_byte
 	l->m_bytecode = p_bytecode;
 	l->m_pool = p_pool;
 	l->m_is_macro = false;
+	l->m_form = p_form;
 	return ret;
 }
 
@@ -429,7 +430,7 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		case VT_VM_STATE:
 		{
 			vm_state_t *state = (vm_state_t *)p_value->m_data;
-			snprintf(ret->m_data, STRING_SIZE, "VM_STATE: <0x%p> bp: %lu", p_value, state->m_bp);
+			snprintf(ret->m_data, STRING_SIZE, "VM_STATE: <0x%p> bp: %lu ip: %d", p_value, state->m_bp, state->m_ip);
 			break;
 		}
 		default:

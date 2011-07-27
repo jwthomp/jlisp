@@ -256,10 +256,41 @@ void vm_print_stack(vm_t *p_vm)
 	}
 }
 
-void vm_print_exec_stack(vm_t *p_vm)
+void vm_print_exec_stack(vm_t *p_vm, bool p_expand)
 {
 	for (unsigned long i = 0; i < p_vm->m_exp; i++) {
-		printf("S %lu] ", i); value_print(p_vm, p_vm->m_exec_stack[i]); printf("\n");
+		printf("E %lu] ", i); value_print(p_vm, p_vm->m_exec_stack[i]); printf("\n");
+
+		value_t *c = p_vm->m_exec_stack[i]->m_cons[0];
+		lambda_t *l = (lambda_t *)(c->m_cons[1]->m_data);
+
+		if (p_expand == true) {
+			if (is_ifunc(c) == true) {
+				printf("INTERNAL_FUNCTION\n");
+			} else {
+				value_t *p_pool = l->m_pool;
+				printf("---- Closure ----\n");
+				printf("Pool: \n");
+				int pool_size = p_pool->m_size / sizeof(value_t *);
+				for (int i = 0; i < pool_size; i++) {
+					printf("%d] ", i);
+					value_print(p_vm, ((value_t **)p_pool->m_data)[i]);
+					printf("\n");
+				}
+
+				printf("\nBytecode: \n");
+				bytecode_t *code = (bytecode_t *)l->m_bytecode->m_data;
+				for (unsigned long i = 0; i < (l->m_bytecode->m_size / sizeof(bytecode_t)); i++) {
+					printf("op: %s code: %lu\n", g_opcode_print[code[i].m_opcode], code[i].m_value);
+				}
+				printf("-----------------\n");
+			}
+
+		} else {
+			if (is_closure(c) == true) {
+				printf("\t\t"); value_print(p_vm, l->m_form); printf("\n");
+			}
+		}
 	}
 }
 

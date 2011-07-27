@@ -105,7 +105,7 @@ void vm_pop_env(vm_t *p_vm);
 void bind_internal(vm_t *p_vm, value_t *p_symbol, value_t *p_value, bool p_func, bool p_dynamic);
 
 void vm_print_stack(vm_t *p_vm);
-void vm_print_exec_stack(vm_t *p_vm);
+void vm_print_exec_stack(vm_t *p_vm, bool p_expand);
 void vm_print_env(vm_t *p_vm);
 void vm_print_symbols(vm_t *p_vm);
 

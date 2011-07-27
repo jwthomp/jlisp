@@ -46,7 +46,7 @@ value_t * value_create_internal_func(vm_t *p_vm, vm_func_t p_func, int p_nargs, 
 value_t * value_create_cons(vm_t *p_vm, value_t *p_car, value_t *p_cdr);
 value_t * value_create_bytecode(vm_t *p_vm, bytecode_t *p_code, int p_code_count);
 value_t * value_create_pool(vm_t *p_vm, value_t *p_literals[], int p_literal_count);
-value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_bytecode, value_t *p_pool);
+value_t * value_create_lambda(vm_t *p_vm, value_t *p_parameters, value_t *p_bytecode, value_t *p_pool, value_t *p_form);
 value_t * value_create_closure(vm_t *p_vm, value_t *p_env, value_t *p_lambda);
 value_t * value_create_environment(vm_t *p_vm, value_t *p_env);
 value_t * value_create_binding(vm_t *p_vm, value_t *p_key, value_t *p_binding);

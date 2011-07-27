@@ -580,25 +580,31 @@ value_t *load(vm_t *p_vm)
 	fread(input, file_size, 1, fp);
 	fclose(fp);
 
+	vm_pop_exec_state(p_vm);
+
+	p_vm->m_sp--;
 	int start_sp = p_vm->m_sp;
+
 
 	stream_t *strm = stream_create(input);
 	int args = reader(p_vm, strm, false);
 
-//printf("start sp: %d sp: %lu args: %d\n", start_sp, p_vm->m_sp, args);
-//vm_print_stack(p_vm);
+printf("start sp: %d sp: %lu args: %d\n", start_sp, p_vm->m_sp, args);
+vm_print_stack(p_vm);
 
-	p_vm->m_ip++;
 
-	int i = 0;
-	for (int i = 1; i <= args; i++) {
-		p_vm->m_sp--;
-        value_t *form = p_vm->m_stack[start_sp + i];
+	unsigned long start_exp = p_vm->m_exp - 1;
+
+	int i = p_vm->m_sp - 1;
+	while (i >= start_sp) {
+        value_t *form = p_vm->m_stack[i];
 		eval(p_vm, form);
-		i++;
+		i--;
     }
 
-	vm_exec(p_vm, p_vm->m_exp - 1, false);
+	p_vm->m_sp -= args - 1;
+
+	vm_exec(p_vm, start_exp, false);
 	
 
 	free(input);

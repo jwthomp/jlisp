@@ -402,7 +402,10 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 		val = val->m_cons[1];
 	}
 
-	bytecode_t bc = {OP_RET, 0};
+	bytecode_t bc = {OP_NOP, 0};
+	bytecode[bytecode_index++] = bc;
+	bc.m_opcode = OP_RET;
+	bc.m_value = 0;
 	bytecode[bytecode_index++] = bc;
 
 	bytecode_t *bc_allocd = (bytecode_t *)malloc(sizeof(bytecode_t) * bytecode_index);
@@ -412,7 +415,7 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 	value_t *pool_final = value_create_pool(p_vm, pool, pool_index);
 
  //printf("POOL OUT: %p\n", pool);
-	return value_create_lambda(p_vm, p_parameters, bytecode_final, pool_final);
+	return value_create_lambda(p_vm, p_parameters, bytecode_final, pool_final, p_body);
 }
 
 value_t * make_closure(vm_t *p_vm, value_t *p_lambda)
@@ -477,6 +480,17 @@ value_t * eval(vm_t *p_vm, value_t * p_form)
 	}
 
 	value_t *lambda = compile(p_vm, nil, list(p_vm, p_form));
+
+	{
+		lambda_t *l = (lambda_t *)lambda->m_data;
+		value_t *bc_val = l->m_bytecode;
+		bytecode_t *bc = (bytecode_t *)bc_val->m_data;
+		int instructions = bc_val->m_size / sizeof(bytecode_t);
+		assert(bc[instructions - 2].m_opcode == OP_NOP);
+		bc[instructions - 2].m_opcode = OP_POP;
+	}
+	
+
 	lambda = optimize(p_vm, lambda);
 	value_t *closure =  make_closure(p_vm, lambda);
 
