@@ -420,6 +420,7 @@ value_t * value_sprint(vm_t *p_vm, value_t *p_value)
 		{
 			vm_t *vm = *(vm_t **)p_value->m_data;
 			snprintf(ret->m_data, STRING_SIZE, "PROCESS <%p> st: %d",  p_value, vm->m_running_state);
+			vm_print_exec_stack(vm, true);
 			break;
 		}
 		case VT_PID:

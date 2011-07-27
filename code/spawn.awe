@@ -1,1 +1,5 @@
-(defmacro spawn-func (a) (print a))
+(defparameter p (spawn (lambda () (loop 
+	(let ((recvmsg (receive)))
+		(let ((sender (car recvmsg)) (msg (cdr recvmsg)))
+			(send sender msg)))))))
+

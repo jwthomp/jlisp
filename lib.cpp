@@ -61,10 +61,11 @@ value_t *seq(vm_t *p_vm);
 value_t *dbg_time(vm_t *p_vm);
 value_t *msg_send(vm_t *p_vm);
 value_t *msg_recv(vm_t *p_vm);
+value_t *self_vm(vm_t *p_vm);
 
 static struct timeb g_time;
 
-static internal_func_def_t g_ifuncs[33] = {
+static internal_func_def_t g_ifuncs[34] = {
 	{"PRINT-VAL", print_val, 0, false, true},
 	{"PRINT-VM", print_vm, 0, false, true},
 	{"PRINT-ENV", print_env, 0, false, true},
@@ -98,9 +99,10 @@ static internal_func_def_t g_ifuncs[33] = {
 	{"CLOCK", dbg_time, 0, false, true},
 	{"SEND", msg_send, 2, false, true},
 	{"RECEIVE", msg_recv, 0, false, true},
+	{"SELF", self_vm, 0, false, true},
 };
 
-#define NUM_IFUNCS 33
+#define NUM_IFUNCS 34
 
 value_t *gc_lib(vm_t *p_vm)
 {
@@ -110,6 +112,30 @@ value_t *gc_lib(vm_t *p_vm)
 	p_vm->m_stack[p_vm->m_sp++] = nil;
 
 	return t;
+}
+
+value_t *self_vm(vm_t *p_vm)
+{
+	// loop through static heap to find the process value_t. ya this needs fixin'
+	value_t *st = g_static_heap;
+	while (st != NULL) {
+		if (st->m_type == VT_PROCESS) {
+			if (p_vm == *(vm_t **)st->m_data) {
+				break;
+			}
+		}
+		st = st->m_heapptr;
+	}
+
+	p_vm->m_ip++;
+
+	if (st == NULL) {
+		st = nil;
+	}
+
+	p_vm->m_stack[p_vm->m_sp++] = st;
+
+	return st;
 }
 
 value_t *spawn_lib(vm_t *p_vm)
@@ -183,6 +209,8 @@ value_t *read(vm_t *p_vm)
 	p_vm->m_ip++;
 	p_vm->m_stack[p_vm->m_sp++] = rd;
 
+	p_vm->m_count += 1000;
+
     return t;
 }
 
@@ -221,6 +249,7 @@ value_t *let(vm_t *p_vm)
 	vm_cons(p_vm);
 	
 //printf("let end: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
+//vm_print_stack(p_vm);
 
 	p_vm->m_ip++;
 
@@ -243,16 +272,16 @@ value_t *dbg_time(vm_t *p_vm)
 
 value_t *progn(vm_t *p_vm)
 {
-//printf("prognC: "); value_print(car(p_vm->m_stack[p_vm->m_bp + 1])); printf("\n");
+//printf("prognC: "); value_print(p_vm, p_vm->m_stack[p_vm->m_bp + 1]); printf("\n");
 	vm_push(p_vm, value_create_symbol(p_vm, "FUNCALL"));
 	vm_push(p_vm, value_create_symbol(p_vm, "LAMBDA"));
 	vm_push(p_vm, nil);
-	vm_push(p_vm, car(p_vm, p_vm->m_stack[p_vm->m_bp + 1]));
+	vm_push(p_vm, p_vm->m_stack[p_vm->m_bp + 1]);
 	vm_cons(p_vm);
 	vm_cons(p_vm);
 	vm_list(p_vm, 1);
 	vm_cons(p_vm);
-//printf("end prognC: "); value_print(p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
+//printf("end prognC: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
 
 	p_vm->m_ip++;
 

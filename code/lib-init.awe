@@ -1,2 +1,4 @@
 (load "code/dict.awe")
+(load "code/spawn.awe")
+
 (loop (print (eval (read))))

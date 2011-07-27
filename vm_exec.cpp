@@ -14,7 +14,7 @@
 
 #include <pthread.h>
 
-#define NUM_HARDWARE_THREADS 1
+#define NUM_HARDWARE_THREADS 2
 
 typedef struct vm_exec_proc_s
 {
@@ -111,8 +111,17 @@ void vm_exec_proc_destroy(value_t *p_proc)
 
 void vm_exec_add_vm(value_t *p_vm)
 {
-	p_vm->m_next_symbol = g_exec_procs->m_vm_list;
-	g_exec_procs->m_vm_list = p_vm;
+	static bool switcher = false;
+
+	if (switcher == true) {
+		p_vm->m_next_symbol = g_exec_procs->m_next->m_vm_list;
+		g_exec_procs->m_next->m_vm_list = p_vm;
+	} else {
+		switcher = true;
+
+		p_vm->m_next_symbol = g_exec_procs->m_vm_list;
+		g_exec_procs->m_vm_list = p_vm;
+	}
 }
 
 void vm_exec_remove_vm(vm_t *p_vm)
@@ -288,7 +297,6 @@ void vm_exec(vm_t *p_vmUNUSED, int p_return_on_exp, bool p_allow_preemption)
 				}
 			}
 			if (vm_val == NULL && p_vm->m_running_state != VM_RUNNING) {
-printf("usleeping\n");
 				usleep(300000);
 				continue;
 			}
@@ -575,9 +583,11 @@ assert(b != NULL);
 				// Condense remaining args into a list
 				if (func_arg_count < 0) {
 					func_arg_count = -func_arg_count;
+					vm_push(p_vm, nil);
 					for( ; p_arg > func_arg_count; p_arg--) {
 						vm_cons(p_vm);
 					}
+					vm_cons(p_vm);
 
 				}
 
@@ -689,9 +699,11 @@ printf("%d] sp: %lu bp: %lu\n", cnt++, p_vm->m_sp, p_vm->m_bp);
 				// Condense remaining args into a list
 				if (func_arg_count < 0) {
 					func_arg_count = -func_arg_count;
+					vm_push(p_vm, nil);
 					for( ; p_arg > func_arg_count; p_arg--) {
 						vm_cons(p_vm);
 					}
+					vm_cons(p_vm);
 
 				}
 

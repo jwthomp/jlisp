@@ -79,9 +79,7 @@ int macro_expand_1(vm_t *p_vm, value_t **p_value)
 //printf("Found macro, compiling\n");
 		(*p_value)->m_cons[0]->m_type = VT_MACRO;
 
-//printf("Abp: %lu\n", p_vm->m_bp);
 		eval(p_vm, *p_value, false);
-//printf("Bbp: %lu\n", p_vm->m_bp);
 		vm_exec(p_vm, p_vm->m_exp - 1, false);
 		*p_value = p_vm->m_stack[p_vm->m_sp - 1];
 
@@ -165,9 +163,9 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 
 int compile_args(value_t *p_form, vm_t *p_vm, 
 					bytecode_t *p_bytecode, int *p_bytecode_index,
-					value_t **p_pool, int *p_pool_index)
+					value_t **p_pool, int *p_pool_index, bool p_is_macro)
 {
-//	printf("Compile args: "); value_print(p_form); printf("\n");
+//	printf("Compile args: "); value_print(p_vm, p_form); printf("\n");
 
 	// Just run through cons until we get to a nil and compile_form them
 	// Return how many there were
@@ -175,7 +173,11 @@ int compile_args(value_t *p_form, vm_t *p_vm,
 	int n_args = 0;
 	while(val != nil && val->m_cons[0]) {
 		n_args++;
-		compile_form(val->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+		if (p_is_macro) {
+			assemble(OP_PUSH, (int *)val->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+		} else {
+			compile_form(val->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+		}
 		val = val->m_cons[1];
 	}
 
@@ -186,7 +188,7 @@ void compile_function(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-	//printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
+//	printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
 
 	assert(p_form && is_cons(p_form));
 	value_t *func = p_form->m_cons[0];
@@ -337,12 +339,8 @@ assert(is_cons(args->m_cons[0]));
 
 		compile_form(func, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, true);
 		value_t * final_args = args;
-		int argc = 1;
-		if (macro) {
-			assemble(OP_PUSH, (int *)final_args, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-		} else {
-			argc = compile_args(final_args, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-		}
+		int argc = 0;
+		argc = compile_args(final_args, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, macro);
 		assemble(OP_CALL, (int *)argc, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
 	}
 }
@@ -351,7 +349,7 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-	//printf("Compile form: "); value_print(p_vm, p_form); printf("\n");
+//	printf("Compile form: "); value_print(p_vm, p_form); printf("\n");
 
 	// If it's a cons, do a macroexpand in case this is a macro
 	if (is_cons(p_form)) {
@@ -396,6 +394,7 @@ value_t *compile(vm_t *p_vm, value_t *p_parameters, value_t *p_body)
 	assert(p_body != NULL);
 	verify(p_body != nil, "compile: p_body is nil\n");
 	verify(is_cons(p_body), "compile: p_body is not a cons\n");
+//value_print(p_vm, p_body); printf("\n");
 
 	value_t *val = p_body;
 	while(val && val != nil) {

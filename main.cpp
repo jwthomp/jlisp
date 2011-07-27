@@ -36,7 +36,8 @@ int main(int argc, char *arg[])
 
 	printf("awesome-lang v0.0.3, copyright (c) 2011 by jeffrey thompson\n");
 
-	int i = setjmp(*push_handler_stack());
+//	int i = setjmp(*push_handler_stack());
+int i =0;
 	if (i == 0) {
 		char input[256];
 		memset(input, 0, 256);
