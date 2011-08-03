@@ -28,6 +28,7 @@ bool is_lambda(value_t *);
 bool is_null(value_t *);
 bool is_pid(value_t *);
 bool is_process(value_t *);
+bool is_list(value_t *);
 
 inline bool is_ifunc(value_t *p_val) {
   if (is_fixnum(p_val)) {

@@ -82,6 +82,8 @@ typedef struct vm_s {
 	int m_ip;
 	unsigned long m_count;
 
+	int m_quasiquote_count;
+
 	vm_running_state_e m_running_state;
 
 	value_t *m_next;

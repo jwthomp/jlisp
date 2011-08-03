@@ -137,13 +137,33 @@ int reader(vm_t *p_vm, stream_t *p_stream, bool p_in_list)
 		if ((val == ' ') || (val == '\n') || (val == '\r') || (val == '\t')) {
 			// Clear out white space
 			continue;
+		} else if (val == ';') {
+			// Found a comment so toss everything until an end of line
+			while (p_stream->index < p_stream->length) {
+				char val2 = p_stream->pop();
+				if (val2 == '\n') {
+					break;
+				}
+			}
+		} else if (val == '`') {
+			value_t *qt = value_create_symbol(p_vm, "QQ");
+			vm_push(p_vm, qt);
+			reader(p_vm, p_stream, false);
+			vm_list(p_vm, 2);
+			list_size++;
+		} else if (val == ',') {
+			// TODO Add in splicing switch here later
+
+			value_t *qt = value_create_symbol(p_vm, "UQ");
+			vm_push(p_vm, qt);
+			reader(p_vm, p_stream, false);
+			vm_list(p_vm, 2);
+			list_size++;
 		} else if (val == '\'') {
 			value_t *qt = value_create_symbol(p_vm, "QUOTE");
 			vm_push(p_vm, qt);
-
-			process_next(p_vm, p_stream);
+			reader(p_vm, p_stream, false);
 			vm_list(p_vm, 2);
-
 			list_size++;
 		} else if (val == ')') {
 			assert(p_in_list);

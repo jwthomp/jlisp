@@ -515,6 +515,25 @@ bool is_process(value_t *p_val) {
 	return (p_val->m_type == VT_PROCESS);
 }
 	
+bool is_list(value_t *p_val)
+{
+	if (is_cons(p_val) == false) {
+		return false;
+	}
+
+	p_val = p_val->m_cons[1];
+	while(p_val) {
+		if (p_val == nil) {
+			return true;
+		}
+
+		if (is_cons(p_val) == false) {
+			return false;
+		}
+
+		p_val = p_val->m_cons[1];
+	}
+}
 
 bool is_cons(value_t *p_val)
 {

@@ -18,6 +18,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/timeb.h>
+#include <ctype.h>
 
 
 typedef struct {
@@ -62,10 +63,14 @@ value_t *dbg_time(vm_t *p_vm);
 value_t *msg_send(vm_t *p_vm);
 value_t *msg_recv(vm_t *p_vm);
 value_t *self_vm(vm_t *p_vm);
+value_t *quasi_quote(vm_t *p_vm);
+value_t *unquote(vm_t *p_vm);
+value_t *make_symbol(vm_t *p_vm);
 
 static struct timeb g_time;
 
-static internal_func_def_t g_ifuncs[34] = {
+#define NUM_IFUNCS 37
+static internal_func_def_t g_ifuncs[NUM_IFUNCS] = {
 	{"PRINT-VAL", print_val, 0, false, true},
 	{"PRINT-VM", print_vm, 0, false, true},
 	{"PRINT-ENV", print_env, 0, false, true},
@@ -100,9 +105,11 @@ static internal_func_def_t g_ifuncs[34] = {
 	{"SEND", msg_send, 2, false, true},
 	{"RECEIVE", msg_recv, 0, false, true},
 	{"SELF", self_vm, 0, false, true},
+	{"QQ", quasi_quote, 1, true, true},
+	{"UQ", unquote, 1, true, true},
+	{"MAKE-SYMBOL", make_symbol, 1, false, true},
 };
 
-#define NUM_IFUNCS 34
 
 value_t *gc_lib(vm_t *p_vm)
 {
@@ -138,6 +145,25 @@ value_t *self_vm(vm_t *p_vm)
 	return st;
 }
 
+value_t *make_symbol(vm_t *p_vm)
+{
+	value_t * form = p_vm->m_stack[p_vm->m_bp + 1];
+	verify(is_string(form) == true, "No a string");
+
+	// Convert form to all capitals
+	char atom[1024];
+	int i;
+	for (i = 0; i < strlen(form->m_data); i++) {
+		atom[i] = toupper(form->m_data[i]);
+	}
+	atom[i] = 0;
+
+	value_t *ret = value_create_symbol(p_vm, atom);
+	p_vm->m_stack[p_vm->m_sp++] = ret;
+	p_vm->m_ip++;
+	return ret;
+}
+
 value_t *spawn_lib(vm_t *p_vm)
 {
 	value_t * form = p_vm->m_stack[p_vm->m_bp + 1];
@@ -157,6 +183,8 @@ value_t *spawn_lib(vm_t *p_vm)
 
 value_t *eval_lib(vm_t *p_vm)
 {
+printf("EVAL!!!\n");
+		vm_print_stack(p_vm);
 	// Save VM
 	int vm_bp = p_vm->m_bp;
 	int vm_sp = p_vm->m_sp;
@@ -199,6 +227,7 @@ value_t *eval_lib(vm_t *p_vm)
 
 value_t *read(vm_t *p_vm)
 {
+printf("READ!!!\n");
     char input[256];
     printf("R> ");
     gets(input);
@@ -223,8 +252,8 @@ value_t *let(vm_t *p_vm)
 	value_t *largs = car(p_vm, p_vm->m_stack[p_vm->m_bp + 1]);
 	value_t *body = cdr(p_vm, p_vm->m_stack[p_vm->m_bp + 1]);
 
-//printf("let: args "); value_print(p_vm, largs); printf("\n");
-//printf("let: body "); value_print(p_vm, body); printf("\n");
+printf("let: args "); value_print(p_vm, largs); printf("\n");
+printf("let: body "); value_print(p_vm, body); printf("\n");
 
 	// Break ((var val) (var val)) down into a list of args and vals
 	value_t *arg_list = nil;
@@ -248,7 +277,7 @@ value_t *let(vm_t *p_vm)
 	vm_push(p_vm, val_list);
 	vm_cons(p_vm);
 	
-//printf("let end: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
+printf("let end: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
 //vm_print_stack(p_vm);
 
 	p_vm->m_ip++;
@@ -270,9 +299,110 @@ value_t *dbg_time(vm_t *p_vm)
 	return t;
 }
 
+void quasi_parse(vm_t *p_vm, value_t **p_form)
+{
+printf("QP: %d ", p_vm->m_quasiquote_count); value_print(p_vm, *p_form); printf("\n");
+
+	if (p_vm->m_quasiquote_count == 0) {
+printf("QP EVAL: \n");
+		eval(p_vm, *p_form, false);
+printf("QP EXEC: %lu\n", p_vm->m_exp - 1);
+vm_print_stack(p_vm);
+vm_print_exec_stack(p_vm, false);
+		vm_exec(NULL, p_vm->m_exp - 1, false);
+vm_print_stack(p_vm);
+		*p_form = p_vm->m_stack[p_vm->m_sp - 1];
+printf("QP EVAL RET: "); value_print(p_vm, *p_form); printf("\n");
+		return;
+	}
+
+
+	if (is_cons(*p_form) == true) {
+		value_t *cr = car(p_vm, *p_form);
+		if (is_symbol(cr) == true && is_symbol_name("QQ", cr)) {
+			p_vm->m_quasiquote_count++;
+printf("QP EVAL: \n");
+			eval(p_vm, *p_form, false);
+printf("QP EXEC: %lu\n", p_vm->m_exp - 1);
+vm_print_stack(p_vm);
+vm_print_exec_stack(p_vm, false);
+			vm_exec(NULL, p_vm->m_exp - 1, false);
+vm_print_stack(p_vm);
+			*p_form = p_vm->m_stack[p_vm->m_sp - 1];
+printf("QP EVAL RET: "); value_print(p_vm, *p_form); printf("\n");
+			p_vm->m_quasiquote_count--;
+		} else if (is_symbol(cr) == true && is_symbol_name("UQ", cr)) {
+			p_vm->m_quasiquote_count--;
+			quasi_parse(p_vm, &(*p_form)->m_cons[1]->m_cons[0]);
+			p_vm->m_quasiquote_count++;
+printf("QP FB: "); value_print(p_vm, *p_form); printf("\n");
+			*p_form = (*p_form)->m_cons[1]->m_cons[0];
+printf("QP FA: "); value_print(p_vm, *p_form); printf("\n");
+		} else {
+			quasi_parse(p_vm, &(*p_form)->m_cons[0]);
+			if ((*p_form)->m_cons[1] != nil) {
+				quasi_parse(p_vm, &(*p_form)->m_cons[1]);
+			}
+		}
+	} else {
+		value_t *qt = value_create_symbol(p_vm, "QUOTE");
+		value_t *c =  value_create_cons(p_vm, *p_form, nil);
+		*p_form = value_create_cons(p_vm, qt, c);
+	}
+	return;
+	
+}
+
+value_t *quasi_quote(vm_t *p_vm)
+{
+printf("QQ: "); value_print(p_vm, p_vm->m_stack[p_vm->m_bp + 1]); printf("\n");
+vm_print_stack(p_vm);
+vm_print_exec_stack(p_vm, false);
+
+	value_t *form = p_vm->m_stack[p_vm->m_bp + 1];
+	if (is_list(form) == false) {
+		form = value_create_cons(p_vm, form, nil);
+	}
+
+	p_vm->m_quasiquote_count++;
+	quasi_parse(p_vm, &form);
+
+printf("QQ FA: "); value_print(p_vm, form); printf("\n");
+vm_print_stack(p_vm);
+vm_print_exec_stack(p_vm, false);
+
+
+	value_t *lst = value_create_symbol(p_vm, "LIST");
+printf("QQ FA: "); value_print(p_vm, form); printf("\n");
+	vm_push(p_vm, lst);
+printf("QQ FA: "); value_print(p_vm, form); printf("\n");
+	vm_push(p_vm, form);
+printf("QQ FA: "); value_print(p_vm, form); printf("\n");
+vm_print_stack(p_vm);
+	vm_cons(p_vm);
+vm_print_stack(p_vm);
+
+	
+
+printf("END QQ\n");
+
+	p_vm->m_quasiquote_count--;
+	p_vm->m_ip++;
+	return t;
+}
+
+value_t *unquote(vm_t *p_vm)
+{
+	vm_push(p_vm, p_vm->m_stack[p_vm->m_bp + 1]);
+	p_vm->m_ip++;
+	return t;
+}
+
 value_t *progn(vm_t *p_vm)
 {
 //printf("prognC: "); value_print(p_vm, p_vm->m_stack[p_vm->m_bp + 1]); printf("\n");
+printf("ST progn\n");
+vm_print_stack(p_vm);
 	vm_push(p_vm, value_create_symbol(p_vm, "FUNCALL"));
 	vm_push(p_vm, value_create_symbol(p_vm, "LAMBDA"));
 	vm_push(p_vm, nil);
@@ -282,11 +412,14 @@ value_t *progn(vm_t *p_vm)
 	vm_list(p_vm, 1);
 	vm_cons(p_vm);
 //printf("end prognC: "); value_print(p_vm, p_vm->m_stack[p_vm->m_sp - 1]); printf("\n");
+printf("END progn\n");
+vm_print_stack(p_vm);
 
 	p_vm->m_ip++;
 
 	return t;
 }
+
 
 value_t *msg_send(vm_t *p_vm)
 {
@@ -857,7 +990,7 @@ value_t *print_val(vm_t *p_vm)
 
 value_t *print(vm_t *p_vm)
 {
-//	printf("PRINT!!!!!! sp: %lu bp: %lu>> \n", p_vm->m_sp, p_vm->m_bp);
+	printf("PRINT!!!!!! sp: %lu bp: %lu>> \n", p_vm->m_sp, p_vm->m_bp);
 //	vm_print_stack(p_vm);
 //	printf("<<\n");
 

@@ -1,4 +1,3 @@
-(load "code/dict.awe")
-(load "code/spawn.awe")
+(defun list (&rest a) a)
 
 (loop (print (eval (read))))

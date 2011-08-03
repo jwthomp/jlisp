@@ -1,0 +1,21 @@
+;;; Common Lisp backquote implementation, written in Common Lisp. 
+;;; Author: Guy L. Steele Jr.     Date: 27 December 1985 
+;;; Tested under Symbolics Common Lisp and Lucid Common Lisp. 
+;;; This software is in the public domain.
+;;; $ is pseudo-backquote and % is pseudo-comma.  This makes it 
+;;; possible to test this code without interfering with normal 
+;;; Common Lisp syntax.
+;;; The following are unique tokens used during processing. 
+;;; They need not be symbols; they need not even be atoms.
+defvar *comma* (make-symbol "COMMA")) 
+(defparameter *comma* (make-symbol "COMMA")) 
+(defparameter *comma-atsign* (make-symbol "COMMA-ATSIGN"))
+(defparameter *comma-dot* (make-symbol "COMMA-DOT"))
+(defparameter *bq-list* (make-symbol "BQ-LIST"))
+(defparameter *bq-append* (make-symbol "BQ-APPEND"))
+(defparameter *bq-list** (make-symbol "BQ-LIST*"))
+(defparameter *bq-nconc* (make-symbol "BQ-NCONC"))
+(defparameter *bq-clobberable* (make-symbol "BQ-CLOBBERABLE"))
+(defparameter *bq-quote* (make-symbol "BQ-QUOTE"))
+(defparameter *bq-quote-nil* (list *bq-quote* nil))
+

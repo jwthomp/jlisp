@@ -73,6 +73,7 @@ p_stack_size = EXEC_STACK_SIZE;
 	vm->m_c_stack = (value_t **)malloc(sizeof(value_t *) * C_STACK_SIZE);
 	vm->m_count = 0;
 	vm->m_running_state = VM_RUNNING;
+	vm->m_quasiquote_count = 0;
 
 	vm_init_message(vm);
 

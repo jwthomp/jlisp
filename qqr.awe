@@ -1,0 +1,25 @@
+(defvar *comma* (make-symbol "COMMA")) 
+(defvar *comma-atsign* (make-symbol "COMMA-ATSIGN")) 
+(defvar *comma-dot* (make-symbol "COMMA-DOT")) 
+(defvar *bq-list* (make-symbol "BQ-LIST")) 
+(defvar *bq-append* (make-symbol "BQ-APPEND")) 
+(defvar *bq-list** (make-symbol "BQ-LIST*")) 
+(defvar *bq-nconc* (make-symbol "BQ-NCONC")) 
+(defvar *bq-clobberable* (make-symbol "BQ-CLOBBERABLE")) 
+(defvar *bq-quote* (make-symbol "BQ-QUOTE")) 
+(defvar *bq-quote-nil* (list *bq-quote* nil))
+
+(set-macro-character #\$ 
+  #'(lambda (stream char) 
+      (declare (ignore char)) 
+      (list 'backquote (read stream t nil t))))
+(set-macro-character #\% 
+  #'(lambda (stream char) 
+      (declare (ignore char)) 
+        (case (peek-char nil stream t nil t) 
+          (#\@ (read-char stream t nil t) 
+               (list *comma-atsign* (read stream t nil t))) 
+          (#\. (read-char stream t nil t) 
+               (list *comma-dot* (read stream t nil t))) 
+          (otherwise (list *comma* (read stream t nil t))))))
+ 

@@ -74,11 +74,10 @@ bool is_form_macro(vm_t *p_vm, value_t *p_value)
 
 int macro_expand_1(vm_t *p_vm, value_t **p_value)
 {
-//printf("macro_expand_1: "); value_print(p_vm, *p_value); printf("\n");
+printf("macro_expand_1: "); value_print(p_vm, *p_value); printf("\n");
 	if (is_cons(*p_value) && is_form_macro(p_vm, *p_value)) {
-//printf("Found macro, compiling\n");
+printf("Found macro, compiling\n");
 		(*p_value)->m_cons[0]->m_type = VT_MACRO;
-
 		eval(p_vm, *p_value, false);
 		vm_exec(p_vm, p_vm->m_exp - 1, false);
 		*p_value = p_vm->m_stack[p_vm->m_sp - 1];
@@ -161,6 +160,23 @@ int assemble(opcode_e p_opcode, void *p_arg, vm_t *p_vm,
 	return 0;
 }
 
+void compile_quasi(value_t *p_form, vm_t *p_vm) {
+#if 0
+		if (p_vm->m_quasiquote_count > 0 && is_quasi(p_form) == false) {
+
+			// Time to rebuild the form
+			value_t *val = p_form->m_cons[0];
+			vm_push(p_vm, val);
+			compile_form(p_form->m_cons[1], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+			vm_list(p_vm, 2);
+		(*p_value)->m_cons[0]->m_type = VT_MACRO;
+		eval(p_vm, *p_value, false);
+		vm_exec(p_vm, p_vm->m_exp - 1, false);
+		*p_value = p_vm->m_stack[p_vm->m_sp - 1];
+		} else {
+#endif
+}
+
 int compile_args(value_t *p_form, vm_t *p_vm, 
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_is_macro)
@@ -181,28 +197,68 @@ int compile_args(value_t *p_form, vm_t *p_vm,
 		val = val->m_cons[1];
 	}
 
+//	if (p_is_macro) {
+//		assemble(OP_PUSH, (int *)nil, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+//	}
+
 	return n_args;
+}
+
+bool is_quasi(vm_t *p_vm, value_t *p_form)
+{
+	value_t *func = p_form->m_cons[0];
+
+printf("is_quasi: "); value_print(p_vm, func); printf("\n");
+
+	if (is_symbol(func) == false) {
+		return false;
+	}
+
+	if (is_symbol_name("QUASI-QUOTE", func) == true ||
+		is_symbol_name("UNQUOTE", func) == true ||
+		is_symbol_name("UNQUOTE-SPLICING", func)) {
+		return true;
+	}
+
+	return false;
 }
 
 void compile_function(value_t *p_form, vm_t *p_vm, 
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index)
 {
-//	printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
+	printf("Compile function: "); value_print(p_vm, p_form); printf("\n");
 
 	assert(p_form && is_cons(p_form));
 	value_t *func = p_form->m_cons[0];
 	value_t *args = p_form->m_cons[1];
 
-//printf("cf: func: "); value_print(p_vm, func); printf("\n");
-//printf("cf: args: "); value_print(p_vm, args); printf("\n");
+printf("cf: func: "); value_print(p_vm, func); printf("\n");
+printf("cf: args: "); value_print(p_vm, args); printf("\n");
+
 
 	if (is_symbol(func) && is_symbol_name("QUOTE", func)) {
 		
-//printf("quote: %s", valuetype_print(args->m_type)); value_print(p_vm, args); printf("\n");
+printf("QUOTE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+printf("quote: %s", valuetype_print(args->m_type)); value_print(p_vm, args); printf("\n");
 
 		// is of form (args . nil) so only push car
 		assemble(OP_PUSH, args->m_cons[0], p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
+	} else if (is_symbol(func) && is_symbol_name("QUASI-QUOTE", func)) {
+//		value_t *form = car(p_vm, args);
+//		p_vm->m_quasiquote_count++;
+//		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+//		p_vm->m_quasiquote_count--;
+		value_t *qt = value_create_symbol(p_vm, "QUOTE");
+		value_t *ret = value_create_cons(p_vm, qt, args);
+//		value_t *list = value_create_cons(p_vm, ret, nil);
+		compile_form(ret, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+	} else if (is_symbol(func) && is_symbol_name("UNQUOTE", func)) {
+		value_t *form = car(p_vm, args);
+		verify(p_vm->m_quasiquote_count > 0, "Using UNQUOTE without corresponding QUASI-QUOTE\n");
+		p_vm->m_quasiquote_count--;
+		compile_form(form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index, false);
+		p_vm->m_quasiquote_count++;
 	} else if (is_symbol(func) && is_symbol_name("DEFVAR", func)) {
 		assert(args->m_cons[0] != nil && args->m_cons[1] != nil && args->m_cons[1]->m_cons[0] != nil);
 
@@ -349,19 +405,20 @@ void compile_form(value_t *p_form, vm_t *p_vm,
 					bytecode_t *p_bytecode, int *p_bytecode_index,
 					value_t **p_pool, int *p_pool_index, bool p_function)
 {
-//	printf("Compile form: "); value_print(p_vm, p_form); printf("\n");
+	printf("Compile form: "); value_print(p_vm, p_form); printf("\n");
 
 	// If it's a cons, do a macroexpand in case this is a macro
 	if (is_cons(p_form)) {
 		macro_expand(p_vm, &p_form);
 	}
 
-//	printf("Compile post macro form: "); value_print(p_vm, p_form); printf("\n");
+	printf("Compile post macro form: "); value_print(p_vm, p_form); printf("\n");
+
 
 	// If this was a macro, we need to do checks again here since the form may have changed
-	if (is_cons(p_form)) {
+	if (is_cons(p_form) && (p_vm->m_quasiquote_count == 0 || is_quasi(p_vm, p_form) == true)) { 
 		compile_function(p_form, p_vm, p_bytecode, p_bytecode_index, p_pool, p_pool_index);
-	} else if (is_symbol(p_form) || (is_macro(p_form))) {
+	} else if (p_vm->m_quasiquote_count == 0 && (is_symbol(p_form) || (is_macro(p_form)))) {
 		// Change type back to symbol
 		p_form->m_type = VT_SYMBOL;
 		opcode_e opcode = p_function ? OP_LOADF : OP_LOAD;
@@ -451,24 +508,6 @@ value_t *optimize(vm_t *p_vm, value_t *p_lambda)
 		}
 	}
 
-#if 0
-     value_t *pool = l->m_pool;
-
-    printf("---- Closure ----\n");
-    printf("Pool: \n");
-    int pool_size = pool->m_size / sizeof(value_t *);
-    for (int i = 0; i < pool_size; i++) {
-        printf("%d] ", i);
-        value_print(p_vm, ((value_t **)pool->m_data)[i]);
-        printf("\n");
-    }
-     printf("\nBytecode: \n");
-    for (unsigned long i = 0; i < (l->m_bytecode->m_size / sizeof(bytecode_t)); i++) {
-        printf("%lu] %s code: %ld\n", i, g_opcode_print[bc[i].m_opcode], bc[i].m_value);
-    }
-    printf("-----------------\n");
-#endif
-
 
 	return p_lambda;
 }
@@ -495,7 +534,6 @@ value_t * eval(vm_t *p_vm, value_t * p_form, bool p_pop)
 	lambda = optimize(p_vm, lambda);
 	value_t *closure =  make_closure(p_vm, lambda);
 
-//	p_vm->m_ip++;
 	vm_push_exec_state(p_vm, closure);
 	p_vm->m_ip = 0;
 	p_vm->m_bp = p_vm->m_bp; // + 1;
